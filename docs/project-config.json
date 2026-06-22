@@ -4,6 +4,7 @@
   "domain": "",
   "git_repo": "https://github.com/huong-dao/crm-ntp.git",
   "git_branch": "main",
+  "git_status": "configured — push verified 2026-06-22",
   "app_dir": "/var/www/ntp",
   "db_name": "ntp_members",
   "db_user": "ntp_user"

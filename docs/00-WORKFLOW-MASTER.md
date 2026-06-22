@@ -84,7 +84,7 @@
 
 | # | Bước | Vai trò | Trạng thái |
 |---|------|---------|------------|
-| 3.1 | Init Next.js project trên server | Dev | `[ ]` |
+| 3.1 | Init Next.js project trên server | Dev | `[x]` |
 | 3.2 | Cài dependencies (Prisma, NextAuth, Tailwind, shadcn/ui) | Dev | `[ ]` |
 | 3.3 | Cấu hình Prisma + kết nối DB | Dev | `[ ]` |
 | 3.4 | Chạy migration tạo tables | Dev | `[ ]` |

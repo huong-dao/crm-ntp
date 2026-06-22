@@ -37,15 +37,14 @@ Workflow đầy đủ: **[docs/00-WORKFLOW-MASTER.md](docs/00-WORKFLOW-MASTER.md
 | [Deployment](docs/04-server/03-deployment.md) | Deploy production |
 | [Test Plan](docs/05-testing/01-test-plan.md) | Kế hoạch kiểm thử |
 
-## Development (trên server)
+## Development (local hoặc server)
 
 ```bash
-cd /var/www/ntp
-git pull origin main
-pnpm install
-npx prisma migrate deploy
-pnpm dev        # development
-pnpm build && pm2 restart ntp-app  # production
+cd d:\Next\ntp   # hoặc /var/www/ntp trên server
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # production build
+npm start        # production server
 ```
 
 ## Environment Variables

@@ -1,7 +1,7 @@
 {
   "project": "NTP Member Management",
   "last_updated": "2026-06-22",
-  "current_step": "0.1",
+  "current_step": "3.2",
   "notes": "Đọc docs/WORKFLOW-EXECUTOR.md. Nói 'tiếp tục' để agent thực hiện bước tiếp theo.",
   "steps": {
     "0.1": { "status": "pending", "completed_at": null, "notes": "" },
@@ -24,8 +24,8 @@
     "2.3": { "status": "completed", "completed_at": "2026-06-22", "notes": "docs/02-architecture/03-sitemap.md" },
     "2.4": { "status": "completed", "completed_at": "2026-06-22", "notes": "docs/02-architecture/04-api-design.md" },
     "2.5": { "status": "completed", "completed_at": "2026-06-22", "notes": "docs/02-architecture/05-ui-design.md" },
-    "2.6": { "status": "pending", "completed_at": null, "notes": "Review thiết kế với team" },
-    "3.1": { "status": "pending", "completed_at": null, "notes": "" },
+    "2.6": { "status": "skipped", "completed_at": "2026-06-22", "notes": "Bỏ qua — bắt đầu code trực tiếp" },
+    "3.1": { "status": "completed", "completed_at": "2026-06-22", "notes": "Next.js 16 + App Router scaffold, 12 routes" },
     "3.2": { "status": "pending", "completed_at": null, "notes": "" },
     "3.3": { "status": "pending", "completed_at": null, "notes": "" },
     "3.4": { "status": "pending", "completed_at": null, "notes": "" },
