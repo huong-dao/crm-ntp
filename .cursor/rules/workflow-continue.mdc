@@ -1,0 +1,49 @@
+---
+description: Workflow "tiếp tục" — thực hiện bước tiếp theo của dự án NTP
+alwaysApply: true
+---
+
+# NTP Workflow — Tiếp tục
+
+Khi user nói **"tiếp tục"**, **"continue"**, **"làm bước tiếp"**, **"next step"**, hoặc tương đương:
+
+## Bắt buộc làm theo thứ tự
+
+1. **Đọc** `docs/progress.json` — trạng thái các bước
+2. **Đọc** `docs/workflow-steps.json` — chi tiết hành động
+3. **Đọc** `docs/project-config.json` — server IP, domain (nếu có)
+4. **Tìm** bước đầu tiên có `status: "pending"` trong progress.json (theo thứ tự id: 0.1 → 0.2 → ... → 6.4)
+5. **Kiểm tra** `depends_on` — mọi dependency phải `completed` trong progress.json
+6. **Thực hiện** theo `type` trong workflow-steps.json:
+   - `auto` → code, tạo file, chạy lệnh, verify
+   - `manual` → in hướng dẫn chi tiết, KHÔNG đánh dấu completed cho đến khi user confirm ("đã xong X.Y")
+   - `hybrid` → agent làm phần có thể (code, script); phần server hướng dẫn user SSH
+7. **Verify** theo mảng `verify` của step
+8. **Cập nhật** `docs/progress.json`: `status: "completed"`, `completed_at`, `notes`
+9. **Cập nhật** checkbox tương ứng trong `docs/00-WORKFLOW-MASTER.md` (`[ ]` → `[x]`)
+10. **Báo cáo** ngắn: bước vừa làm, deliverables, bước tiếp theo
+
+## Lệnh khác
+
+| User nói | Hành động |
+|----------|-----------|
+| `trạng thái` / `status` | Liệt kê completed vs pending, % tiến độ |
+| `bước 3.1` / `step 3.1` | Thực hiện bước cụ thể (nếu depends OK) |
+| `tiếp tục 3 bước` | Lặp workflow 3 lần (skip manual nếu chưa confirm) |
+| `đã xong 0.1` | Đánh dấu bước manual completed |
+| `skip 3.33` | Đánh dấu skipped + ghi lý do trong notes |
+
+## Ràng buộc dự án
+
+- Stack: Next.js 15 App Router + PostgreSQL + Prisma + NextAuth + Tailwind + shadcn/ui
+- Users (auth) tách biệt Members (tín hữu) — không FK
+- Không có DB local — migration/seed cần server hoặc user cung cấp DATABASE_URL
+- Tham chiếu chi tiết: `docs/WORKFLOW-EXECUTOR.md`, `docs/02-architecture/`
+
+## Khi bước cần thông tin server
+
+Hỏi user và lưu vào `docs/project-config.json`: `server_ip`, `domain`, `git_repo`, `DATABASE_URL` (không lưu password vào repo nếu commit).
+
+## Sau mỗi bước auto lớn
+
+Tóm tắt thay đổi file. Chỉ commit khi user yêu cầu.

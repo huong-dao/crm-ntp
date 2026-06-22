@@ -1,0 +1,10 @@
+{
+  "server_ip": "",
+  "server_user": "ntpadmin",
+  "domain": "",
+  "git_repo": "https://github.com/huong-dao/crm-ntp.git",
+  "git_branch": "main",
+  "app_dir": "/var/www/ntp",
+  "db_name": "ntp_members",
+  "db_user": "ntp_user"
+}

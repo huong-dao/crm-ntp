@@ -1,0 +1,1094 @@
+{
+  "version": 1,
+  "steps": [
+    {
+      "id": "0.1",
+      "title": "Mua/đăng ký VPS (Ubuntu 22.04+, RAM ≥ 2GB)",
+      "role": "DevOps",
+      "type": "manual",
+      "depends_on": [],
+      "reference": "docs/04-server/01-server-setup.md",
+      "actions": [
+        "Chọn nhà cung cấp: Vultr, DigitalOcean, Contabo, Viettel IDC",
+        "Chọn Ubuntu 22.04 LTS, RAM ≥ 2GB, 20GB disk",
+        "Ghi nhận IP server và root password/SSH key",
+        "Cập nhật docs/project-config.json: server_ip"
+      ],
+      "verify": ["SSH kết nối được: ssh root@SERVER_IP"],
+      "deliverables": ["server_ip trong project-config.json"]
+    },
+    {
+      "id": "0.2",
+      "title": "Cài Node.js 20 LTS, pnpm",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.1"],
+      "reference": "docs/04-server/01-server-setup.md#bước-4",
+      "actions": [
+        "SSH vào server",
+        "apt update && apt upgrade -y",
+        "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
+        "apt install -y nodejs",
+        "npm install -g pnpm",
+        "Verify: node -v, pnpm -v"
+      ],
+      "verify": ["node -v hiển thị v20.x", "pnpm -v hiển thị version"],
+      "deliverables": []
+    },
+    {
+      "id": "0.3",
+      "title": "Cài PostgreSQL 15+",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.2"],
+      "reference": "docs/04-server/01-server-setup.md#bước-5",
+      "actions": [
+        "apt install -y postgresql postgresql-contrib",
+        "systemctl enable postgresql && systemctl start postgresql",
+        "Verify: systemctl status postgresql"
+      ],
+      "verify": ["PostgreSQL active (running)"],
+      "deliverables": []
+    },
+    {
+      "id": "0.4",
+      "title": "Cài Nginx (reverse proxy)",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.2"],
+      "reference": "docs/04-server/01-server-setup.md#bước-6",
+      "actions": [
+        "apt install -y nginx",
+        "systemctl enable nginx && systemctl start nginx",
+        "Truy cập http://SERVER_IP → thấy Nginx welcome"
+      ],
+      "verify": ["Nginx welcome page hiển thị"],
+      "deliverables": []
+    },
+    {
+      "id": "0.5",
+      "title": "Cài PM2 (process manager)",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.2"],
+      "reference": "docs/04-server/01-server-setup.md#bước-7",
+      "actions": [
+        "npm install -g pm2",
+        "pm2 -v"
+      ],
+      "verify": ["pm2 -v hiển thị version"],
+      "deliverables": []
+    },
+    {
+      "id": "0.6",
+      "title": "Cài Git, tạo user, clone repo",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.1"],
+      "reference": "docs/04-server/01-server-setup.md",
+      "actions": [
+        "adduser ntpadmin && usermod -aG sudo ntpadmin",
+        "apt install -y git",
+        "mkdir -p /var/www/ntp && chown ntpadmin:ntpadmin /var/www/ntp",
+        "Clone repo hoặc chờ bước 3.7 push code",
+        "Cập nhật project-config.json: git_repo nếu có"
+      ],
+      "verify": ["User ntpadmin SSH được", "Thư mục /var/www/ntp tồn tại"],
+      "deliverables": []
+    },
+    {
+      "id": "0.7",
+      "title": "Tạo database ntp_members + user DB",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.3"],
+      "reference": "docs/04-server/02-database-setup.md",
+      "actions": [
+        "sudo -u postgres psql",
+        "CREATE USER ntp_user WITH PASSWORD '...'",
+        "CREATE DATABASE ntp_members OWNER ntp_user",
+        "GRANT ALL PRIVILEGES",
+        "Test: psql -U ntp_user -d ntp_members -h localhost"
+      ],
+      "verify": ["Kết nối DB thành công"],
+      "deliverables": ["DATABASE_URL cho .env"]
+    },
+    {
+      "id": "0.8",
+      "title": "Cấu hình firewall (22, 80, 443)",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.4"],
+      "reference": "docs/04-server/01-server-setup.md#bước-8",
+      "actions": [
+        "ufw allow OpenSSH",
+        "ufw allow 'Nginx Full'",
+        "ufw enable",
+        "ufw status"
+      ],
+      "verify": ["Ports 22, 80, 443 ALLOW"],
+      "deliverables": []
+    },
+    {
+      "id": "0.9",
+      "title": "Cài SSL (Let's Encrypt)",
+      "role": "DevOps",
+      "type": "manual",
+      "depends_on": ["0.4", "5.2"],
+      "reference": "docs/04-server/01-server-setup.md#bước-9",
+      "actions": [
+        "Domain trỏ A record về server IP",
+        "apt install certbot python3-certbot-nginx",
+        "certbot --nginx -d DOMAIN",
+        "Cập nhật project-config.json: domain"
+      ],
+      "verify": ["https://DOMAIN truy cập được"],
+      "deliverables": ["domain trong project-config.json"],
+      "notes": "Cần domain và Nginx config (5.2). Có thể làm sau bước 5.2."
+    },
+    {
+      "id": "0.10",
+      "title": "Tạo file .env trên server",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.7"],
+      "reference": "docs/04-server/01-server-setup.md#bước-12",
+      "actions": [
+        "Tạo .env với DATABASE_URL, NEXTAUTH_URL, NEXTAUTH_SECRET",
+        "NEXTAUTH_SECRET: openssl rand -base64 32",
+        "KHÔNG commit .env"
+      ],
+      "verify": [".env tồn tại trên server với đủ biến"],
+      "deliverables": [".env.example trong repo (không có secrets)"]
+    },
+    {
+      "id": "1.1",
+      "title": "Phân tích yêu cầu nghiệp vụ",
+      "role": "BA",
+      "type": "auto",
+      "depends_on": [],
+      "reference": "docs/01-ba/01-requirements-analysis.md",
+      "actions": ["File docs đã tạo"],
+      "verify": ["File tồn tại và đầy đủ modules"],
+      "deliverables": ["docs/01-ba/01-requirements-analysis.md"]
+    },
+    {
+      "id": "1.2",
+      "title": "User Stories & Acceptance Criteria",
+      "role": "BA",
+      "type": "auto",
+      "depends_on": ["1.1"],
+      "reference": "docs/01-ba/02-user-stories.md",
+      "actions": ["File docs đã tạo"],
+      "verify": ["Có user stories cho tất cả epic"],
+      "deliverables": ["docs/01-ba/02-user-stories.md"]
+    },
+    {
+      "id": "1.3",
+      "title": "Đặc tả chức năng chi tiết",
+      "role": "BA",
+      "type": "auto",
+      "depends_on": ["1.2"],
+      "reference": "docs/01-ba/03-functional-spec.md",
+      "actions": ["File docs đã tạo"],
+      "verify": ["Có spec cho mỗi trang/chức năng"],
+      "deliverables": ["docs/01-ba/03-functional-spec.md"]
+    },
+    {
+      "id": "1.4",
+      "title": "Review yêu cầu với stakeholder",
+      "role": "BA",
+      "type": "manual",
+      "depends_on": ["1.3"],
+      "reference": "docs/01-ba/01-requirements-analysis.md",
+      "actions": [
+        "Gửi docs/01-ba/ cho Ban chấp sự review",
+        "Ghi nhận feedback vào docs/01-ba/review-notes.md (nếu có)"
+      ],
+      "verify": ["Stakeholder đồng ý hoặc feedback đã ghi"],
+      "deliverables": []
+    },
+    {
+      "id": "1.5",
+      "title": "Chốt scope MVP vs Phase 2",
+      "role": "BA",
+      "type": "manual",
+      "depends_on": ["1.4"],
+      "reference": "docs/01-ba/01-requirements-analysis.md#6-mvp-scope",
+      "actions": ["Confirm MVP scope trong requirements doc"],
+      "verify": ["MVP scope được chốt"],
+      "deliverables": []
+    },
+    {
+      "id": "2.1",
+      "title": "Chọn tech stack & giải pháp",
+      "role": "Architect",
+      "type": "auto",
+      "depends_on": ["1.5"],
+      "reference": "docs/02-architecture/01-tech-stack.md",
+      "actions": ["File docs đã tạo"],
+      "verify": ["Tech stack documented"],
+      "deliverables": ["docs/02-architecture/01-tech-stack.md"]
+    },
+    {
+      "id": "2.2",
+      "title": "Thiết kế database schema",
+      "role": "Architect",
+      "type": "auto",
+      "depends_on": ["2.1"],
+      "reference": "docs/02-architecture/02-database-schema.md",
+      "actions": ["Prisma schema trong docs"],
+      "verify": ["5 tables: users, members, households, visit_teams, visit_requests"],
+      "deliverables": ["docs/02-architecture/02-database-schema.md"]
+    },
+    {
+      "id": "2.3",
+      "title": "Thiết kế sitemap & navigation",
+      "role": "UX",
+      "type": "auto",
+      "depends_on": ["2.1"],
+      "reference": "docs/02-architecture/03-sitemap.md",
+      "actions": ["File docs đã tạo"],
+      "verify": ["Tất cả routes documented"],
+      "deliverables": ["docs/02-architecture/03-sitemap.md"]
+    },
+    {
+      "id": "2.4",
+      "title": "Thiết kế Server Actions",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["2.2"],
+      "reference": "docs/02-architecture/04-api-design.md",
+      "actions": ["File docs đã tạo"],
+      "verify": ["Actions cho mỗi module"],
+      "deliverables": ["docs/02-architecture/04-api-design.md"]
+    },
+    {
+      "id": "2.5",
+      "title": "Thiết kế UI/UX",
+      "role": "UX",
+      "type": "auto",
+      "depends_on": ["2.3"],
+      "reference": "docs/02-architecture/05-ui-design.md",
+      "actions": ["File docs đã tạo"],
+      "verify": ["Colors, typography, components defined"],
+      "deliverables": ["docs/02-architecture/05-ui-design.md"]
+    },
+    {
+      "id": "2.6",
+      "title": "Review & chốt thiết kế",
+      "role": "Team",
+      "type": "manual",
+      "depends_on": ["2.5"],
+      "reference": "docs/02-architecture/",
+      "actions": ["Review architecture docs với team"],
+      "verify": ["Thiết kế được chốt"],
+      "deliverables": []
+    },
+    {
+      "id": "3.1",
+      "title": "Init Next.js project",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["2.6"],
+      "reference": "docs/03-dev/01-development-phases.md#phase-1",
+      "actions": [
+        "npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias @/*",
+        "Cấu trúc src/app theo docs/02-architecture/01-tech-stack.md",
+        "Tạo .env.example",
+        "Verify pnpm dev chạy được"
+      ],
+      "verify": ["package.json tồn tại", "pnpm dev start OK", "Trang mặc định hiển thị"],
+      "deliverables": ["Next.js project scaffold"]
+    },
+    {
+      "id": "3.2",
+      "title": "Cài dependencies (Prisma, NextAuth, shadcn/ui)",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.1"],
+      "reference": "docs/03-dev/01-development-phases.md#bước-12",
+      "actions": [
+        "pnpm add @prisma/client next-auth@beta bcryptjs zod",
+        "pnpm add -D prisma @types/bcryptjs",
+        "pnpm dlx shadcn@latest init",
+        "Add shadcn components: button input select table dialog badge card tabs dropdown-menu pagination toast sheet avatar separator calendar popover checkbox textarea label"
+      ],
+      "verify": ["Dependencies trong package.json", "components/ui/ có components"],
+      "deliverables": ["package.json updated", "shadcn components"]
+    },
+    {
+      "id": "3.3",
+      "title": "Cấu hình Prisma + kết nối DB",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.2", "0.7"],
+      "reference": "docs/02-architecture/02-database-schema.md",
+      "actions": [
+        "npx prisma init",
+        "Copy schema từ docs vào prisma/schema.prisma",
+        "Tạo src/lib/prisma.ts singleton",
+        "Cấu hình DATABASE_URL (local .env hoặc server)"
+      ],
+      "verify": ["prisma/schema.prisma đầy đủ", "prisma.ts tồn tại"],
+      "deliverables": ["prisma/schema.prisma", "src/lib/prisma.ts"]
+    },
+    {
+      "id": "3.4",
+      "title": "Chạy migration tạo tables",
+      "role": "Dev",
+      "type": "hybrid",
+      "depends_on": ["3.3"],
+      "reference": "docs/04-server/02-database-setup.md#bước-4",
+      "actions": [
+        "npx prisma migrate dev --name init (cần DB connection)",
+        "Verify tables: users, members, households, visit_teams, visit_requests"
+      ],
+      "verify": ["Migration thành công", "5 tables trong DB"],
+      "deliverables": ["prisma/migrations/"]
+    },
+    {
+      "id": "3.5",
+      "title": "Seed data mẫu",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.4"],
+      "reference": "docs/04-server/02-database-setup.md#bước-5",
+      "actions": [
+        "Tạo prisma/seed.ts",
+        "Seed: admin user, 2 visit teams, 3 households, 10 members",
+        "Cấu hình prisma seed trong package.json",
+        "npx prisma db seed"
+      ],
+      "verify": ["Admin login admin/admin123 hoạt động sau bước 3.6"],
+      "deliverables": ["prisma/seed.ts"]
+    },
+    {
+      "id": "3.6",
+      "title": "Cấu hình NextAuth (login/logout)",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.4"],
+      "reference": "docs/02-architecture/04-api-design.md#4-auth-api",
+      "actions": [
+        "Tạo src/lib/auth.ts",
+        "Tạo src/app/api/auth/[...nextauth]/route.ts",
+        "Credentials provider + bcrypt",
+        "Session với role (admin/user)"
+      ],
+      "verify": ["Auth route responds", "auth() helper works"],
+      "deliverables": ["src/lib/auth.ts", "api/auth route"]
+    },
+    {
+      "id": "3.7",
+      "title": "Push code lên Git",
+      "role": "Dev",
+      "type": "hybrid",
+      "depends_on": ["3.6"],
+      "reference": "docs/03-dev/01-development-phases.md",
+      "actions": [
+        "git init / remote add",
+        "git add . && git commit",
+        "git push -u origin main",
+        "Trên server: git clone hoặc pull"
+      ],
+      "verify": ["Code trên remote repository"],
+      "deliverables": ["Git repo với code"]
+    },
+    {
+      "id": "3.8",
+      "title": "Trang Login",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.6"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-01",
+      "actions": [
+        "Tạo src/app/(auth)/login/page.tsx",
+        "Form username + password",
+        "signIn() NextAuth",
+        "Error handling, redirect dashboard"
+      ],
+      "verify": ["/login hiển thị form", "Login redirect works"],
+      "deliverables": ["login page"]
+    },
+    {
+      "id": "3.9",
+      "title": "Admin tạo tài khoản User",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.11"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-08",
+      "actions": [
+        "src/app/(dashboard)/users/page.tsx",
+        "src/actions/user-actions.ts",
+        "Create user dialog, toggle active",
+        "Admin only"
+      ],
+      "verify": ["Admin tạo user thành công"],
+      "deliverables": ["users page", "user-actions"]
+    },
+    {
+      "id": "3.10",
+      "title": "Middleware bảo vệ route",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.6"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-09",
+      "actions": [
+        "Tạo src/middleware.ts",
+        "Protect all routes except /login",
+        "Redirect unauthenticated to /login"
+      ],
+      "verify": ["/dashboard without login → /login"],
+      "deliverables": ["src/middleware.ts"]
+    },
+    {
+      "id": "3.11",
+      "title": "Phân quyền Admin vs User",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.10"],
+      "reference": "docs/01-ba/01-requirements-analysis.md#3-phân-quyền",
+      "actions": [
+        "Middleware: /users chỉ admin",
+        "Helper checkRole()",
+        "Hide admin menu cho user"
+      ],
+      "verify": ["User không truy cập /users"],
+      "deliverables": ["RBAC in middleware + UI"]
+    },
+    {
+      "id": "3.12",
+      "title": "Logout",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.8"],
+      "reference": "docs/01-ba/02-user-stories.md#us-02",
+      "actions": [
+        "Logout button trong header",
+        "signOut() NextAuth",
+        "Redirect /login"
+      ],
+      "verify": ["Logout clears session"],
+      "deliverables": ["logout in header"]
+    },
+    {
+      "id": "3.13",
+      "title": "Danh sách thành viên (table + search + filter)",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.30"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-03",
+      "actions": [
+        "src/app/(dashboard)/members/page.tsx",
+        "member-table, member-filters components",
+        "Server-side pagination, search, filter",
+        "src/actions/member-actions.ts getMembers"
+      ],
+      "verify": ["/members hiển thị table với data"],
+      "deliverables": ["members list page"]
+    },
+    {
+      "id": "3.14",
+      "title": "Thêm thành viên mới",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.13"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-04",
+      "actions": [
+        "src/app/(dashboard)/members/new/page.tsx",
+        "member-form.tsx full fields",
+        "Zod validation, auto code, auto fullName",
+        "createMember action"
+      ],
+      "verify": ["Tạo member thành công, mã tự sinh"],
+      "deliverables": ["member form create"]
+    },
+    {
+      "id": "3.15",
+      "title": "Sửa thông tin thành viên",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.14"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-04",
+      "actions": [
+        "src/app/(dashboard)/members/[id]/edit/page.tsx",
+        "Pre-fill form, updateMember action"
+      ],
+      "verify": ["Edit cập nhật DB"],
+      "deliverables": ["member edit page"]
+    },
+    {
+      "id": "3.16",
+      "title": "Xóa thành viên (admin only)",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.15"],
+      "reference": "docs/01-ba/01-requirements-analysis.md#3-phân-quyền",
+      "actions": [
+        "Delete button admin only",
+        "Confirm dialog",
+        "deleteMember action"
+      ],
+      "verify": ["Admin xóa OK, user không thấy nút"],
+      "deliverables": ["delete member"]
+    },
+    {
+      "id": "3.17",
+      "title": "Export danh sách CSV",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.13"],
+      "reference": "docs/01-ba/02-user-stories.md#us-07",
+      "actions": [
+        "exportMembers action",
+        "UTF-8 BOM for Vietnamese",
+        "Export button on members page"
+      ],
+      "verify": ["CSV download, tiếng Việt đúng"],
+      "deliverables": ["export CSV"]
+    },
+    {
+      "id": "3.18",
+      "title": "Import từ Excel/CSV",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.17"],
+      "reference": "docs/01-ba/01-requirements-analysis.md#phase-2",
+      "actions": [
+        "Import UI + parse CSV",
+        "Bulk create members",
+        "Error report per row"
+      ],
+      "verify": ["Import file mẫu thành công"],
+      "deliverables": ["import feature"],
+      "notes": "Phase 2 optional — có thể skip nếu MVP"
+    },
+    {
+      "id": "3.19",
+      "title": "Danh sách hộ gia đình",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.30"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-05",
+      "actions": [
+        "src/app/(dashboard)/households/page.tsx",
+        "household-actions.ts",
+        "Table: mã hộ, chủ hộ, số thành viên"
+      ],
+      "verify": ["/households hiển thị"],
+      "deliverables": ["households list"]
+    },
+    {
+      "id": "3.20",
+      "title": "Chi tiết hộ (thành viên trong hộ)",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.19"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-05",
+      "actions": [
+        "src/app/(dashboard)/households/[id]/page.tsx",
+        "List members in household"
+      ],
+      "verify": ["Chi tiết hộ + members"],
+      "deliverables": ["household detail"]
+    },
+    {
+      "id": "3.21",
+      "title": "Thêm / sửa / xóa hộ",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.20"],
+      "reference": "docs/01-ba/02-user-stories.md#us-09",
+      "actions": [
+        "CRUD household actions",
+        "Auto code HOxxxx",
+        "Chọn chủ hộ"
+      ],
+      "verify": ["CRUD hộ hoạt động"],
+      "deliverables": ["household CRUD"]
+    },
+    {
+      "id": "3.22",
+      "title": "Danh sách tổ thăm viếng",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.30"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-06",
+      "actions": [
+        "src/app/(dashboard)/visit-teams/page.tsx",
+        "visit-team-actions.ts"
+      ],
+      "verify": ["/visit-teams hiển thị"],
+      "deliverables": ["visit-teams list"]
+    },
+    {
+      "id": "3.23",
+      "title": "Thêm / sửa / xóa tổ",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.22"],
+      "reference": "docs/01-ba/02-user-stories.md#us-11",
+      "actions": [
+        "CRUD visit team",
+        "Auto code TVxx"
+      ],
+      "verify": ["CRUD tổ OK"],
+      "deliverables": ["visit team CRUD"]
+    },
+    {
+      "id": "3.24",
+      "title": "Gán khu vực phụ trách",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.23"],
+      "reference": "docs/01-ba/01-requirements-analysis.md#23-module-tổ-thăm-viếng",
+      "actions": [
+        "Area field in form",
+        "Link members to visit team"
+      ],
+      "verify": ["Khu vực lưu và hiển thị"],
+      "deliverables": ["area assignment"]
+    },
+    {
+      "id": "3.25",
+      "title": "Danh sách đơn thăm viếng",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.30"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-07",
+      "actions": [
+        "src/app/(dashboard)/visit-requests/page.tsx",
+        "visit-request-actions.ts",
+        "Status badges màu"
+      ],
+      "verify": ["/visit-requests hiển thị"],
+      "deliverables": ["visit-requests list"]
+    },
+    {
+      "id": "3.26",
+      "title": "Tạo đơn thăm viếng mới",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.25"],
+      "reference": "docs/01-ba/02-user-stories.md#us-13",
+      "actions": [
+        "src/app/(dashboard)/visit-requests/new/page.tsx",
+        "Form: hộ, lịch, tổ, nhân sự, nội dung",
+        "Auto code DV..."
+      ],
+      "verify": ["Tạo đơn OK"],
+      "deliverables": ["create visit request"]
+    },
+    {
+      "id": "3.27",
+      "title": "Cập nhật tình trạng & ngày thăm thực tế",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.26"],
+      "reference": "docs/01-ba/02-user-stories.md#us-14",
+      "actions": [
+        "updateVisitStatus action",
+        "completed requires actualDate"
+      ],
+      "verify": ["Status change works"],
+      "deliverables": ["status update"]
+    },
+    {
+      "id": "3.28",
+      "title": "Gán nhân sự thăm viếng",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.26"],
+      "reference": "docs/01-ba/01-requirements-analysis.md#24-module-đơn-thăm-viếng",
+      "actions": [
+        "staffCodes field — comma-separated member codes",
+        "Multi-select hoặc text input"
+      ],
+      "verify": ["Nhân sự lưu và hiển thị"],
+      "deliverables": ["staff assignment"]
+    },
+    {
+      "id": "3.29",
+      "title": "Lọc đơn theo tổ / tình trạng / lịch",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.25"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-07",
+      "actions": [
+        "Filter UI on visit-requests page",
+        "Server-side filter in getVisitRequests"
+      ],
+      "verify": ["Filters work"],
+      "deliverables": ["visit request filters"]
+    },
+    {
+      "id": "3.30",
+      "title": "Layout dashboard (sidebar, header)",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.8"],
+      "reference": "docs/02-architecture/05-ui-design.md#4-layout",
+      "actions": [
+        "src/components/layout/sidebar.tsx",
+        "src/components/layout/header.tsx",
+        "src/app/(dashboard)/layout.tsx",
+        "Navigation theo sitemap"
+      ],
+      "verify": ["Dashboard layout với sidebar"],
+      "deliverables": ["dashboard layout"]
+    },
+    {
+      "id": "3.31",
+      "title": "Dashboard overview (số liệu tổng quan)",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.30", "3.13"],
+      "reference": "docs/01-ba/03-functional-spec.md#f-02",
+      "actions": [
+        "src/app/(dashboard)/dashboard/page.tsx",
+        "dashboard-actions.ts getDashboardStats",
+        "4 stat cards + recent visits table"
+      ],
+      "verify": ["Stats khớp DB"],
+      "deliverables": ["dashboard page"]
+    },
+    {
+      "id": "3.32",
+      "title": "Responsive mobile",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.31"],
+      "reference": "docs/02-architecture/05-ui-design.md#9-responsive",
+      "actions": [
+        "Mobile sidebar (Sheet/hamburger)",
+        "Table → card view on mobile",
+        "Form 1 column on mobile"
+      ],
+      "verify": ["375px width usable"],
+      "deliverables": ["responsive UI"]
+    },
+    {
+      "id": "3.33",
+      "title": "Dark/Light mode (optional)",
+      "role": "Dev",
+      "type": "auto",
+      "depends_on": ["3.32"],
+      "reference": "docs/02-architecture/05-ui-design.md",
+      "actions": [
+        "next-themes hoặc toggle",
+        "Optional — có thể skip"
+      ],
+      "verify": ["Theme toggle works"],
+      "deliverables": ["dark mode"],
+      "notes": "Optional MVP — có thể skip"
+    },
+    {
+      "id": "4.1",
+      "title": "Viết test plan",
+      "role": "Tester",
+      "type": "auto",
+      "depends_on": ["3.31"],
+      "reference": "docs/05-testing/01-test-plan.md",
+      "actions": ["File docs đã tạo"],
+      "verify": ["Test cases documented"],
+      "deliverables": ["docs/05-testing/01-test-plan.md"]
+    },
+    {
+      "id": "4.2",
+      "title": "Test Authentication",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.1", "3.12"],
+      "reference": "docs/05-testing/01-test-plan.md#2-test-cases--authentication",
+      "actions": ["Chạy TC-AUTH-01 đến TC-AUTH-05"],
+      "verify": ["Tất cả auth tests pass"],
+      "deliverables": []
+    },
+    {
+      "id": "4.3",
+      "title": "Test CRUD Thành viên",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.2", "3.17"],
+      "reference": "docs/05-testing/01-test-plan.md#3-test-cases--thành-viên",
+      "actions": ["Chạy TC-MEM-01 đến TC-MEM-09"],
+      "verify": ["Member tests pass"],
+      "deliverables": []
+    },
+    {
+      "id": "4.4",
+      "title": "Test CRUD Hộ gia đình",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.3", "3.21"],
+      "reference": "docs/05-testing/01-test-plan.md#4-test-cases--hộ-gia-đình",
+      "actions": ["Chạy TC-HH-01 đến TC-HH-03"],
+      "verify": ["Household tests pass"],
+      "deliverables": []
+    },
+    {
+      "id": "4.5",
+      "title": "Test CRUD Tổ thăm viếng",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.4", "3.24"],
+      "reference": "docs/05-testing/01-test-plan.md#5-test-cases--tổ-thăm-viếng",
+      "actions": ["Chạy TC-VT-01"],
+      "verify": ["Visit team tests pass"],
+      "deliverables": []
+    },
+    {
+      "id": "4.6",
+      "title": "Test CRUD Đơn thăm viếng",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.5", "3.29"],
+      "reference": "docs/05-testing/01-test-plan.md#6-test-cases--đơn-thăm-viếng",
+      "actions": ["Chạy TC-VR-01 đến TC-VR-03"],
+      "verify": ["Visit request tests pass"],
+      "deliverables": []
+    },
+    {
+      "id": "4.7",
+      "title": "Test Import/Export",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.3"],
+      "reference": "docs/05-testing/01-test-plan.md",
+      "actions": ["Test export CSV, import nếu có 3.18"],
+      "verify": ["Import/export OK"],
+      "deliverables": []
+    },
+    {
+      "id": "4.8",
+      "title": "Test UI responsive",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.6", "3.32"],
+      "reference": "docs/05-testing/01-test-plan.md#8-test-cases--uiresponsive",
+      "actions": ["TC-UI-01, TC-UI-02, TC-UI-03"],
+      "verify": ["Responsive OK"],
+      "deliverables": []
+    },
+    {
+      "id": "4.9",
+      "title": "Test bảo mật",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.8"],
+      "reference": "docs/05-testing/01-test-plan.md#9-test-cases--bảo-mật",
+      "actions": ["TC-SEC-01 đến TC-SEC-04"],
+      "verify": ["Security tests pass"],
+      "deliverables": []
+    },
+    {
+      "id": "4.10",
+      "title": "Bug report & Dev fix",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.9"],
+      "reference": "docs/05-testing/01-test-plan.md#10-bug-report-template",
+      "actions": ["Ghi bugs, dev fix, re-test"],
+      "verify": ["Critical bugs fixed"],
+      "deliverables": []
+    },
+    {
+      "id": "4.11",
+      "title": "Regression test",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["4.10"],
+      "reference": "docs/05-testing/01-test-plan.md",
+      "actions": ["Re-run all test cases"],
+      "verify": ["No regressions"],
+      "deliverables": []
+    },
+    {
+      "id": "4.12",
+      "title": "Sign-off UAT",
+      "role": "Stakeholder",
+      "type": "manual",
+      "depends_on": ["4.11"],
+      "reference": "docs/05-testing/01-test-plan.md#11-test-sign-off",
+      "actions": ["Stakeholder UAT sign-off"],
+      "verify": ["UAT approved"],
+      "deliverables": []
+    },
+    {
+      "id": "5.1",
+      "title": "Build production",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["4.11"],
+      "reference": "docs/04-server/03-deployment.md",
+      "actions": ["pnpm build on server", "Fix build errors"],
+      "verify": ["next build success"],
+      "deliverables": []
+    },
+    {
+      "id": "5.2",
+      "title": "Cấu hình Nginx reverse proxy",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["0.4", "5.1"],
+      "reference": "docs/04-server/01-server-setup.md#bước-13",
+      "actions": [
+        "Tạo /etc/nginx/sites-available/ntp",
+        "proxy_pass http://127.0.0.1:3000",
+        "nginx -t && reload"
+      ],
+      "verify": ["Domain/IP proxy to app"],
+      "deliverables": ["nginx config"]
+    },
+    {
+      "id": "5.3",
+      "title": "Cấu hình PM2 chạy Next.js",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["5.1"],
+      "reference": "docs/04-server/01-server-setup.md#bước-14",
+      "actions": [
+        "pm2 start npm --name ntp-app -- start",
+        "pm2 save && pm2 startup"
+      ],
+      "verify": ["pm2 status ntp-app online"],
+      "deliverables": ["PM2 process"]
+    },
+    {
+      "id": "5.4",
+      "title": "Cấu hình SSL/HTTPS",
+      "role": "DevOps",
+      "type": "manual",
+      "depends_on": ["5.2", "0.9"],
+      "reference": "docs/04-server/01-server-setup.md#bước-9",
+      "actions": ["certbot --nginx -d DOMAIN"],
+      "verify": ["HTTPS works"],
+      "deliverables": []
+    },
+    {
+      "id": "5.5",
+      "title": "Backup database trước go-live",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["5.1"],
+      "reference": "docs/04-server/02-database-setup.md#backup-database",
+      "actions": ["pg_dump before go-live"],
+      "verify": ["Backup file exists"],
+      "deliverables": ["DB backup"]
+    },
+    {
+      "id": "5.6",
+      "title": "Deploy production",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["5.3", "5.4"],
+      "reference": "docs/04-server/03-deployment.md",
+      "actions": ["./deploy.sh hoặc manual deploy flow"],
+      "verify": ["Production app live"],
+      "deliverables": ["deploy.sh"]
+    },
+    {
+      "id": "5.7",
+      "title": "Smoke test production",
+      "role": "Tester",
+      "type": "manual",
+      "depends_on": ["5.6"],
+      "reference": "docs/04-server/03-deployment.md#health-check",
+      "actions": ["Login, visit key pages, /api/health"],
+      "verify": ["Smoke test pass"],
+      "deliverables": []
+    },
+    {
+      "id": "5.8",
+      "title": "Import data thành viên thực tế",
+      "role": "Dev",
+      "type": "manual",
+      "depends_on": ["5.7"],
+      "reference": "docs/01-ba/01-requirements-analysis.md",
+      "actions": ["Import real member data với stakeholder"],
+      "verify": ["Real data in DB"],
+      "deliverables": []
+    },
+    {
+      "id": "5.9",
+      "title": "Tạo tài khoản admin & user",
+      "role": "Dev",
+      "type": "hybrid",
+      "depends_on": ["5.7"],
+      "reference": "docs/04-server/02-database-setup.md",
+      "actions": [
+        "Change default admin password",
+        "Create production user accounts"
+      ],
+      "verify": ["Accounts work on production"],
+      "deliverables": []
+    },
+    {
+      "id": "5.10",
+      "title": "Training người dùng",
+      "role": "BA",
+      "type": "manual",
+      "depends_on": ["5.9"],
+      "reference": "docs/WORKFLOW-EXECUTOR.md",
+      "actions": ["Training session với ban chấp sự"],
+      "verify": ["Users trained"],
+      "deliverables": []
+    },
+    {
+      "id": "5.11",
+      "title": "Go-live & monitoring",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["5.10"],
+      "reference": "docs/04-server/03-deployment.md#post-go-live-monitoring",
+      "actions": ["Go-live announcement", "Monitor PM2, logs"],
+      "verify": ["App stable 24h"],
+      "deliverables": []
+    },
+    {
+      "id": "6.1",
+      "title": "Backup DB tự động (cron)",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["5.11"],
+      "reference": "docs/04-server/02-database-setup.md#auto-backup-cron",
+      "actions": ["Setup cron pg_dump daily"],
+      "verify": ["Cron job active"],
+      "deliverables": ["cron backup"]
+    },
+    {
+      "id": "6.2",
+      "title": "Monitoring uptime",
+      "role": "DevOps",
+      "type": "manual",
+      "depends_on": ["5.11"],
+      "reference": "docs/04-server/03-deployment.md#post-go-live-monitoring",
+      "actions": ["UptimeRobot hoặc PM2 monit"],
+      "verify": ["Alerts configured"],
+      "deliverables": []
+    },
+    {
+      "id": "6.3",
+      "title": "Log rotation",
+      "role": "DevOps",
+      "type": "hybrid",
+      "depends_on": ["5.11"],
+      "reference": "docs/04-server/03-deployment.md",
+      "actions": ["PM2 log rotate, nginx logrotate"],
+      "verify": ["Logs không đầy disk"],
+      "deliverables": []
+    },
+    {
+      "id": "6.4",
+      "title": "Cập nhật dependencies định kỳ",
+      "role": "Dev",
+      "type": "manual",
+      "depends_on": ["6.1"],
+      "reference": "docs/03-dev/02-coding-conventions.md",
+      "actions": ["Monthly dependency update check"],
+      "verify": ["Dependencies current"],
+      "deliverables": []
+    }
+  ]
+}
