@@ -12,11 +12,16 @@
 
 ```bash
 export NODE_OPTIONS=--max-old-space-size=4096
+unset NODE_ENV
 npm run build
-# hoặc: npx next build --webpack
 ```
 
-Nếu lỗi `Export encountered an error on /members/new` → đảm bảo đã `git pull` bản có `dynamic = "force-dynamic"` trong `(dashboard)/layout.tsx`.
+**Next.js 15:** Không dùng `--webpack` (chỉ có trên Next 16). Dùng `npm run build` hoặc `bash scripts/build-server.sh`.
+
+Nếu lỗi `Export encountered an error on /_global-error`:
+1. Xóa `NODE_ENV=...` khỏi file `.env` trên server (nguyên nhân phổ biến)
+2. `git pull` bản có `global-error.tsx` + Next 15.5.9
+3. Chạy `unset NODE_ENV` trước build
 
 Entry point thực tế của Next.js là `package.json` scripts + thư mục `.next/` sau build, không phải `src/app/` (đó là source code).
 
