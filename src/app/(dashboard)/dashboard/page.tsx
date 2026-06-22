@@ -3,7 +3,7 @@ export default function DashboardPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
       <p className="mt-2 text-gray-600">
-        Tổng quan hệ thống — chi tiết ở bước 3.31
+        Tổng quan hệ thống — chi tiết ở bước 3.31 - test mới
       </p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
