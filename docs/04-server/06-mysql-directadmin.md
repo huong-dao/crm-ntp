@@ -121,6 +121,32 @@ npm run build
 
 ---
 
+## Lỗi: `Cannot find module '@tailwindcss/postcss'` khi build
+
+**Nguyên nhân:** Panel set `NODE_ENV=production` → `npm install` bỏ qua `devDependencies`. Trước đây Tailwind nằm trong devDependencies; **code mới đã chuyển sang `dependencies`**.
+
+```bash
+cd /home/thamvien6a38/nodevenv/nodejs/24/lib
+
+# 1. Pull code mới (package.json phải có @tailwindcss/postcss trong dependencies)
+git pull origin main
+grep tailwindcss package.json
+
+# 2. Cài thiếu package (nếu vẫn lỗi)
+npm install @tailwindcss/postcss tailwindcss --save
+
+# 3. Hoặc cài lại sạch
+rm -rf node_modules
+npm install
+
+# 4. Build
+npm run build
+```
+
+Hoặc chạy script setup: `bash scripts/setup-server.sh`
+
+---
+
 ## Lỗi: `Could not find Prisma Schema` khi npm install
 
 **Nguyên nhân:** Chạy `npm install` trước `git pull`, hoặc sai thư mục (panel nodevenv).

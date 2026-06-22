@@ -103,6 +103,7 @@ node app.js
 | Lỗi | Xử lý |
 |-----|--------|
 | 502 Bad Gateway | App chưa start — Restart trên panel |
+| Cannot find module `@tailwindcss/postcss` | `npm install @tailwindcss/postcss tailwindcss --save` rồi `npm run build` |
 | Cannot find module | `npm install` |
 | `.next` not found | `npm run build` |
 | EADDRINUSE | Restart app trên panel (port bị chiếm) |

@@ -18,6 +18,12 @@ export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}"
 echo "=== npm install ==="
 npm install
 
+# Tailwind PostCSS cần khi build; panel thường set NODE_ENV=production → bỏ qua devDependencies
+if [ ! -d node_modules/@tailwindcss/postcss ]; then
+  echo "=== Cài @tailwindcss/postcss (thiếu sau npm install) ==="
+  npm install @tailwindcss/postcss tailwindcss --save
+fi
+
 echo "=== prisma generate ==="
 npx prisma generate
 
