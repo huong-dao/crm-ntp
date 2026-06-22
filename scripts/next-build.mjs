@@ -9,11 +9,48 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+function runNpm(args) {
+  return spawnSync("npm", args, {
+    cwd: root,
+    env: process.env,
+    stdio: "inherit",
+    shell: true,
+  });
+}
+
+function ensureBuildDeps() {
+  const tailwindPostcss = join(root, "node_modules", "@tailwindcss", "postcss");
+  if (existsSync(tailwindPostcss)) return;
+
+  console.warn(
+    "[build] Thiếu @tailwindcss/postcss — thường do chưa npm install sau git pull.",
+  );
+  console.warn("[build] Đang cài @tailwindcss/postcss tailwindcss ...");
+
+  const install = runNpm([
+    "install",
+    "@tailwindcss/postcss@^4",
+    "tailwindcss@^4",
+    "--no-save",
+  ]);
+
+  if (install.status !== 0 || !existsSync(tailwindPostcss)) {
+    console.error(
+      "[build] Không cài được @tailwindcss/postcss. Chạy thủ công:",
+    );
+    console.error("  npm install");
+    console.error("  npm install @tailwindcss/postcss tailwindcss --save");
+    process.exit(1);
+  }
+}
+
 const nextBin = join(root, "node_modules", "next", "dist", "bin", "next");
 if (!existsSync(nextBin)) {
   console.error("[build] Không tìm thấy next. Chạy: npm install");
   process.exit(1);
 }
+
+ensureBuildDeps();
 
 const env = { ...process.env, NODE_ENV: "production" };
 
