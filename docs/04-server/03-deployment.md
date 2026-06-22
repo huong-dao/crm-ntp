@@ -1,5 +1,19 @@
 # Deployment Guide
 
+## Next.js không cần `app.js` — nhưng server có thể yêu cầu
+
+| Cách chạy | Khi nào dùng |
+|-----------|----------------|
+| `npm run build` + `npm start` | Chuẩn Next.js (`next start`) — PM2: `pm2 start npm --name ntp-app -- start` |
+| `npm run build` + `node app.js` | Panel/hosting chỉ cho phép entry file `app.js` ở root |
+| `pm2 start ecosystem.config.cjs` | Khuyên dùng trên VPS — đã cấu hình `app.js` + PORT |
+
+**Quan trọng:** Phải `npm run build` trước khi chạy production. Không có build → app không chạy (dù có `app.js`).
+
+Entry point thực tế của Next.js là `package.json` scripts + thư mục `.next/` sau build, không phải `src/app/` (đó là source code).
+
+---
+
 ## Deploy Flow
 
 ```
@@ -71,10 +85,18 @@ npx prisma db seed  # Tạo admin account
 # 5. Build production
 pnpm build
 
-# 6. Start with PM2
-pm2 start npm --name "ntp-app" -- start
+# 6. Start with PM2 (chọn 1 cách)
+
+# Cách A — ecosystem config (khuyên dùng, dùng app.js)
+pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup
+
+# Cách B — next start trực tiếp
+# pm2 start npm --name "ntp-app" -- start
+
+# Cách C — app.js trực tiếp
+# NODE_ENV=production pm2 start app.js --name ntp-app
 
 # 7. Configure Nginx (xem 01-server-setup.md)
 
