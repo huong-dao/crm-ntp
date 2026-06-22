@@ -8,7 +8,15 @@
 | `npm run build` + `node app.js` | Panel/hosting chỉ cho phép entry file `app.js` ở root |
 | `pm2 start ecosystem.config.cjs` | Khuyên dùng trên VPS — đã cấu hình `app.js` + PORT |
 
-**Quan trọng:** Phải `npm run build` trước khi chạy production. Không có build → app không chạy (dù có `app.js`).
+**Build trên server (RAM thấp):**
+
+```bash
+export NODE_OPTIONS=--max-old-space-size=4096
+npm run build
+# hoặc: npx next build --webpack
+```
+
+Nếu lỗi `Export encountered an error on /members/new` → đảm bảo đã `git pull` bản có `dynamic = "force-dynamic"` trong `(dashboard)/layout.tsx`.
 
 Entry point thực tế của Next.js là `package.json` scripts + thư mục `.next/` sau build, không phải `src/app/` (đó là source code).
 

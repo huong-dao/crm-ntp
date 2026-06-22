@@ -1,3 +1,6 @@
+// Dashboard cần auth + DB — không prerender tĩnh khi build (tránh lỗi export trên server)
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({
   children,
 }: {
