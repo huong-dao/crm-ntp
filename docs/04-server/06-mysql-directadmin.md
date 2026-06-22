@@ -63,7 +63,28 @@ https://thamvieng.ntpchurch.org/login
 
 ---
 
-## Lỗi thường gặp
+## Lỗi: `Could not find Prisma Schema` khi npm install
+
+**Nguyên nhân:** Chạy `npm install` trước `git pull`, hoặc sai thư mục (panel nodevenv).
+
+```bash
+# 1. Vào thư mục app — nơi có package.json VÀ folder prisma/
+cd ~/domains/thamvieng.ntpchurch.org/nodejs
+# hoặc: cd ~/nodejs  (đường dẫn thực tế trên server)
+
+# 2. Pull code mới (có prisma/schema.prisma)
+git pull origin main
+
+# 3. Kiểm tra file tồn tại
+ls -la prisma/schema.prisma
+
+# 4. Cài lại
+npm install
+```
+
+Nếu `ls` báo file không có → chưa pull đúng repo hoặc sai thư mục.
+
+**DirectAdmin:** Nút "Run NPM Install" trên panel có thể chạy từ `nodevenv/.../lib` — nên dùng **SSH** trong application root.
 
 | Lỗi | Xử lý |
 |-----|--------|
