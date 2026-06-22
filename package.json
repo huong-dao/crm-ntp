@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cross-env NODE_ENV=production next build",
-    "build:webpack": "cross-env NODE_ENV=production next build",
+    "build": "node scripts/next-build.mjs",
+    "build:webpack": "node scripts/next-build.mjs",
     "start": "cross-env NODE_ENV=production next start",
     "start:app": "cross-env NODE_ENV=production node app.js",
     "lint": "eslint"
