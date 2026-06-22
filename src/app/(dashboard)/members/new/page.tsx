@@ -1,3 +1,5 @@
+"use client"
+
 function PlaceholderPage({ title }: { title: string }) {
   return (
     <div>
