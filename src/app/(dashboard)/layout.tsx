@@ -1,22 +1,25 @@
-// Dashboard cần auth + DB — không prerender tĩnh khi build (tránh lỗi export trên server)
-export const dynamic = "force-dynamic";
+import { auth } from "@/lib/auth";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/header";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+  const user = session?.user;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <span className="text-lg font-semibold text-[#1e3a5f]">
-            HTTL Nguyễn Tri Phương
-          </span>
-          <span className="text-sm text-gray-500">CRM Nội bộ</span>
-        </div>
-      </header>
-      <main className="mx-auto max-w-7xl p-6">{children}</main>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar isAdmin={user?.role === "admin"} />
+      <div className="flex min-h-screen flex-1 flex-col">
+        <Header
+          username={user?.username ?? ""}
+          role={user?.role ?? "user"}
+        />
+        <main className="flex-1 p-6">{children}</main>
+      </div>
     </div>
   );
 }

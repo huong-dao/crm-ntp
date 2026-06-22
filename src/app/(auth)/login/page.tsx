@@ -1,3 +1,5 @@
+import LoginForm from "@/components/auth/login-form";
+
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#1e3a5f] px-4">
@@ -8,9 +10,7 @@ export default function LoginPage() {
         <p className="mt-2 text-center text-sm text-gray-500">
           Đăng nhập hệ thống quản lý
         </p>
-        <p className="mt-6 text-center text-sm text-gray-400">
-          Trang đăng nhập — bước 3.8
-        </p>
+        <LoginForm />
       </div>
     </div>
   );

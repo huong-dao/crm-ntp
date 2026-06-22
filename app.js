@@ -1,18 +1,17 @@
 /**
- * Custom server entry — dùng khi hosting/panel yêu cầu file app.js ở root.
- * Tương đương `next start` nhưng chạy qua: node app.js
- *
- * PM2: pm2 start app.js --name ntp-app
- * Hoặc: pm2 start ecosystem.config.cjs
+ * Entry point cho DirectAdmin / panel Node.js — startup file: app.js
+ * Panel reverse-proxy domain → PORT (không cần mở port ra ngoài).
  */
 const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
 
+// Panel DirectAdmin có thể set NODE_ENV=nodejs — luôn chạy production sau npm run build
+process.env.NODE_ENV = "production";
+
 const port = parseInt(process.env.PORT || "3000", 10);
 const hostname = process.env.HOSTNAME || "0.0.0.0";
-const dev = process.env.NODE_ENV !== "production";
-const app = next({ dev, hostname, port });
+const app = next({ dev: false, hostname, port });
 const handle = app.getRequestHandler();
 
 app
@@ -33,7 +32,9 @@ app
         process.exit(1);
       })
       .listen(port, hostname, () => {
-        console.log(`> NTP app ready on http://${hostname}:${port}`);
+        console.log(
+          `> NTP ready — PORT=${port} (panel proxy domain → port này)`
+        );
       });
   })
   .catch((err) => {
