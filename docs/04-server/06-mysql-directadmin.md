@@ -63,6 +63,64 @@ https://thamvieng.ntpchurch.org/login
 
 ---
 
+## DirectAdmin: thư mục `nodejs` vs `nodevenv/.../lib`
+
+Panel thường có **2 chỗ**:
+
+| Vị trí | Nội dung |
+|--------|----------|
+| `~/nodejs` (bạn SSH vào) | Có thể chỉ là shortcut / thư mục làm việc |
+| `~/nodevenv/nodejs/24/lib` | **Application root thật** — `npm install` chạy ở đây |
+
+`npm` chạy script từ **lib** — nếu `prisma/` chỉ có trong `~/nodejs` mà không có trong **lib** → lỗi.
+
+### Kiểm tra
+
+```bash
+# Thư mục npm thực sự dùng (theo log lỗi)
+ls -la /home/thamvien6a38/nodevenv/nodejs/24/lib/prisma/schema.prisma
+
+# Nếu KHÔNG có → code phải ở trong lib
+```
+
+### Cách xử lý (chọn 1)
+
+**A — Deploy vào Application root (khuyên dùng)**
+
+1. DirectAdmin → Node.js → xem **Application root** (thường là `.../nodevenv/nodejs/24/lib`)
+2. SSH vào **đúng thư mục đó**:
+
+```bash
+cd /home/thamvien6a38/nodevenv/nodejs/24/lib
+git clone https://github.com/huong-dao/crm-ntp.git .
+# hoặc nếu đã clone ở chỗ khác: git pull trong lib
+ls prisma/schema.prisma   # phải có
+```
+
+**B — Setup một lệnh (trong application root)**
+
+```bash
+cd /home/thamvien6a38/nodevenv/nodejs/24/lib
+bash scripts/setup-server.sh
+```
+
+Script tự: `npm install` → `prisma generate` → migrate → seed → build.
+
+**C — Thủ công**
+
+```bash
+cd /path/to/application/root   # có package.json + prisma/
+npm install
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+npm run build
+```
+
+**Không dùng** `postinstall` tự động — DirectAdmin nodevenv gây lỗi path.
+
+---
+
 ## Lỗi: `Could not find Prisma Schema` khi npm install
 
 **Nguyên nhân:** Chạy `npm install` trước `git pull`, hoặc sai thư mục (panel nodevenv).
