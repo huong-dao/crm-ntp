@@ -1,12 +1,54 @@
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-      <p className="mt-2 text-gray-600">Đang phát triển...</p>
-    </div>
-  );
+import Link from "next/link";
+import { getVisitRequestFormOptions } from "@/actions/visit-request-actions";
+import { VisitRequestForm } from "@/components/visit-requests/visit-request-form";
+import { Button } from "@/components/ui/button";
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function pickParam(params: SearchParams, key: string): string | undefined {
+  const value = params[key];
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0];
+  return undefined;
 }
 
-export default function NewVisitRequestPage() {
-  return <PlaceholderPage title="Tạo đơn thăm viếng" />;
+export default async function NewVisitRequestPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const householdId = pickParam(params, "householdId");
+  const options = await getVisitRequestFormOptions();
+
+  const householdValid =
+    householdId &&
+    options.households.some((household) => household.id === householdId);
+
+  const backHref = householdValid
+    ? `/households/${householdId}`
+    : "/visit-requests";
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Tạo đơn thăm viếng
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Lên kế hoạch thăm viếng cho hộ gia đình
+          </p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href={backHref}>← Quay lại</Link>
+        </Button>
+      </div>
+
+      <VisitRequestForm
+        options={options}
+        defaultHouseholdId={householdValid ? householdId : undefined}
+      />
+    </div>
+  );
 }

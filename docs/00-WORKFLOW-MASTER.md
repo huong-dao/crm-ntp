@@ -97,7 +97,7 @@
 | # | Bước | Vai trò | Trạng thái |
 |---|------|---------|------------|
 | 3.8 | Trang Login | Dev | `[ ]` |
-| 3.9 | Admin tạo tài khoản User | Dev | `[ ]` |
+| 3.9 | Admin tạo tài khoản User | Dev | `[x]` |
 | 3.10 | Middleware bảo vệ route (auth guard) | Dev | `[ ]` |
 | 3.11 | Phân quyền Admin vs User | Dev | `[ ]` |
 | 3.12 | Logout | Dev | `[ ]` |
@@ -106,47 +106,47 @@
 
 | # | Bước | Vai trò | Trạng thái |
 |---|------|---------|------------|
-| 3.13 | Danh sách thành viên (table + search + filter) | Dev | `[ ]` |
-| 3.14 | Thêm thành viên mới | Dev | `[ ]` |
-| 3.15 | Sửa thông tin thành viên | Dev | `[ ]` |
-| 3.16 | Xóa / vô hiệu hóa thành viên | Dev | `[ ]` |
-| 3.17 | Export danh sách (Excel/CSV) | Dev | `[ ]` |
-| 3.18 | Import danh sách từ Excel/CSV | Dev | `[ ]` |
+| 3.13 | Danh sách thành viên (table + search + filter) | Dev | `[x]` |
+| 3.14 | Thêm thành viên mới | Dev | `[x]` |
+| 3.15 | Sửa thông tin thành viên | Dev | `[x]` |
+| 3.16 | Xóa / vô hiệu hóa thành viên | Dev | `[x]` |
+| 3.17 | Export danh sách (Excel/CSV) | Dev | `[x]` |
+| 3.18 | Import danh sách từ Excel/CSV | Dev | `[x]` |
 
 ### 3D — Module Hộ gia đình (Households)
 
 | # | Bước | Vai trò | Trạng thái |
 |---|------|---------|------------|
-| 3.19 | Danh sách hộ | Dev | `[ ]` |
-| 3.20 | Chi tiết hộ (thành viên trong hộ) | Dev | `[ ]` |
-| 3.21 | Thêm / sửa / xóa hộ | Dev | `[ ]` |
+| 3.19 | Danh sách hộ | Dev | `[x]` |
+| 3.20 | Chi tiết hộ (thành viên trong hộ) | Dev | `[x]` |
+| 3.21 | Thêm / sửa / xóa hộ | Dev | `[x]` |
 
 ### 3E — Module Tổ thăm viếng (Visit Teams)
 
 | # | Bước | Vai trò | Trạng thái |
 |---|------|---------|------------|
-| 3.22 | Danh sách tổ thăm viếng | Dev | `[ ]` |
-| 3.23 | Thêm / sửa / xóa tổ | Dev | `[ ]` |
-| 3.24 | Gán khu vực phụ trách | Dev | `[ ]` |
+| 3.22 | Danh sách tổ thăm viếng | Dev | `[x]` |
+| 3.23 | Thêm / sửa / xóa tổ | Dev | `[x]` |
+| 3.24 | Gán khu vực phụ trách | Dev | `[x]` |
 
 ### 3F — Module Đơn thăm viếng (Visit Requests)
 
 | # | Bước | Vai trò | Trạng thái |
 |---|------|---------|------------|
-| 3.25 | Danh sách đơn thăm viếng | Dev | `[ ]` |
-| 3.26 | Tạo đơn thăm viếng mới | Dev | `[ ]` |
-| 3.27 | Cập nhật tình trạng & ngày thăm thực tế | Dev | `[ ]` |
-| 3.28 | Gán nhân sự thăm viếng | Dev | `[ ]` |
-| 3.29 | Lọc theo tổ / tình trạng / lịch | Dev | `[ ]` |
+| 3.25 | Danh sách đơn thăm viếng | Dev | `[x]` |
+| 3.26 | Tạo đơn thăm viếng mới | Dev | `[x]` |
+| 3.27 | Cập nhật tình trạng & ngày thăm thực tế | Dev | `[x]` |
+| 3.28 | Gán nhân sự thăm viếng | Dev | `[x]` |
+| 3.29 | Lọc theo tổ / tình trạng / lịch | Dev | `[x]` |
 
 ### 3G — Dashboard & UI
 
 | # | Bước | Vai trò | Trạng thái |
 |---|------|---------|------------|
 | 3.30 | Layout dashboard (sidebar, header) | Dev | `[ ]` |
-| 3.31 | Dashboard overview (số liệu tổng quan) | Dev | `[ ]` |
-| 3.32 | Responsive mobile | Dev | `[ ]` |
-| 3.33 | Dark/Light mode (optional) | Dev | `[ ]` |
+| 3.31 | Dashboard overview (số liệu tổng quan) | Dev | `[x]` |
+| 3.32 | Responsive mobile | Dev | `[x]` |
+| 3.33 | Dark/Light mode (optional) | Dev | `skip` |
 
 ---
 

@@ -27,10 +27,9 @@ enum Gender {
 }
 
 enum VisitRequestStatus {
-  pending
+  scheduled
   completed
   cancelled
-  postponed
 }
 
 model User {
@@ -131,7 +130,7 @@ model VisitRequest {
   code          String             @unique
   scheduledDate DateTime           @map("scheduled_date")
   actualDate    DateTime?          @map("actual_date")
-  status        VisitRequestStatus @default(pending)
+  status        VisitRequestStatus @default(scheduled)
   content       String?            @db.Text
   staffCodes    String?            @map("staff_codes")
   householdId   String             @map("household_id")

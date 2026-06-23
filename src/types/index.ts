@@ -6,8 +6,4 @@ export type MemberStatus = "active" | "inactive" | "transferred" | "deceased";
 
 export type Gender = "male" | "female";
 
-export type VisitRequestStatus =
-  | "pending"
-  | "completed"
-  | "cancelled"
-  | "postponed";
+export type VisitRequestStatus = "scheduled" | "completed" | "cancelled";
