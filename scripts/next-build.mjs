@@ -19,26 +19,17 @@ function runNpm(args) {
 }
 
 function ensurePrismaClient() {
-  const prismaClient = join(root, "node_modules", ".prisma", "client");
-  const prismaPkg = join(root, "node_modules", "prisma", "package.json");
-
-  if (!existsSync(prismaPkg)) {
-    console.error("[build] Không tìm thấy prisma. Chạy: npm install");
-    process.exit(1);
-  }
-
-  console.log("[build] prisma generate (đồng bộ enum/schema với DB) ...");
-
-  const gen = spawnSync("npx", ["prisma", "generate"], {
+  console.log("[build] prisma generate ...");
+  const gen = spawnSync(process.execPath, [
+    join(root, "scripts", "prisma-generate.mjs"),
+    "--required",
+  ], {
     cwd: root,
     env: process.env,
     stdio: "inherit",
-    shell: true,
   });
 
-  if (gen.status !== 0 || !existsSync(prismaClient)) {
-    console.error("[build] prisma generate thất bại. Chạy thủ công:");
-    console.error("  npx prisma generate");
+  if (gen.status !== 0) {
     process.exit(1);
   }
 }
