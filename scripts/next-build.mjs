@@ -18,6 +18,31 @@ function runNpm(args) {
   });
 }
 
+function ensurePrismaClient() {
+  const prismaClient = join(root, "node_modules", ".prisma", "client");
+  const prismaPkg = join(root, "node_modules", "prisma", "package.json");
+
+  if (!existsSync(prismaPkg)) {
+    console.error("[build] Không tìm thấy prisma. Chạy: npm install");
+    process.exit(1);
+  }
+
+  console.log("[build] prisma generate (đồng bộ enum/schema với DB) ...");
+
+  const gen = spawnSync("npx", ["prisma", "generate"], {
+    cwd: root,
+    env: process.env,
+    stdio: "inherit",
+    shell: true,
+  });
+
+  if (gen.status !== 0 || !existsSync(prismaClient)) {
+    console.error("[build] prisma generate thất bại. Chạy thủ công:");
+    console.error("  npx prisma generate");
+    process.exit(1);
+  }
+}
+
 function ensureBuildDeps() {
   const tailwindPostcss = join(root, "node_modules", "@tailwindcss", "postcss");
   if (existsSync(tailwindPostcss)) return;
@@ -50,6 +75,7 @@ if (!existsSync(nextBin)) {
   process.exit(1);
 }
 
+ensurePrismaClient();
 ensureBuildDeps();
 
 const env = { ...process.env, NODE_ENV: "production" };
