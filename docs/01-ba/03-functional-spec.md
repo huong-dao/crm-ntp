@@ -132,6 +132,36 @@
 
 ---
 
+## F-03b: Import Excel & Log import
+
+**URL:** `/members` (Import) · `/members/imports` · `/members/imports/[id]`  
+**Access:** Authenticated users
+
+### Import (`Import Excel` trên `/members`)
+- Upload file `.xlsx` — mỗi lần import tạo một **MemberImportLog**
+- Lưu từng dòng vào **MemberImportLogRow**: `success` | `failed`, mã tín hữu (nếu có), lỗi, dữ liệu gốc (`rowData` JSON)
+- Sau import: link **Xem chi tiết log import**
+
+#### Modal tiến độ import
+Khi bấm **Import**, hệ thống mở modal phủ toàn màn hình (không thể đóng trong lúc đang chạy):
+- Tiêu đề: **Đang import thành viên** + tên file
+- Cảnh báo: *Vui lòng không đóng hoặc tải lại trang* cho đến khi hoàn tất
+- **Thanh progress** (% và số dòng đã xử lý / tổng dòng)
+- Thống kê realtime: tổng dòng, thành công, lỗi
+- Trình duyệt cảnh báo nếu user cố rời trang (`beforeunload`) trong lúc import
+- Import theo batch (server action từng lô) để cập nhật tiến độ liên tục; khi xong modal đóng và hiện kết quả trong dialog import
+
+### Lịch sử import (`/members/imports`)
+| Thời gian | File | Người import | Tổng | OK | Lỗi | Chi tiết |
+
+### Chi tiết log (`/members/imports/[id]`)
+- Tóm tắt: file, user, số dòng OK/lỗi
+- Bảng từng dòng: số dòng Excel, trạng thái, mã tín hữu, lỗi
+- **Import lại dòng lỗi** — chạy lại chỉ các dòng `failed`, cập nhật log
+- **Tải Excel dòng lỗi** — file chỉ gồm header + các dòng thất bại (sửa rồi import file mới)
+
+---
+
 ## F-05: Danh sách Hộ gia đình
 
 **URL:** `/households`  

@@ -75,13 +75,24 @@
 
 ### US-07: Export danh sách thành viên
 **As a** user  
-**I want to** xuất danh sách ra file CSV  
+**I want to** xuất danh sách ra file Excel  
 **So that** tôi có thể in hoặc chia sẻ
 
 **Acceptance Criteria:**
-- [ ] Nút Export trên trang danh sách
-- [ ] File CSV UTF-8 với BOM (hiển thị tiếng Việt đúng)
+- [ ] Nút Export Excel trên trang danh sách
 - [ ] Export theo filter hiện tại
+
+### US-07b: Import thành viên và xem log
+**As a** user  
+**I want to** import file Excel lớn và xem lại dòng thành công / thất bại  
+**So that** tôi sửa lỗi và import lại phần còn thiếu
+
+**Acceptance Criteria:**
+- [ ] Mỗi lần import lưu `MemberImportLog` + từng dòng `MemberImportLogRow`
+- [ ] Trang `/members/imports` liệt kê lịch sử import
+- [ ] Trang chi tiết log: dòng OK, dòng lỗi + lý do
+- [ ] Nút **Import lại dòng lỗi** trên chi tiết log
+- [ ] Tải Excel chỉ các dòng lỗi để sửa ngoài hệ thống
 
 ---
 

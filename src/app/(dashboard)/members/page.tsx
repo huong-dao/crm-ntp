@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import {
   getMemberFilterOptions,
@@ -17,6 +18,7 @@ import {
   type MemberFiltersInput,
 } from "@/lib/member-list";
 import type { MemberStatus } from "@prisma/client";
+import { Button } from "@/components/ui/button";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -93,6 +95,9 @@ export default async function MembersPage({
           </p>
         </div>
         <div className="flex flex-wrap items-start gap-2">
+          <Button variant="outline" size="default" asChild>
+            <Link href="/members/imports">Lịch sử import</Link>
+          </Button>
           <Suspense fallback={null}>
             <ExportMembersButton />
           </Suspense>

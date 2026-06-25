@@ -226,6 +226,48 @@ model VisitRequest {
   @@index([scheduledDate])
   @@map("visit_requests")
 }
+
+// ─── MEMBER IMPORT LOGS ───────────────────────────────
+
+enum MemberImportRowStatus {
+  success
+  failed
+}
+
+model MemberImportLog {
+  id             String   @id @default(cuid())
+  fileName       String   @map("file_name")
+  uploadedById   String   @map("uploaded_by_id")
+  uploadedByName String   @map("uploaded_by_name")
+  columnHeaders  Json     @map("column_headers")
+  totalRows      Int      @map("total_rows")
+  successCount   Int      @map("success_count")
+  errorCount     Int      @map("error_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  rows MemberImportLogRow[]
+
+  @@index([createdAt])
+  @@map("member_import_logs")
+}
+
+model MemberImportLogRow {
+  id         String                @id @default(cuid())
+  logId      String                @map("log_id")
+  rowNumber  Int                   @map("row_number")
+  status     MemberImportRowStatus
+  memberCode String?               @map("member_code")
+  memberId   String?               @map("member_id")
+  error      String?
+  rowData    Json                  @map("row_data")
+  retriedAt  DateTime?             @map("retried_at")
+
+  log MemberImportLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@index([logId])
+  @@index([logId, status])
+  @@map("member_import_log_rows")
+}
 ```
 
 ---

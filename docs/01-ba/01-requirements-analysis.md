@@ -58,6 +58,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Mã tổ thăm viếng liên kết với tổ phụ trách khu vực
 - Khi thêm thành viên mà chưa có hộ nào (hoặc chọn **Tạo hộ mới**): hệ thống tự sinh mã hộ và gán thành viên đó làm chủ hộ
 - Thành viên thuộc hộ có sẵn: chọn mã hộ trong danh sách
+- **Import Excel:** mỗi lần import ghi log (`MemberImportLog`); từng dòng OK/lỗi lưu trong `MemberImportLogRow`; cho phép import lại dòng lỗi; hiển thị modal tiến độ với thanh progress và cảnh báo không đóng trang khi đang import
 
 ---
 

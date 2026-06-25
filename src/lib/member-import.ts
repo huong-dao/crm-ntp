@@ -412,3 +412,49 @@ export type ImportRowValid = {
   visitTeamCode: string | null;
   notes: string | null;
 };
+
+export type ImportDataRow = {
+  rowNumber: number;
+  cells: string[];
+};
+
+export function parseImportHeaders(
+  parsed: string[][]
+):
+  | { ok: true; headers: string[] }
+  | { ok: false; error: string } {
+  if (parsed.length < 2) {
+    return {
+      ok: false,
+      error: "File trống hoặc thiếu dữ liệu (cần dòng tiêu đề và ít nhất 1 dòng)",
+    };
+  }
+
+  const headers = mapCsvHeaders(parsed[0]);
+  const hasNameColumn =
+    headers.includes("firstName") ||
+    headers.includes("lastName") ||
+    headers.includes("fullName");
+  const hasHousehold = headers.includes("householdCode");
+
+  if (!hasNameColumn || !hasHousehold) {
+    return {
+      ok: false,
+      error:
+        "File cần cột Họ và lót/Tên (hoặc Họ tên) và Mã hộ. Tải file mẫu để tham khảo.",
+    };
+  }
+
+  return { ok: true, headers };
+}
+
+/** Lấy các dòng dữ liệu (bỏ qua dòng trống), giữ số dòng Excel gốc. */
+export function extractImportDataRows(parsed: string[][]): ImportDataRow[] {
+  const rows: ImportDataRow[] = [];
+  for (let i = 1; i < parsed.length; i++) {
+    const cells = parsed[i];
+    if (cells.every((cell) => !cell.trim())) continue;
+    rows.push({ rowNumber: i + 1, cells });
+  }
+  return rows;
+}
