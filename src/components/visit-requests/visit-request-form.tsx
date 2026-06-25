@@ -1,66 +1,134 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createVisitRequest,
   getDefaultVisitTeamForHousehold,
-  type VisitRequestFormOptions,
+  getVisitTeamStaffMembers,
+  updateVisitRequest,
+  type VisitRequestDetail,
+  type VisitRequestFormContext,
+  type VisitRequestStaffOption,
 } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { matchStaffMemberIds } from "@/lib/visit-request-list";
+import {
+  VISIT_REQUEST_STATUSES,
+  VISIT_REQUEST_STATUS_LABELS,
+} from "@/lib/visit-request-list";
+import { formatDateForInput } from "@/lib/validations/visit-request";
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]";
 
-const multiSelectClass =
-  "flex min-h-[120px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]";
+type VisitRequestFormProps = {
+  mode: "create" | "edit";
+  context: VisitRequestFormContext;
+  request?: VisitRequestDetail;
+  defaultHouseholdId?: string;
+};
 
 export function VisitRequestForm({
-  options,
+  mode,
+  context,
+  request,
   defaultHouseholdId,
-}: {
-  options: VisitRequestFormOptions;
-  defaultHouseholdId?: string;
-}) {
+}: VisitRequestFormProps) {
   const router = useRouter();
+  const isEdit = mode === "edit" && request;
+
   const householdValid =
     defaultHouseholdId &&
-    options.households.some((household) => household.id === defaultHouseholdId);
+    context.households.some((household) => household.id === defaultHouseholdId);
 
-  const initialHouseholdId = householdValid ? defaultHouseholdId : "";
+  const initialHouseholdId = isEdit
+    ? request.householdId
+    : householdValid
+      ? defaultHouseholdId
+      : "";
+
+  const initialTeamId = isEdit
+    ? request.visitTeamId
+    : context.lockedVisitTeamId ?? "";
+
   const [householdId, setHouseholdId] = useState(initialHouseholdId);
-  const [visitTeamId, setVisitTeamId] = useState("");
+  const [visitTeamId, setVisitTeamId] = useState(initialTeamId);
+  const [representativeMemberId, setRepresentativeMemberId] = useState(
+    isEdit ? request.representativeMemberId ?? "" : ""
+  );
+  const [additionalStaffIds, setAdditionalStaffIds] = useState<string[]>([]);
+  const [teamStaff, setTeamStaff] = useState<VisitRequestStaffOption[]>([]);
+  const [staffLoading, setStaffLoading] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [teamLoading, setTeamLoading] = useState(false);
 
+  const teamLocked = !context.isAdmin && Boolean(context.lockedVisitTeamId);
+
   useEffect(() => {
-    if (!initialHouseholdId) return;
+    if (!visitTeamId) {
+      setTeamStaff([]);
+      setRepresentativeMemberId("");
+      setAdditionalStaffIds([]);
+      return;
+    }
+
+    let cancelled = false;
+    setStaffLoading(true);
+
+    getVisitTeamStaffMembers(visitTeamId)
+      .then((members) => {
+        if (cancelled) return;
+        setTeamStaff(members);
+
+        if (isEdit && request) {
+          const additional = matchStaffMemberIds(request.staffCodes, members);
+          setAdditionalStaffIds(additional);
+          if (request.representativeMemberId) {
+            setRepresentativeMemberId(request.representativeMemberId);
+          }
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTeamStaff([]);
+      })
+      .finally(() => {
+        if (!cancelled) setStaffLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [visitTeamId, isEdit, request]);
+
+  useEffect(() => {
+    if (isEdit || !initialHouseholdId || teamLocked) return;
 
     let cancelled = false;
     setTeamLoading(true);
     getDefaultVisitTeamForHousehold(initialHouseholdId).then((teamId) => {
-      if (!cancelled && teamId) {
-        setVisitTeamId(teamId);
-      }
-      if (!cancelled) {
-        setTeamLoading(false);
-      }
+      if (!cancelled && teamId) setVisitTeamId(teamId);
+      if (!cancelled) setTeamLoading(false);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [initialHouseholdId]);
+  }, [initialHouseholdId, isEdit, teamLocked]);
 
   async function handleHouseholdChange(value: string) {
     setHouseholdId(value);
 
+    if (teamLocked || isEdit) return;
+
     if (!value) {
-      setVisitTeamId("");
+      if (!context.lockedVisitTeamId) setVisitTeamId("");
       return;
     }
 
@@ -68,9 +136,58 @@ export function VisitRequestForm({
     const teamId = await getDefaultVisitTeamForHousehold(value);
     setTeamLoading(false);
 
-    if (teamId) {
+    if (teamId && !context.lockedVisitTeamId) {
       setVisitTeamId(teamId);
     }
+  }
+
+  function handleTeamChange(value: string) {
+    setVisitTeamId(value);
+    setRepresentativeMemberId("");
+    setAdditionalStaffIds([]);
+  }
+
+  const householdOptions = useMemo(
+    () =>
+      context.households.map((household) => ({
+        value: household.id,
+        label: `${household.code}${household.headName ? ` — ${household.headName}` : ""}`,
+        searchText: `${household.code} ${household.headName ?? ""}`,
+      })),
+    [context.households]
+  );
+
+  const teamOptions = useMemo(
+    () =>
+      context.visitTeams.map((team) => ({
+        value: team.id,
+        label: `${team.code} — ${team.area}`,
+        searchText: `${team.code} ${team.area}`,
+      })),
+    [context.visitTeams]
+  );
+
+  const staffOptions = useMemo(
+    () =>
+      teamStaff.map((member) => ({
+        value: member.id,
+        label: `${member.code} — ${member.fullName}`,
+        searchText: `${member.code} ${member.fullName}`,
+      })),
+    [teamStaff]
+  );
+
+  const additionalOptions = useMemo(
+    () =>
+      staffOptions.filter(
+        (option) => option.value !== representativeMemberId
+      ),
+    [staffOptions, representativeMemberId]
+  );
+
+  function handleRepresentativeChange(value: string) {
+    setRepresentativeMemberId(value);
+    setAdditionalStaffIds((prev) => prev.filter((id) => id !== value));
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -79,18 +196,22 @@ export function VisitRequestForm({
     setLoading(true);
 
     const form = new FormData(e.currentTarget);
-    const staffMemberIds = form.getAll("staffMemberIds") as string[];
-    const staffCodesRaw = (form.get("staffCodes") as string).trim();
-
-    const result = await createVisitRequest({
-      householdId: form.get("householdId") as string,
-      visitTeamId: form.get("visitTeamId") as string,
+    const payload = {
+      householdId,
+      visitTeamId,
       scheduledDate: form.get("scheduledDate") as string,
+      actualDate: (form.get("actualDate") as string) || null,
+      representativeMemberId: representativeMemberId || null,
+      additionalStaffMemberIds: additionalStaffIds,
       content: (form.get("content") as string) || null,
-      staffMemberIds:
-        staffMemberIds.length > 0 ? staffMemberIds : undefined,
-      staffCodes: staffCodesRaw.length > 0 ? staffCodesRaw : null,
-    });
+    };
+
+    const result = isEdit
+      ? await updateVisitRequest(request.id, {
+          ...payload,
+          status: form.get("status") as "scheduled" | "completed" | "cancelled",
+        })
+      : await createVisitRequest(payload);
 
     setLoading(false);
 
@@ -99,39 +220,56 @@ export function VisitRequestForm({
       return;
     }
 
-    router.push("/visit-requests");
+    router.push(isEdit ? `/visit-requests/${request.id}` : "/visit-requests");
     router.refresh();
   }
 
-  const cancelHref = householdValid
-    ? `/households/${defaultHouseholdId}`
-    : "/visit-requests";
+  const cancelHref = isEdit
+    ? `/visit-requests/${request.id}`
+    : householdValid
+      ? `/households/${defaultHouseholdId}`
+      : "/visit-requests";
 
   return (
     <form onSubmit={handleSubmit} className="mt-6 max-w-2xl space-y-4">
       <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-        <p className="text-sm text-gray-600">
-          Mã đơn sẽ được tự động sinh khi lưu (8 ký tự in hoa, vd: AB123DG3).
-        </p>
+        {mode === "create" && (
+          <p className="text-sm text-gray-600">
+            Mã đơn tự sinh khi lưu. Tình trạng mặc định:{" "}
+            <strong>Lên lịch</strong>.
+          </p>
+        )}
+
+        {isEdit && (
+          <div className="space-y-2">
+            <Label htmlFor="status">Tình trạng</Label>
+            <select
+              id="status"
+              name="status"
+              className={selectClass}
+              defaultValue={request.status}
+            >
+              {VISIT_REQUEST_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {VISIT_REQUEST_STATUS_LABELS[status]}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="space-y-2">
-          <Label htmlFor="householdId">Hộ gia đình *</Label>
-          <select
+          <Label htmlFor="householdId">Hộ gia đình cần thăm viếng *</Label>
+          <SearchableSelect
             id="householdId"
             name="householdId"
             required
-            className={selectClass}
+            options={householdOptions}
             value={householdId}
-            onChange={(e) => handleHouseholdChange(e.target.value)}
-          >
-            <option value="">— Chọn hộ —</option>
-            {options.households.map((household) => (
-              <option key={household.id} value={household.id}>
-                {household.code}
-                {household.headName ? ` — ${household.headName}` : ""}
-              </option>
-            ))}
-          </select>
+            onChange={handleHouseholdChange}
+            placeholder="— Chọn hộ —"
+            searchPlaceholder="Tìm theo mã hộ hoặc chủ hộ..."
+          />
         </div>
 
         <div className="space-y-2">
@@ -141,60 +279,84 @@ export function VisitRequestForm({
             name="scheduledDate"
             type="date"
             required
+            defaultValue={
+              isEdit ? formatDateForInput(request.scheduledDate) : undefined
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="actualDate">Ngày thăm viếng thực tế</Label>
+          <Input
+            id="actualDate"
+            name="actualDate"
+            type="date"
+            defaultValue={
+              isEdit ? formatDateForInput(request.actualDate) : undefined
+            }
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="visitTeamId">Tổ thăm viếng *</Label>
-          <select
+          <SearchableSelect
             id="visitTeamId"
             name="visitTeamId"
             required
-            className={selectClass}
+            options={teamOptions}
             value={visitTeamId}
-            onChange={(e) => setVisitTeamId(e.target.value)}
-            disabled={teamLoading}
-          >
-            <option value="">
-              {teamLoading ? "Đang tải gợi ý tổ..." : "— Chọn tổ —"}
-            </option>
-            {options.visitTeams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.code} — {team.area}
-              </option>
-            ))}
-          </select>
+            onChange={handleTeamChange}
+            disabled={teamLocked || teamLoading || teamOptions.length === 0}
+            placeholder={
+              teamLoading
+                ? "Đang tải..."
+                : teamOptions.length === 0
+                  ? "Không có tổ được phép chọn"
+                  : "— Chọn tổ —"
+            }
+            searchPlaceholder="Tìm theo mã tổ..."
+          />
+          {teamLocked && (
+            <p className="text-xs text-gray-500">
+              Tài khoản của bạn chỉ được thao tác tổ thăm viếng đã gán.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="representativeMemberId">Nhân sự thăm viếng</Label>
+          <SearchableSelect
+            id="representativeMemberId"
+            options={staffOptions}
+            value={representativeMemberId}
+            onChange={handleRepresentativeChange}
+            disabled={!visitTeamId || staffLoading}
+            placeholder={
+              staffLoading
+                ? "Đang tải nhân sự..."
+                : !visitTeamId
+                  ? "Chọn tổ trước"
+                  : "— Chọn 1 nhân sự đại diện —"
+            }
+            searchPlaceholder="Tìm theo tên hoặc mã..."
+            emptyMessage="Tổ chưa có thành viên"
+          />
           <p className="text-xs text-gray-500">
-            Tự động gợi ý tổ theo thành viên trong hộ (nếu có).
+            Chọn một nhân sự đại diện thuộc tổ đã chọn.
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="staffMemberIds">Nhân sự thăm viếng</Label>
-          <select
-            id="staffMemberIds"
-            name="staffMemberIds"
-            multiple
-            className={multiSelectClass}
-          >
-            {options.staffMembers.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.code} — {member.fullName}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500">
-            Giữ Ctrl để chọn nhiều. Hoặc nhập mã thủ công bên dưới.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="staffCodes">Mã nhân sự (tùy chọn)</Label>
-          <Input
-            id="staffCodes"
-            name="staffCodes"
-            placeholder="vd: 00001, 00002"
-            maxLength={500}
+          <Label htmlFor="additionalStaff">Mã nhân sự (tùy chọn)</Label>
+          <MultiSearchableSelect
+            id="additionalStaff"
+            name="additionalStaffMemberIds"
+            options={additionalOptions}
+            values={additionalStaffIds}
+            onChange={setAdditionalStaffIds}
+            disabled={!visitTeamId || staffLoading}
+            placeholder="Thêm nhân sự khác trong tổ..."
+            searchPlaceholder="Tìm theo tên hoặc mã..."
           />
         </div>
 
@@ -205,6 +367,7 @@ export function VisitRequestForm({
             name="content"
             rows={4}
             maxLength={2000}
+            defaultValue={isEdit ? request.content ?? "" : ""}
             className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]"
             placeholder="Ghi chú nội dung thăm viếng..."
           />
@@ -212,12 +375,21 @@ export function VisitRequestForm({
       </div>
 
       {error && (
-        <p className="text-sm text-red-600" role="alert">{error}</p>
+        <p className="text-sm text-red-600" role="alert">
+          {error}
+        </p>
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={loading || teamLoading}>
-          {loading ? "Đang lưu..." : "Tạo đơn thăm viếng"}
+        <Button
+          type="submit"
+          disabled={loading || teamLoading || staffLoading}
+        >
+          {loading
+            ? "Đang lưu..."
+            : isEdit
+              ? "Lưu thay đổi"
+              : "Tạo đơn thăm viếng"}
         </Button>
         <Button type="button" variant="outline" asChild>
           <Link href={cancelHref}>Hủy</Link>

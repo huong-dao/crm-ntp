@@ -72,6 +72,9 @@ export function UsersTable({
                 Role
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Thành viên
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
                 Trạng thái
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
@@ -99,6 +102,11 @@ export function UsersTable({
                   <td className="px-4 py-3 text-gray-700">
                     {roleLabel(user.role)}
                   </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {user.memberName
+                      ? `${user.memberCode} — ${user.memberName}`
+                      : "—"}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={cn(
@@ -115,19 +123,24 @@ export function UsersTable({
                     {formatDate(user.createdAt)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isSelf || isPending}
-                      onClick={() => handleToggle(user)}
-                    >
-                      {isPending
-                        ? "..."
-                        : user.isActive
-                          ? "Vô hiệu hóa"
-                          : "Kích hoạt"}
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" size="sm" asChild>
+                        <a href={`/users/${user.id}/edit`}>Sửa</a>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isSelf || isPending}
+                        onClick={() => handleToggle(user)}
+                      >
+                        {isPending
+                          ? "..."
+                          : user.isActive
+                            ? "Vô hiệu hóa"
+                            : "Kích hoạt"}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -145,19 +158,24 @@ export function UsersTable({
             <MobileDataCard
               key={user.id}
               actions={
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isSelf || isPending}
-                  onClick={() => handleToggle(user)}
-                >
-                  {isPending
-                    ? "..."
-                    : user.isActive
-                      ? "Vô hiệu hóa"
-                      : "Kích hoạt"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <a href={`/users/${user.id}/edit`}>Sửa</a>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isSelf || isPending}
+                    onClick={() => handleToggle(user)}
+                  >
+                    {isPending
+                      ? "..."
+                      : user.isActive
+                        ? "Vô hiệu hóa"
+                        : "Kích hoạt"}
+                  </Button>
+                </div>
               }
             >
               <p className="font-semibold text-gray-900">
@@ -168,6 +186,11 @@ export function UsersTable({
               </p>
               <div className="mt-2">
                 <MobileDataRow label="Role">{roleLabel(user.role)}</MobileDataRow>
+                <MobileDataRow label="Thành viên">
+                  {user.memberName
+                    ? `${user.memberCode} — ${user.memberName}`
+                    : "—"}
+                </MobileDataRow>
                 <MobileDataRow label="Trạng thái">
                   <span
                     className={cn(

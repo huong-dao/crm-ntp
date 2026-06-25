@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  getStaffMemberOptions,
-  getVisitRequestById,
-} from "@/actions/visit-request-actions";
+import { getVisitRequestById } from "@/actions/visit-request-actions";
 import { VisitRequestStaffDisplay } from "@/components/visit-requests/visit-request-staff-display";
-import { VisitRequestStaffForm } from "@/components/visit-requests/visit-request-staff-form";
 import { VisitRequestStatusForm } from "@/components/visit-requests/visit-request-status-form";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,10 +27,7 @@ export default async function VisitRequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [request, staffMembers] = await Promise.all([
-    getVisitRequestById(id),
-    getStaffMemberOptions(),
-  ]);
+  const request = await getVisitRequestById(id);
 
   if (!request) {
     notFound();
@@ -51,9 +44,19 @@ export default async function VisitRequestDetailPage({
             Chi tiết và cập nhật tình trạng thăm viếng
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/visit-requests">← Danh sách đơn</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link href={`/visit-requests/${id}/print`} target="_blank">
+              Xuất PDF
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href={`/visit-requests/${id}/edit`}>Sửa đơn</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/visit-requests">← Danh sách đơn</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -92,7 +95,7 @@ export default async function VisitRequestDetailPage({
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Hộ gia đình</p>
+          <p className="text-sm text-gray-500">Hộ gia đình cần thăm viếng</p>
           <p className="mt-1 font-semibold text-gray-900">
             <Link
               href={`/households/${request.householdId}`}
@@ -101,6 +104,11 @@ export default async function VisitRequestDetailPage({
               {request.householdCode}
             </Link>
           </p>
+          {request.householdHeadName && (
+            <p className="mt-1 text-sm text-gray-600">
+              Chủ hộ: {request.householdHeadName}
+            </p>
+          )}
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Tổ thăm viếng</p>
@@ -118,8 +126,10 @@ export default async function VisitRequestDetailPage({
           <p className="text-sm text-gray-500">Nhân sự thăm viếng</p>
           <div className="mt-2">
             <VisitRequestStaffDisplay
+              representativeMemberId={request.representativeMemberId}
+              representativeMemberCode={request.representativeMemberCode}
+              representativeMemberName={request.representativeMemberName}
               staffCodes={request.staffCodes}
-              staffMembers={staffMembers}
             />
           </div>
         </div>
@@ -128,36 +138,22 @@ export default async function VisitRequestDetailPage({
       {request.content && (
         <div className="mt-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Nội dung / ghi chú</p>
-          <p className="mt-2 text-gray-900 whitespace-pre-wrap">
+          <p className="mt-2 whitespace-pre-wrap text-gray-900">
             {request.content}
           </p>
         </div>
       )}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">
-            Gán nhân sự thăm viếng
-          </h2>
-          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <VisitRequestStaffForm
-              requestId={request.id}
-              staffCodes={request.staffCodes}
-              staffMembers={staffMembers}
-            />
-          </div>
-        </div>
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">
-            Cập nhật tình trạng
-          </h2>
-          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <VisitRequestStatusForm
-              requestId={request.id}
-              currentStatus={request.status}
-              currentActualDate={request.actualDate}
-            />
-          </div>
+      <div className="mt-8 max-w-xl">
+        <h2 className="text-base font-semibold text-gray-900">
+          Cập nhật nhanh tình trạng
+        </h2>
+        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <VisitRequestStatusForm
+            requestId={request.id}
+            currentStatus={request.status}
+            currentActualDate={request.actualDate}
+          />
         </div>
       </div>
 

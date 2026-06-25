@@ -9,14 +9,14 @@ import { DEFAULT_PAGE_SIZE } from "@/lib/member-list";
 import { prisma } from "@/lib/prisma";
 import type { VisitRequestFiltersInput } from "@/lib/visit-request-list";
 import {
+  formatDateForInput,
   parseScheduledDateInput,
-  parseStaffCodeList,
   visitRequestFormSchema,
-  visitRequestStaffSchema,
   visitRequestStatusSchema,
+  visitRequestUpdateSchema,
   type VisitRequestFormInput,
-  type VisitRequestStaffInput,
   type VisitRequestStatusInput,
+  type VisitRequestUpdateInput,
 } from "@/lib/validations/visit-request";
 
 export type VisitRequestListItem = {
@@ -58,10 +58,11 @@ export type VisitRequestStaffOption = {
   fullName: string;
 };
 
-export type VisitRequestFormOptions = {
+export type VisitRequestFormContext = {
+  isAdmin: boolean;
+  lockedVisitTeamId: string | null;
   households: VisitRequestHouseholdOption[];
   visitTeams: VisitRequestTeamOption[];
-  staffMembers: VisitRequestStaffOption[];
 };
 
 export type VisitRequestDetail = {
@@ -72,13 +73,21 @@ export type VisitRequestDetail = {
   status: VisitRequestStatus;
   content: string | null;
   staffCodes: string | null;
+  representativeMemberId: string | null;
+  representativeMemberCode: string | null;
+  representativeMemberName: string | null;
   householdId: string;
   householdCode: string;
+  householdHeadName: string | null;
   visitTeamId: string;
   visitTeamCode: string;
   visitTeamArea: string;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type VisitRequestPrintData = VisitRequestDetail & {
+  staffNames: string[];
 };
 
 async function requireAuth() {
@@ -87,6 +96,80 @@ async function requireAuth() {
     throw new Error("Unauthorized");
   }
   return session.user;
+}
+
+async function getAuthUserRecord() {
+  const session = await requireAuth();
+  return prisma.user.findUnique({
+    where: { id: session.id },
+    select: {
+      id: true,
+      role: true,
+      memberId: true,
+      member: { select: { visitTeamId: true } },
+    },
+  });
+}
+
+async function assertTeamAccess(visitTeamId: string) {
+  const user = await getAuthUserRecord();
+  if (!user) throw new Error("Unauthorized");
+
+  if (user.role === "admin") return user;
+
+  const lockedTeamId = user.member?.visitTeamId ?? null;
+  if (!lockedTeamId || lockedTeamId !== visitTeamId) {
+    throw new Error("Không có quyền thao tác tổ thăm viếng này");
+  }
+
+  return user;
+}
+
+async function validateTeamMembers(
+  visitTeamId: string,
+  representativeMemberId: string | null | undefined,
+  additionalStaffMemberIds: string[] | undefined
+) {
+  const additionalIds = additionalStaffMemberIds ?? [];
+  const allIds = [
+    ...(representativeMemberId ? [representativeMemberId] : []),
+    ...additionalIds,
+  ];
+
+  if (allIds.length === 0) {
+    return {
+      representativeMemberId: representativeMemberId ?? null,
+      staffCodes: null as string | null,
+    };
+  }
+
+  const uniqueIds = [...new Set(allIds)];
+  const members = await prisma.member.findMany({
+    where: { id: { in: uniqueIds } },
+    select: { id: true, code: true, visitTeamId: true },
+  });
+
+  if (members.length !== uniqueIds.length) {
+    throw new Error("Một hoặc nhiều nhân sự không tồn tại");
+  }
+
+  for (const member of members) {
+    if (member.visitTeamId !== visitTeamId) {
+      throw new Error(
+        `Nhân sự ${member.code} không thuộc tổ thăm viếng đã chọn`
+      );
+    }
+  }
+
+  const additionalCodes = additionalIds
+    .map((id) => members.find((member) => member.id === id)?.code)
+    .filter((code): code is string => Boolean(code));
+
+  return {
+    representativeMemberId: representativeMemberId ?? null,
+    staffCodes:
+      additionalCodes.length > 0 ? additionalCodes.join(", ") : null,
+  };
 }
 
 export async function getVisitRequestFilterOptions(): Promise<{
@@ -197,43 +280,65 @@ export async function getVisitRequests(
   };
 }
 
-export async function getVisitRequestFormOptions(): Promise<VisitRequestFormOptions> {
-  await requireAuth();
+export async function getVisitRequestFormContext(): Promise<VisitRequestFormContext> {
+  const user = await getAuthUserRecord();
+  if (!user) throw new Error("Unauthorized");
 
-  const [households, visitTeams, staffMembers] = await Promise.all([
-    prisma.household.findMany({
-      select: {
-        id: true,
-        code: true,
-        members: {
-          where: { isHead: true },
-          select: { fullName: true },
-          take: 1,
-        },
+  const households = await prisma.household.findMany({
+    select: {
+      id: true,
+      code: true,
+      members: {
+        where: { isHead: true },
+        select: { fullName: true },
+        take: 1,
       },
-      orderBy: { code: "asc" },
-      take: 500,
-    }),
-    prisma.visitTeam.findMany({
+    },
+    orderBy: { code: "asc" },
+    take: 1000,
+  });
+
+  const isAdmin = user.role === "admin";
+  const lockedVisitTeamId = !isAdmin
+    ? user.member?.visitTeamId ?? null
+    : null;
+
+  let visitTeams: VisitRequestTeamOption[] = [];
+
+  if (isAdmin) {
+    visitTeams = await prisma.visitTeam.findMany({
       select: { id: true, code: true, area: true },
       orderBy: { code: "asc" },
-    }),
-    prisma.member.findMany({
-      select: { id: true, code: true, fullName: true },
-      orderBy: { fullName: "asc" },
-      take: 500,
-    }),
-  ]);
+    });
+  } else if (lockedVisitTeamId) {
+    visitTeams = await prisma.visitTeam.findMany({
+      where: { id: lockedVisitTeamId },
+      select: { id: true, code: true, area: true },
+    });
+  }
 
   return {
+    isAdmin,
+    lockedVisitTeamId,
     households: households.map((household) => ({
       id: household.id,
       code: household.code,
       headName: household.members[0]?.fullName ?? null,
     })),
     visitTeams,
-    staffMembers,
   };
+}
+
+export async function getVisitTeamStaffMembers(
+  visitTeamId: string
+): Promise<VisitRequestStaffOption[]> {
+  await assertTeamAccess(visitTeamId);
+
+  return prisma.member.findMany({
+    where: { visitTeamId },
+    select: { id: true, code: true, fullName: true },
+    orderBy: { fullName: "asc" },
+  });
 }
 
 export async function getDefaultVisitTeamForHousehold(
@@ -250,60 +355,10 @@ export async function getDefaultVisitTeamForHousehold(
   return member?.visitTeamId ?? null;
 }
 
-async function resolveStaffCodes(
-  staffCodes: string | null | undefined,
-  staffMemberIds: string[] | undefined
-): Promise<string | null> {
-  if (staffMemberIds && staffMemberIds.length > 0) {
-    const members = await prisma.member.findMany({
-      where: { id: { in: staffMemberIds } },
-      select: { code: true },
-      orderBy: { code: "asc" },
-    });
-
-    if (members.length !== staffMemberIds.length) {
-      throw new Error("Một hoặc nhiều nhân sự không tồn tại");
-    }
-
-    return members.map((member) => member.code).join(", ");
-  }
-
-  const trimmed = staffCodes?.trim();
-  if (!trimmed) return null;
-
-  const codes = parseStaffCodeList(trimmed);
-  if (codes.length === 0) return null;
-
-  const members = await prisma.member.findMany({
-    where: { code: { in: codes } },
-    select: { code: true },
-  });
-
-  const foundCodes = new Set(members.map((member) => member.code.toLowerCase()));
-  const missing = codes.filter((code) => !foundCodes.has(code.toLowerCase()));
-
-  if (missing.length > 0) {
-    throw new Error(`Mã nhân sự không tồn tại: ${missing.join(", ")}`);
-  }
-
-  return codes.join(", ");
-}
-
-export async function getStaffMemberOptions(): Promise<VisitRequestStaffOption[]> {
-  await requireAuth();
-
-  return prisma.member.findMany({
-    select: { id: true, code: true, fullName: true },
-    orderBy: { fullName: "asc" },
-    take: 500,
-  });
-}
-
 export async function createVisitRequest(
   input: VisitRequestFormInput
 ): Promise<ActionResult<{ id: string; code: string }>> {
   try {
-    await requireAuth();
     const parsed = visitRequestFormSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -313,7 +368,17 @@ export async function createVisitRequest(
       };
     }
 
-    const { householdId, visitTeamId, scheduledDate, content } = parsed.data;
+    const {
+      householdId,
+      visitTeamId,
+      scheduledDate,
+      actualDate,
+      content,
+      representativeMemberId,
+      additionalStaffMemberIds,
+    } = parsed.data;
+
+    await assertTeamAccess(visitTeamId);
 
     const household = await prisma.household.findUnique({
       where: { id: householdId },
@@ -331,11 +396,15 @@ export async function createVisitRequest(
       return { success: false, error: "Tổ thăm viếng không tồn tại" };
     }
 
-    let staffCodes: string | null;
+    let staffData: {
+      representativeMemberId: string | null;
+      staffCodes: string | null;
+    };
     try {
-      staffCodes = await resolveStaffCodes(
-        parsed.data.staffCodes,
-        parsed.data.staffMemberIds
+      staffData = await validateTeamMembers(
+        visitTeamId,
+        representativeMemberId,
+        additionalStaffMemberIds
       );
     } catch (err) {
       const message =
@@ -345,6 +414,9 @@ export async function createVisitRequest(
 
     const code = await generateVisitRequestCode();
     const scheduled = parseScheduledDateInput(scheduledDate);
+    const actual = actualDate?.trim()
+      ? parseScheduledDateInput(actualDate.trim())
+      : null;
     const trimmedContent = content?.trim();
 
     const request = await prisma.visitRequest.create({
@@ -353,9 +425,12 @@ export async function createVisitRequest(
         householdId,
         visitTeamId,
         scheduledDate: scheduled,
+        actualDate: actual,
         status: "scheduled",
-        staffCodes,
-        content: trimmedContent && trimmedContent.length > 0 ? trimmedContent : null,
+        representativeMemberId: staffData.representativeMemberId,
+        staffCodes: staffData.staffCodes,
+        content:
+          trimmedContent && trimmedContent.length > 0 ? trimmedContent : null,
       },
       select: { id: true, code: true },
     });
@@ -364,37 +439,32 @@ export async function createVisitRequest(
     revalidatePath("/dashboard");
 
     return { success: true, data: request };
-  } catch {
-    return { success: false, error: "Không thể tạo đơn thăm viếng" };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Không thể tạo đơn thăm viếng";
+    return { success: false, error: message };
   }
 }
 
-export async function getVisitRequestById(
-  id: string
-): Promise<VisitRequestDetail | null> {
-  await requireAuth();
-
-  const request = await prisma.visitRequest.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      code: true,
-      scheduledDate: true,
-      actualDate: true,
-      status: true,
-      content: true,
-      staffCodes: true,
-      householdId: true,
-      visitTeamId: true,
-      createdAt: true,
-      updatedAt: true,
-      household: { select: { code: true } },
-      visitTeam: { select: { code: true, area: true } },
-    },
-  });
-
-  if (!request) return null;
-
+async function loadVisitRequestDetail(
+  request: {
+    id: string;
+    code: string;
+    scheduledDate: Date;
+    actualDate: Date | null;
+    status: VisitRequestStatus;
+    content: string | null;
+    staffCodes: string | null;
+    representativeMemberId: string | null;
+    householdId: string;
+    visitTeamId: string;
+    createdAt: Date;
+    updatedAt: Date;
+    household: { code: string; members: { fullName: string }[] };
+    visitTeam: { code: string; area: string };
+    representativeMember: { code: string; fullName: string } | null;
+  }
+): Promise<VisitRequestDetail> {
   return {
     id: request.id,
     code: request.code,
@@ -403,14 +473,193 @@ export async function getVisitRequestById(
     status: request.status,
     content: request.content,
     staffCodes: request.staffCodes,
+    representativeMemberId: request.representativeMemberId,
+    representativeMemberCode: request.representativeMember?.code ?? null,
+    representativeMemberName: request.representativeMember?.fullName ?? null,
     householdId: request.householdId,
     householdCode: request.household.code,
+    householdHeadName: request.household.members[0]?.fullName ?? null,
     visitTeamId: request.visitTeamId,
     visitTeamCode: request.visitTeam.code,
     visitTeamArea: request.visitTeam.area,
     createdAt: request.createdAt,
     updatedAt: request.updatedAt,
   };
+}
+
+const visitRequestSelect = {
+  id: true,
+  code: true,
+  scheduledDate: true,
+  actualDate: true,
+  status: true,
+  content: true,
+  staffCodes: true,
+  representativeMemberId: true,
+  householdId: true,
+  visitTeamId: true,
+  createdAt: true,
+  updatedAt: true,
+  household: {
+    select: {
+      code: true,
+      members: {
+        where: { isHead: true },
+        select: { fullName: true },
+        take: 1,
+      },
+    },
+  },
+  visitTeam: { select: { code: true, area: true } },
+  representativeMember: { select: { code: true, fullName: true } },
+} as const;
+
+export async function getVisitRequestById(
+  id: string
+): Promise<VisitRequestDetail | null> {
+  await requireAuth();
+
+  const request = await prisma.visitRequest.findUnique({
+    where: { id },
+    select: visitRequestSelect,
+  });
+
+  if (!request) return null;
+
+  return loadVisitRequestDetail(request);
+}
+
+export async function getVisitRequestForPrint(
+  id: string
+): Promise<VisitRequestPrintData | null> {
+  await requireAuth();
+
+  const request = await prisma.visitRequest.findUnique({
+    where: { id },
+    select: visitRequestSelect,
+  });
+
+  if (!request) return null;
+
+  const detail = await loadVisitRequestDetail(request);
+
+  const additionalCodes = request.staffCodes
+    ? request.staffCodes.split(/[,;]/).map((code) => code.trim()).filter(Boolean)
+    : [];
+
+  let additionalStaffNames: string[] = [];
+  if (additionalCodes.length > 0) {
+    const members = await prisma.member.findMany({
+      where: { code: { in: additionalCodes } },
+      select: { code: true, fullName: true },
+    });
+    const nameByCode = new Map(
+      members.map((member) => [member.code.toLowerCase(), member.fullName])
+    );
+    additionalStaffNames = additionalCodes.map(
+      (code) => nameByCode.get(code.toLowerCase()) ?? code
+    );
+  }
+
+  const staffNames = [
+    request.representativeMember?.fullName,
+    ...additionalStaffNames,
+  ].filter((name): name is string => Boolean(name));
+
+  return {
+    ...detail,
+    staffNames,
+  };
+}
+
+export async function updateVisitRequest(
+  id: string,
+  input: VisitRequestUpdateInput
+): Promise<ActionResult<{ id: string; code: string }>> {
+  try {
+    const parsed = visitRequestUpdateSchema.safeParse(input);
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ",
+      };
+    }
+
+    const existing = await prisma.visitRequest.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, error: "Đơn thăm viếng không tồn tại" };
+    }
+
+    const {
+      householdId,
+      visitTeamId,
+      scheduledDate,
+      actualDate,
+      content,
+      status,
+      representativeMemberId,
+      additionalStaffMemberIds,
+    } = parsed.data;
+
+    await assertTeamAccess(visitTeamId);
+
+    let staffData: {
+      representativeMemberId: string | null;
+      staffCodes: string | null;
+    };
+    try {
+      staffData = await validateTeamMembers(
+        visitTeamId,
+        representativeMemberId,
+        additionalStaffMemberIds
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Nhân sự không hợp lệ";
+      return { success: false, error: message };
+    }
+
+    const scheduled = parseScheduledDateInput(scheduledDate);
+    let actual: Date | null = actualDate?.trim()
+      ? parseScheduledDateInput(actualDate.trim())
+      : null;
+
+    if (status !== "completed") {
+      actual = actualDate?.trim()
+        ? parseScheduledDateInput(actualDate.trim())
+        : null;
+    }
+
+    const trimmedContent = content?.trim();
+
+    const request = await prisma.visitRequest.update({
+      where: { id },
+      data: {
+        householdId,
+        visitTeamId,
+        scheduledDate: scheduled,
+        actualDate: actual,
+        status,
+        representativeMemberId: staffData.representativeMemberId,
+        staffCodes: staffData.staffCodes,
+        content:
+          trimmedContent && trimmedContent.length > 0 ? trimmedContent : null,
+      },
+      select: { id: true, code: true },
+    });
+
+    revalidatePath("/visit-requests");
+    revalidatePath(`/visit-requests/${id}`);
+    revalidatePath(`/visit-requests/${id}/edit`);
+    revalidatePath("/dashboard");
+
+    return { success: true, data: request };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Không thể cập nhật đơn thăm viếng";
+    return { success: false, error: message };
+  }
 }
 
 export async function updateVisitStatus(
@@ -433,11 +682,17 @@ export async function updateVisitStatus(
       return { success: false, error: "Đơn thăm viếng không tồn tại" };
     }
 
+    await assertTeamAccess(existing.visitTeamId);
+
     const { status } = parsed.data;
-    let actualDate: Date | null = null;
+    let actualDate: Date | null = existing.actualDate;
 
     if (status === "completed") {
       actualDate = parseScheduledDateInput(parsed.data.actualDate!.trim());
+    } else if (status === "scheduled") {
+      actualDate = existing.actualDate;
+    } else {
+      actualDate = existing.actualDate;
     }
 
     const request = await prisma.visitRequest.update({
@@ -456,49 +711,4 @@ export async function updateVisitStatus(
   }
 }
 
-export async function updateVisitRequestStaff(
-  id: string,
-  input: VisitRequestStaffInput
-): Promise<ActionResult<{ staffCodes: string | null }>> {
-  try {
-    await requireAuth();
-    const parsed = visitRequestStaffSchema.safeParse(input);
-
-    if (!parsed.success) {
-      return {
-        success: false,
-        error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ",
-      };
-    }
-
-    const existing = await prisma.visitRequest.findUnique({ where: { id } });
-    if (!existing) {
-      return { success: false, error: "Đơn thăm viếng không tồn tại" };
-    }
-
-    let staffCodes: string | null;
-    try {
-      staffCodes = await resolveStaffCodes(
-        parsed.data.staffCodes,
-        parsed.data.staffMemberIds
-      );
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Nhân sự không hợp lệ";
-      return { success: false, error: message };
-    }
-
-    const request = await prisma.visitRequest.update({
-      where: { id },
-      data: { staffCodes },
-      select: { staffCodes: true },
-    });
-
-    revalidatePath("/visit-requests");
-    revalidatePath(`/visit-requests/${id}`);
-
-    return { success: true, data: { staffCodes: request.staffCodes } };
-  } catch {
-    return { success: false, error: "Không thể cập nhật nhân sự" };
-  }
-}
+export { formatDateForInput };

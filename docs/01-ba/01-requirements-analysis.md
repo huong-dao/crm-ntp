@@ -140,8 +140,9 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 **Quy tắc nghiệp vụ:**
 - **Admin:** Tạo tài khoản user, toàn quyền CRUD
 - **User:** Xem và chỉnh sửa dữ liệu, không tạo tài khoản
-- **Users KHÔNG liên kết với Members** — hai bảng hoàn toàn tách biệt
-- Chỉ admin tạo tài khoản, không có self-registration
+- **Users có thể liên kết với Member** (`users.member_id`) — dùng để giới hạn tổ thăm viếng khi tạo/sửa đơn
+- Mỗi member liên kết tối đa 1 user
+- Chỉ admin tạo/sửa tài khoản, không có self-registration
 
 ---
 

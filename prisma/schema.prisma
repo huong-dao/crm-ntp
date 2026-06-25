@@ -43,8 +43,11 @@ model User {
   password  String
   role      UserRole @default(user)
   isActive  Boolean  @default(true) @map("is_active")
+  memberId  String?  @unique @map("member_id")
   createdAt DateTime @default(now()) @map("created_at")
   createdBy String?  @map("created_by")
+
+  member Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
@@ -122,6 +125,8 @@ model Member {
 
   household Household? @relation(fields: [householdId], references: [id])
   visitTeam VisitTeam? @relation(fields: [visitTeamId], references: [id])
+  linkedUser User?
+  representativeVisitRequests VisitRequest[] @relation("VisitRequestRepresentative")
 
   @@index([householdId])
   @@index([visitTeamId])
@@ -131,25 +136,28 @@ model Member {
 }
 
 model VisitRequest {
-  id            String             @id @default(cuid())
-  code          String             @unique
-  scheduledDate DateTime           @map("scheduled_date")
-  actualDate    DateTime?          @map("actual_date")
-  status        VisitRequestStatus @default(scheduled)
-  content       String?            @db.Text
-  staffCodes    String?            @map("staff_codes")
-  householdId   String             @map("household_id")
-  visitTeamId   String             @map("visit_team_id")
-  createdAt     DateTime           @default(now()) @map("created_at")
-  updatedAt     DateTime           @updatedAt @map("updated_at")
+  id                     String             @id @default(cuid())
+  code                   String             @unique
+  scheduledDate          DateTime           @map("scheduled_date")
+  actualDate             DateTime?          @map("actual_date")
+  status                 VisitRequestStatus @default(scheduled)
+  content                String?            @db.Text
+  staffCodes             String?            @map("staff_codes")
+  representativeMemberId String?            @map("representative_member_id")
+  householdId            String             @map("household_id")
+  visitTeamId            String             @map("visit_team_id")
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
 
-  household Household  @relation(fields: [householdId], references: [id])
-  visitTeam VisitTeam  @relation(fields: [visitTeamId], references: [id])
+  household            Household  @relation(fields: [householdId], references: [id])
+  visitTeam            VisitTeam  @relation(fields: [visitTeamId], references: [id])
+  representativeMember Member?    @relation("VisitRequestRepresentative", fields: [representativeMemberId], references: [id], onDelete: SetNull)
 
   @@index([householdId])
   @@index([visitTeamId])
   @@index([status])
   @@index([scheduledDate])
+  @@index([representativeMemberId])
   @@map("visit_requests")
 }
 

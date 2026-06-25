@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getVisitRequestFormOptions } from "@/actions/visit-request-actions";
+import { getVisitRequestFormContext } from "@/actions/visit-request-actions";
 import { VisitRequestForm } from "@/components/visit-requests/visit-request-form";
 import { Button } from "@/components/ui/button";
 
@@ -19,7 +19,7 @@ export default async function NewVisitRequestPage({
 }) {
   const params = await searchParams;
   const householdId = pickParam(params, "householdId");
-  const options = await getVisitRequestFormOptions();
+  const options = await getVisitRequestFormContext();
 
   const householdValid =
     householdId &&
@@ -46,7 +46,8 @@ export default async function NewVisitRequestPage({
       </div>
 
       <VisitRequestForm
-        options={options}
+        mode="create"
+        context={options}
         defaultHouseholdId={householdValid ? householdId : undefined}
       />
     </div>

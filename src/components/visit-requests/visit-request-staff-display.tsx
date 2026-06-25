@@ -1,35 +1,40 @@
-import type { VisitRequestStaffOption } from "@/actions/visit-request-actions";
 import { parseStaffCodeList } from "@/lib/validations/visit-request";
 
 export function VisitRequestStaffDisplay({
+  representativeMemberId,
+  representativeMemberCode,
+  representativeMemberName,
   staffCodes,
-  staffMembers,
 }: {
+  representativeMemberId: string | null;
+  representativeMemberCode?: string | null;
+  representativeMemberName?: string | null;
   staffCodes: string | null;
-  staffMembers: VisitRequestStaffOption[];
 }) {
-  if (!staffCodes) {
+  const additionalCodes = staffCodes ? parseStaffCodeList(staffCodes) : [];
+
+  if (!representativeMemberId && additionalCodes.length === 0) {
     return <p className="text-gray-600">Chưa gán nhân sự.</p>;
   }
 
-  const codes = parseStaffCodeList(staffCodes);
-  const memberByCode = new Map(
-    staffMembers.map((member) => [member.code.toLowerCase(), member])
-  );
-
   return (
     <ul className="space-y-1 text-sm">
-      {codes.map((code) => {
-        const member = memberByCode.get(code.toLowerCase());
-        return (
-          <li key={code} className="text-gray-900">
-            <span className="font-medium">{code}</span>
-            {member ? (
-              <span className="text-gray-600"> — {member.fullName}</span>
-            ) : null}
-          </li>
-        );
-      })}
+      {representativeMemberId && (
+        <li className="text-gray-900">
+          <span className="font-medium">
+            {representativeMemberCode ?? "—"}
+          </span>
+          {representativeMemberName ? (
+            <span className="text-gray-600"> — {representativeMemberName}</span>
+          ) : null}
+          <span className="ml-2 text-xs text-[#1e3a5f]">(Đại diện)</span>
+        </li>
+      )}
+      {additionalCodes.map((code) => (
+        <li key={code} className="text-gray-900">
+          <span className="font-medium">{code}</span>
+        </li>
+      ))}
     </ul>
   );
 }
