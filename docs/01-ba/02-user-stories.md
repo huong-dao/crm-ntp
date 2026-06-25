@@ -93,6 +93,19 @@
 - [ ] Trang chi tiết log: dòng OK, dòng lỗi + lý do
 - [ ] Nút **Import lại dòng lỗi** trên chi tiết log
 - [ ] Tải Excel chỉ các dòng lỗi để sửa ngoài hệ thống
+- [ ] Cột **Quan hệ** và **Chủ hộ** lưu độc lập (không xóa quan hệ khi là chủ hộ)
+
+### US-09b: Import hộ gia đình từ Excel
+**As a** user  
+**I want to** import danh sách hộ từ file Excel  
+**So that** tôi gán chủ hộ hàng loạt mà không nhập tay từng hộ
+
+**Acceptance Criteria:**
+- [ ] Nút Import Excel trên `/households`
+- [ ] File mẫu 2 cột: **Mã hộ** | **Chủ hộ** (mã tín hữu, tùy chọn)
+- [ ] Import được hộ chỉ với Mã hộ (Chủ hộ để trống)
+- [ ] Tạo hộ mới hoặc cập nhật chủ hộ theo từng dòng
+- [ ] Hiển thị kết quả OK/lỗi theo dòng
 
 ---
 
@@ -139,6 +152,17 @@
 - [ ] Mã tổ tự sinh
 - [ ] Chọn trưởng tổ từ danh sách member
 - [ ] Nhập khu vực phụ trách (text)
+
+### US-11b: Import tổ thăm viếng từ Excel
+**As a** user  
+**I want to** import danh sách tổ thăm viếng từ Excel  
+**So that** tôi thiết lập tổ và khu vực nhanh hơn
+
+**Acceptance Criteria:**
+- [ ] Nút Import Excel trên `/visit-teams`
+- [ ] File mẫu 3 cột: **Mã tổ thăm viếng** | **Mã tín hữu** | **Khu vực phụ trách**
+- [ ] Tạo/cập nhật tổ theo từng dòng
+- [ ] Hiển thị kết quả OK/lỗi theo dòng
 
 ---
 

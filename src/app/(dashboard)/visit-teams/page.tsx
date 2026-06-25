@@ -1,4 +1,5 @@
 import { getVisitTeams } from "@/actions/visit-team-actions";
+import { ImportVisitTeamsDialog } from "@/components/visit-teams/import-visit-teams-dialog";
 import { VisitTeamTable } from "@/components/visit-teams/visit-team-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,9 +42,12 @@ export default async function VisitTeamsPage({
             Quản lý tổ thăm viếng và khu vực phụ trách
           </p>
         </div>
-        <Button asChild>
-          <Link href="/visit-teams/new">+ Thêm tổ</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ImportVisitTeamsDialog />
+          <Button asChild>
+            <Link href="/visit-teams/new">+ Thêm tổ</Link>
+          </Button>
+        </div>
       </div>
 
       <form

@@ -1,28 +1,25 @@
 "use client";
 
-import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import {
-  cancelMemberImportLog,
-  getMemberImportTemplate,
-  importMemberBatch,
-  startMemberImport,
-  type ImportMembersResult,
-} from "@/actions/member-import-actions";
+  getHouseholdImportTemplate,
+  importHouseholdBatch,
+  type ImportHouseholdsResult,
+} from "@/actions/household-import-actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { downloadBase64File } from "@/lib/download-base64";
-import {
-  extractImportDataRows,
-  parseImportHeaders,
-} from "@/lib/member-import";
-import { parseSpreadsheetFile } from "@/lib/spreadsheet-client";
 import {
   ImportProgressModal,
   type ImportProgressState,
 } from "@/components/import-progress-modal";
+import { downloadBase64File } from "@/lib/download-base64";
+import {
+  extractHouseholdImportRows,
+  parseHouseholdImportHeaders,
+} from "@/lib/household-import";
+import { parseSpreadsheetFile } from "@/lib/spreadsheet-client";
 
 const EXCEL_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -35,28 +32,25 @@ function isAcceptedFile(file: File): boolean {
   return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
-export function ImportMembersDialog() {
+export function ImportHouseholdsDialog() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<ImportMembersResult | null>(null);
+  const [result, setResult] = useState<ImportHouseholdsResult | null>(null);
   const [progress, setProgress] = useState<ImportProgressState | null>(null);
 
   async function downloadTemplate() {
     setTemplateLoading(true);
     setError("");
-
-    const templateResult = await getMemberImportTemplate();
+    const templateResult = await getHouseholdImportTemplate();
     setTemplateLoading(false);
-
     if (!templateResult.success) {
       setError(templateResult.error);
       return;
     }
-
     downloadBase64File(
       templateResult.data.base64,
       templateResult.data.fileName,
@@ -70,7 +64,6 @@ export function ImportMembersDialog() {
       setError("Chọn file Excel trước khi import");
       return;
     }
-
     if (!isAcceptedFile(file)) {
       setError("Chỉ hỗ trợ file Excel (.xlsx, .xls) hoặc CSV");
       return;
@@ -88,18 +81,15 @@ export function ImportMembersDialog() {
       errorCount: 0,
     });
 
-    let logId: string | null = null;
-
     try {
       const parsed = await parseSpreadsheetFile(file);
-
-      const headerResult = parseImportHeaders(parsed);
+      const headerResult = parseHouseholdImportHeaders(parsed);
       if (!headerResult.ok) {
         setError(headerResult.error);
         return;
       }
 
-      const dataRows = extractImportDataRows(parsed);
+      const dataRows = extractHouseholdImportRows(parsed);
       if (dataRows.length === 0) {
         setError("Không có dòng dữ liệu hợp lệ để import");
         return;
@@ -111,19 +101,7 @@ export function ImportMembersDialog() {
           : null
       );
 
-      const start = await startMemberImport({
-        fileName: file.name,
-        columnHeaders: parsed[0],
-        totalRows: dataRows.length,
-      });
-
-      if (!start.success) {
-        setError(start.error);
-        return;
-      }
-
-      logId = start.data.logId;
-      const allResults: ImportMembersResult["results"] = [];
+      const allResults: ImportHouseholdsResult["results"] = [];
       let successCount = 0;
       let errorCount = 0;
       let processedRows = 0;
@@ -131,13 +109,13 @@ export function ImportMembersDialog() {
       for (let i = 0; i < dataRows.length; i += BATCH_SIZE) {
         const batch = dataRows.slice(i, i + BATCH_SIZE);
         const isLastBatch = i + BATCH_SIZE >= dataRows.length;
-        const batchResult = await importMemberBatch(logId, batch, {
-          isLastBatch,
-        });
+        const batchResult = await importHouseholdBatch(
+          batch,
+          parsed[0],
+          { isLastBatch }
+        );
 
         if (!batchResult.success) {
-          await cancelMemberImportLog(logId);
-          logId = null;
           setError(batchResult.error);
           return;
         }
@@ -160,29 +138,9 @@ export function ImportMembersDialog() {
         );
       }
 
-      setProgress((prev) =>
-        prev
-          ? {
-              ...prev,
-              phase: "done",
-              processedRows: dataRows.length,
-              successCount,
-              errorCount,
-            }
-          : null
-      );
-
-      setResult({
-        logId,
-        successCount,
-        errorCount,
-        results: allResults,
-      });
+      setResult({ successCount, errorCount, results: allResults });
       router.refresh();
     } catch {
-      if (logId) {
-        await cancelMemberImportLog(logId);
-      }
       setError("Không đọc được file — thử lưu lại bằng Excel (.xlsx)");
     } finally {
       setImporting(false);
@@ -210,27 +168,26 @@ export function ImportMembersDialog() {
   return (
     <>
       {progress && (
-        <ImportProgressModal progress={progress} entityLabel="thành viên" />
+        <ImportProgressModal progress={progress} entityLabel="hộ gia đình" />
       )}
 
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="import-members-title"
+        aria-labelledby="import-households-title"
       >
         <div className="w-full max-w-lg rounded-lg border border-gray-200 bg-white p-6 shadow-lg">
           <h2
-            id="import-members-title"
+            id="import-households-title"
             className="text-lg font-semibold text-gray-900"
           >
-            Import thành viên từ Excel
+            Import hộ gia đình từ Excel
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Dùng file Excel (.xlsx) với đầy đủ cột như file mẫu. Bắt buộc:{" "}
-            <strong>Họ và lót</strong>, <strong>Tên</strong>, <strong>Mã hộ</strong>.
-            Hộ chưa có sẽ được <strong>tự tạo</strong> theo mã hộ trong file.
-            Mã tín hữu giữ nguyên nếu có cột Mã tín hữu, không thì tự sinh.
+            File cần cột <strong>Mã hộ</strong> (bắt buộc). Cột{" "}
+            <strong>Chủ hộ</strong> (mã tín hữu) là tùy chọn — có thể để trống
+            nếu import hộ trước, gán chủ hộ sau khi đã import thành viên.
           </p>
 
           <div className="mt-4 space-y-4">
@@ -245,12 +202,12 @@ export function ImportMembersDialog() {
             </Button>
 
             <div className="space-y-2">
-              <Label htmlFor="import-excel-file">Chọn file Excel</Label>
+              <Label htmlFor="import-household-file">Chọn file Excel</Label>
               <input
                 ref={fileRef}
-                id="import-excel-file"
+                id="import-household-file"
                 type="file"
-                accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                accept=".xlsx,.xls,.csv"
                 disabled={importing}
                 className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border file:border-gray-300 file:bg-gray-50 file:px-3 file:py-2 file:text-sm file:font-medium disabled:opacity-50"
               />
@@ -295,16 +252,6 @@ export function ImportMembersDialog() {
                     </li>
                   )}
                 </ul>
-              )}
-              {result.logId && (
-                <p className="mt-3">
-                  <Link
-                    href={`/members/imports/${result.logId}`}
-                    className="font-medium text-[#1e3a5f] underline"
-                  >
-                    Xem chi tiết log import →
-                  </Link>
-                </p>
               )}
             </div>
           )}

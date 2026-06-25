@@ -43,7 +43,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 | Giới tính | enum | Không | male / female |
 | Nghề nghiệp | string | Không | |
 | Chủ hộ | boolean | Có | yes/no |
-| Quan hệ | string | Không | Với chủ hộ: vợ, con, cha, mẹ... |
+| Quan hệ | string | Không | Mô tả quan hệ trong hộ (vd. Vợ, Con) — độc lập với cờ **Chủ hộ** |
 | Báp têm | boolean | Không | yes/no |
 | Năm báp têm | integer | Không | |
 | Ban ngành theo tuổi | string | Không | Trẻ em, Thanh niên, Người lớn... |
@@ -59,6 +59,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Khi thêm thành viên mà chưa có hộ nào (hoặc chọn **Tạo hộ mới**): hệ thống tự sinh mã hộ và gán thành viên đó làm chủ hộ
 - Thành viên thuộc hộ có sẵn: chọn mã hộ trong danh sách
 - **Import Excel:** mỗi lần import ghi log (`MemberImportLog`); từng dòng OK/lỗi lưu trong `MemberImportLogRow`; cho phép import lại dòng lỗi; hiển thị modal tiến độ với thanh progress và cảnh báo không đóng trang khi đang import
+- **Quan hệ** và **Chủ hộ** (`isHead`) là hai trường độc lập — có thể vừa là chủ hộ vừa có giá trị quan hệ (form, import, sửa đều giữ nguyên)
 
 ---
 
@@ -74,9 +75,10 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 | Số thành viên | integer | Auto | Đếm từ members theo mã hộ |
 
 **Quy tắc nghiệp vụ:**
-- Mã hộ tự sinh khi tạo hộ mới (từ màn hình Hộ gia đình hoặc khi thêm thành viên với tùy chọn **Tạo hộ mới**)
+- Mã hộ tự sinh khi tạo hộ mới (từ màn hình Hộ gia đình hoặc khi thêm thành viên với tùy chọn **Tạo hộ mới**) (từ màn hình Hộ gia đình hoặc khi thêm thành viên với tùy chọn **Tạo hộ mới**)
 - Số thành viên tự cập nhật khi thêm/xóa member trong hộ
 - Chủ hộ phải là member có `is_head_of_household = true`
+- **Import Excel** (nút trên `/households`): file `.xlsx` với cột **Mã hộ** (bắt buộc) | **Chủ hộ** (mã tín hữu, tùy chọn); có thể import hộ trước không chủ hộ, gán sau khi import thành viên
 
 ---
 
@@ -94,6 +96,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Mỗi tổ có mã riêng
 - Một khu vực chỉ do một tổ phụ trách
 - Trưởng tổ là tín hữu (member), không phải user đăng nhập
+- **Import Excel** (nút trên `/visit-teams`): file `.xlsx` với cột **Mã tổ thăm viếng** | **Mã tín hữu** (trưởng tổ) | **Khu vực phụ trách**; mỗi dòng tạo/cập nhật tổ thăm viếng
 
 ---
 

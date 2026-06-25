@@ -53,7 +53,7 @@ export function buildMemberWriteData(
     occupation: data.occupation,
     householdId: data.householdId,
     isHead: data.isHead,
-    relationship: data.isHead ? null : data.relationship,
+    relationship: data.relationship ?? null,
     isBaptized: data.isBaptized,
     baptismYear: data.isBaptized ? data.baptismYear ?? null : null,
     ageDepartment: data.ageDepartment,

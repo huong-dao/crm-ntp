@@ -77,9 +77,7 @@ export function HouseholdMembersTable({
                 )}
               </td>
               <td className="px-4 py-3 text-gray-600">
-                {member.isHead
-                  ? "Chủ hộ"
-                  : member.relationship ?? "—"}
+                {member.relationship ?? "—"}
               </td>
               <td className="px-4 py-3">
                 <span

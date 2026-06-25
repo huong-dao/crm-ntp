@@ -381,7 +381,7 @@ export function MemberForm({
             </select>
           </Field>
         )}
-        <Field label="Chủ hộ" className="space-y-2 flex items-end">
+        <Field label="Chủ hộ" className="space-y-2 flex items-end flex-col">
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
@@ -394,20 +394,18 @@ export function MemberForm({
             Là chủ hộ
           </label>
         </Field>
-        {!isHead && (
-          <Field label="Quan hệ với chủ hộ" className="space-y-2 sm:col-span-2">
-            <Input
-              name="relationship"
-              maxLength={100}
-              placeholder="vd: Vợ, Con,..."
-              defaultValue={member?.relationship ?? ""}
-            />
-          </Field>
-        )}
+        <Field label="Quan hệ" className="space-y-2 sm:col-span-2">
+          <Input
+            name="relationship"
+            maxLength={100}
+            placeholder="vd: Vợ, Con,..."
+            defaultValue={member?.relationship ?? ""}
+          />
+        </Field>
       </Section>
 
       <Section title="Tin lành">
-        <Field label="Báp têm" className="space-y-2 flex items-end">
+        <Field label="Báp têm" className="space-y-2 flex items-end flex-col">
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"

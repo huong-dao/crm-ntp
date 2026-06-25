@@ -369,7 +369,7 @@ export function validateImportRow(
       gender: parseImportGender(row.gender),
       occupation: emptyToNull(row.occupation),
       isHead,
-      relationship: isHead ? null : emptyToNull(row.relationship),
+      relationship: emptyToNull(row.relationship),
       isBaptized,
       baptismYear: isBaptized ? parseOptionalInt(row.baptismYear) : null,
       ageDepartment: emptyToNull(row.ageDepartment),

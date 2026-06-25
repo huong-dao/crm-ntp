@@ -66,7 +66,7 @@ export type HeadMemberOption = {
   fullName: string;
 };
 
-async function applyHouseholdHead(
+export async function applyHouseholdHead(
   tx: Prisma.TransactionClient,
   householdId: string,
   headMemberId: string | null
@@ -102,7 +102,6 @@ async function applyHouseholdHead(
     data: {
       householdId,
       isHead: true,
-      relationship: null,
     },
   });
 

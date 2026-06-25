@@ -12,7 +12,16 @@ export type ImportProgressState = {
   errorCount: number;
 };
 
-export function ImportProgressModal({ progress }: { progress: ImportProgressState }) {
+type ImportProgressModalProps = {
+  progress: ImportProgressState;
+  /** Nhãn loại dữ liệu, vd. "thành viên", "hộ gia đình" */
+  entityLabel?: string;
+};
+
+export function ImportProgressModal({
+  progress,
+  entityLabel = "dữ liệu",
+}: ImportProgressModalProps) {
   const isActive = progress.phase === "parsing" || progress.phase === "importing";
 
   useEffect(() => {
@@ -44,6 +53,11 @@ export function ImportProgressModal({ progress }: { progress: ImportProgressStat
         ? `Đang import dòng ${progress.processedRows} / ${progress.totalRows}...`
         : "Hoàn tất import";
 
+  const title =
+    progress.phase === "done"
+      ? "Import xong"
+      : `Đang import ${entityLabel}`;
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
@@ -65,7 +79,7 @@ export function ImportProgressModal({ progress }: { progress: ImportProgressStat
               id="import-progress-title"
               className="text-lg font-semibold text-gray-900"
             >
-              {progress.phase === "done" ? "Import xong" : "Đang import thành viên"}
+              {title}
             </h2>
             <p className="mt-1 truncate text-sm text-gray-600">{progress.fileName}</p>
           </div>

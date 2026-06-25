@@ -1,4 +1,5 @@
 import { getHouseholds } from "@/actions/household-actions";
+import { ImportHouseholdsDialog } from "@/components/households/import-households-dialog";
 import { HouseholdTable } from "@/components/households/household-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,9 +42,12 @@ export default async function HouseholdsPage({
             Quản lý hộ gia đình và thành viên trong hộ
           </p>
         </div>
-        <Button asChild>
-          <Link href="/households/new">+ Thêm hộ</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ImportHouseholdsDialog />
+          <Button asChild>
+            <Link href="/households/new">+ Thêm hộ</Link>
+          </Button>
+        </div>
       </div>
 
       <form

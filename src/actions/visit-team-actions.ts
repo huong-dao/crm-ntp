@@ -265,7 +265,7 @@ export async function getAssignableMemberOptions(
   });
 }
 
-async function syncLeaderToTeam(
+export async function syncLeaderToTeam(
   teamId: string,
   leaderMemberId: string | null
 ) {
