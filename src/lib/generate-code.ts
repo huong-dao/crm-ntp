@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
 
+export {
+  buildFullName,
+  buildNewFullAddress,
+  buildOldFullAddress,
+} from "@/lib/member-format";
+
 type CodeModel = {
   findMany: (args: { select: { code: true } }) => Promise<{ code: string }[]>;
   findUnique: (args: {
@@ -68,45 +74,4 @@ export async function generateVisitRequestCode(): Promise<string> {
   }
 
   throw new Error("Không thể sinh mã đơn thăm viếng");
-}
-
-function joinAddress(parts: (string | null | undefined)[]) {
-  return parts
-    .map((part) => part?.trim())
-    .filter((part) => part && part.length > 0)
-    .join(", ");
-}
-
-export function buildOldFullAddress(data: {
-  houseNumber?: string | null;
-  street?: string | null;
-  oldWard?: string | null;
-  oldDistrict?: string | null;
-  oldProvince?: string | null;
-}) {
-  return joinAddress([
-    data.houseNumber,
-    data.street,
-    data.oldWard,
-    data.oldDistrict,
-    data.oldProvince,
-  ]);
-}
-
-export function buildNewFullAddress(data: {
-  houseNumber?: string | null;
-  street?: string | null;
-  newWard?: string | null;
-  newProvince?: string | null;
-}) {
-  return joinAddress([
-    data.houseNumber,
-    data.street,
-    data.newWard,
-    data.newProvince,
-  ]);
-}
-
-export function buildFullName(firstName: string, lastName: string) {
-  return `${firstName.trim()} ${lastName.trim()}`.trim();
 }

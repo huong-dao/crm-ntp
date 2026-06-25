@@ -16,7 +16,7 @@ import {
   buildNewFullAddress,
   buildOldFullAddress,
   buildFullName,
-} from "@/lib/generate-code";
+} from "@/lib/member-format";
 import {
   MEMBER_STATUSES,
   STATUS_LABELS,
