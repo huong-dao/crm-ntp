@@ -147,6 +147,24 @@ Hoặc chạy script setup: `bash scripts/setup-server.sh`
 
 ---
 
+## Lỗi: `Cannot find module '.../scripts/prisma-generate.mjs'` khi npm install
+
+**Nguyên nhân:** DirectAdmin nodevenv chạy `postinstall` từ path sai (`.../lib/24/lib/scripts/...`) — folder `scripts/` không nằm ở đó.
+
+**Xử lý:** Code mới **đã bỏ** `postinstall`. Sau `git pull`:
+
+```bash
+cd /home/thamvien6a38/nodevenv/nodejs/24/lib   # application root — có package.json + prisma/
+git pull origin main
+npm install
+npm run db:generate    # hoặc: npx prisma generate
+npm run build          # build cũng chạy prisma generate
+```
+
+Không cần `postinstall` — `npm run build` và `scripts/setup-server.sh` đã gọi `prisma generate`.
+
+---
+
 ## Lỗi: `Could not find Prisma Schema` khi npm install
 
 **Nguyên nhân:** Chạy `npm install` trước `git pull`, hoặc sai thư mục (panel nodevenv).
