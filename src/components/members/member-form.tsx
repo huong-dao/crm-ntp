@@ -381,7 +381,7 @@ export function MemberForm({
             </select>
           </Field>
         )}
-        <Field label="Chủ hộ" className="space-y-2 flex items-end flex-col">
+        <Field label="Chủ hộ" className="space-y-2">
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
@@ -405,7 +405,7 @@ export function MemberForm({
       </Section>
 
       <Section title="Tin lành">
-        <Field label="Báp têm" className="space-y-2 flex items-end flex-col">
+        <Field label="Báp têm" className="space-y-2">
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
