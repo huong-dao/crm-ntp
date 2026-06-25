@@ -16,12 +16,17 @@ import {
   STATUS_LABELS,
   type MemberFiltersInput,
 } from "@/lib/member-list";
-import { buildCsv, parseCsv } from "@/lib/csv";
 import {
   mapCsvHeaders,
   rowToImportData,
   validateImportRow,
+  type ImportRowValid,
 } from "@/lib/member-import";
+import {
+  buildExcelBase64,
+  buildMemberImportTemplateBase64,
+  parseSpreadsheetToRows,
+} from "@/lib/member-excel";
 import { prisma } from "@/lib/prisma";
 import {
   memberFormSchema,
@@ -571,7 +576,7 @@ export async function deleteMember(
 
 export async function exportMembers(
   filters: MemberFiltersInput = {}
-): Promise<ActionResult<string>> {
+): Promise<ActionResult<{ base64: string; fileName: string }>> {
   try {
     await requireAuth();
 
@@ -613,10 +618,31 @@ export async function exportMembers(
       member.visitTeam?.code ?? "",
     ]);
 
-    const csv = buildCsv(headers, rows);
-    return { success: true, data: csv };
+    const date = new Date().toISOString().slice(0, 10);
+    const base64 = buildExcelBase64(headers, rows);
+    return {
+      success: true,
+      data: { base64, fileName: `thanh-vien-${date}.xlsx` },
+    };
   } catch {
-    return { success: false, error: "Không thể xuất CSV" };
+    return { success: false, error: "Không thể xuất file Excel" };
+  }
+}
+
+export async function getMemberImportTemplate(): Promise<
+  ActionResult<{ base64: string; fileName: string }>
+> {
+  try {
+    await requireAuth();
+    return {
+      success: true,
+      data: {
+        base64: buildMemberImportTemplateBase64(),
+        fileName: "mau-import-thanh-vien.xlsx",
+      },
+    };
+  } catch {
+    return { success: false, error: "Không thể tạo file mẫu" };
   }
 }
 
@@ -633,15 +659,116 @@ export type ImportMembersResult = {
   results: ImportRowResult[];
 };
 
-export async function importMembers(
-  csvContent: string
+async function ensureHouseholdByCode(
+  code: string,
+  householdCodeToId: Map<string, string>
+): Promise<string> {
+  const key = code.toLowerCase();
+  const existing = householdCodeToId.get(key);
+  if (existing) return existing;
+
+  const created = await prisma.household.create({
+    data: { code: code.trim() },
+  });
+  householdCodeToId.set(key, created.id);
+  return created.id;
+}
+
+async function createMemberFromImport(
+  row: ImportRowValid,
+  householdId: string,
+  visitTeamId: string | null
+): Promise<ActionResult<{ id: string; code: string }>> {
+  const code = row.memberCode?.trim() || (await generateMemberCode());
+
+  const formInput: MemberFormInput = {
+    status: row.status,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    gender: row.gender,
+    birthYear: row.birthYear ?? undefined,
+    occupation: row.occupation,
+    houseNumber: row.houseNumber,
+    street: row.street,
+    oldWard: row.oldWard,
+    oldDistrict: row.oldDistrict,
+    oldProvince: row.oldProvince,
+    newWard: row.newWard,
+    newProvince: row.newProvince,
+    mobile1: row.mobile1,
+    mobile2: row.mobile2,
+    landline: row.landline,
+    householdId,
+    createNewHousehold: false,
+    isHead: row.isHead,
+    relationship: row.relationship,
+    isBaptized: row.isBaptized,
+    baptismYear: row.baptismYear ?? undefined,
+    ageDepartment: row.ageDepartment,
+    actualDepartment: row.actualDepartment,
+    boardServiceDate: row.boardServiceDate,
+    visitDepartment: row.visitDepartment,
+    visitTeamId,
+    notes: row.notes,
+  };
+
+  const parsed = memberFormSchema.safeParse(formInput);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ",
+    };
+  }
+
+  const built = buildMemberWriteData(parsed.data, code);
+  if (!built.ok) {
+    return { success: false, error: built.error };
+  }
+
+  try {
+    const member = await prisma.$transaction(async (tx) => {
+      const created = await tx.member.create({
+        data: { ...built.data, householdId },
+      });
+      await applyHeadOfHousehold(
+        tx,
+        householdId,
+        created.id,
+        parsed.data.isHead
+      );
+      return created;
+    });
+    return { success: true, data: { id: member.id, code: member.code } };
+  } catch {
+    return { success: false, error: "Không thể tạo thành viên" };
+  }
+}
+
+export async function importMembersFile(
+  fileBase64: string,
+  fileName: string
 ): Promise<ActionResult<ImportMembersResult>> {
   try {
     await requireAuth();
 
-    const parsed = parseCsv(csvContent);
+    const buffer = Buffer.from(fileBase64, "base64");
+    const parsed = parseSpreadsheetToRows(buffer, fileName);
+
+    return importMembersFromRows(parsed);
+  } catch {
+    return { success: false, error: "Không thể đọc file Excel" };
+  }
+}
+
+async function importMembersFromRows(
+  parsed: string[][]
+): Promise<ActionResult<ImportMembersResult>> {
+  try {
     if (parsed.length < 2) {
-      return { success: false, error: "File CSV trống hoặc thiếu dữ liệu" };
+      return {
+        success: false,
+        error: "File trống hoặc thiếu dữ liệu (cần dòng tiêu đề và ít nhất 1 dòng)",
+      };
     }
 
     const headers = mapCsvHeaders(parsed[0]);
@@ -655,7 +782,7 @@ export async function importMembers(
       return {
         success: false,
         error:
-          "CSV cần cột Họ và lót/Tên (hoặc Họ tên) và Mã hộ. Tải file mẫu để tham khảo.",
+          "File cần cột Họ và lót/Tên (hoặc Họ tên) và Mã hộ. Tải file mẫu để tham khảo.",
       };
     }
 
@@ -664,9 +791,6 @@ export async function importMembers(
     });
     const householdCodeToId = new Map(
       households.map((h) => [h.code.toLowerCase(), h.id])
-    );
-    const householdCodes = new Set(
-      households.map((h) => h.code.toLowerCase())
     );
 
     const teams = await prisma.visitTeam.findMany({
@@ -677,9 +801,17 @@ export async function importMembers(
     );
     const visitTeamCodes = new Set(teams.map((t) => t.code.toLowerCase()));
 
+    const existingMembers = await prisma.member.findMany({
+      select: { code: true },
+    });
+    const knownMemberCodes = new Set(
+      existingMembers.map((member) => member.code.toLowerCase())
+    );
+
     const results: ImportRowResult[] = [];
     let successCount = 0;
     let errorCount = 0;
+    let householdsCreated = 0;
 
     for (let i = 1; i < parsed.length; i++) {
       const rowNumber = i + 1;
@@ -689,8 +821,8 @@ export async function importMembers(
       const importRow = rowToImportData(headers, cells, rowNumber);
       const validated = validateImportRow(
         importRow,
-        householdCodes,
-        visitTeamCodes
+        visitTeamCodes,
+        knownMemberCodes
       );
 
       if (!validated.ok) {
@@ -700,42 +832,38 @@ export async function importMembers(
       }
 
       const row = validated.data;
-      const householdId = householdCodeToId.get(
-        row.householdCode.toLowerCase()
-      )!;
+      const householdKey = row.householdCode.toLowerCase();
+      const hadHousehold = householdCodeToId.has(householdKey);
+
+      let householdId: string;
+      try {
+        householdId = await ensureHouseholdByCode(
+          row.householdCode,
+          householdCodeToId
+        );
+      } catch {
+        errorCount++;
+        results.push({
+          row: rowNumber,
+          success: false,
+          error: `Không thể tạo hộ "${row.householdCode}"`,
+        });
+        continue;
+      }
+
+      if (!hadHousehold) {
+        householdsCreated++;
+      }
+
       const visitTeamId = row.visitTeamCode
         ? teamCodeToId.get(row.visitTeamCode.toLowerCase()) ?? null
         : null;
 
-      const createResult = await createMember({
-        status: row.status,
-        firstName: row.firstName,
-        lastName: row.lastName,
+      const createResult = await createMemberFromImport(
+        row,
         householdId,
-        createNewHousehold: false,
-        isHead: false,
-        isBaptized: false,
-        mobile1: row.mobile1,
-        actualDepartment: row.actualDepartment,
-        visitTeamId,
-        gender: null,
-        occupation: null,
-        houseNumber: null,
-        street: null,
-        oldWard: null,
-        oldDistrict: null,
-        oldProvince: null,
-        newWard: null,
-        newProvince: null,
-        mobile2: null,
-        landline: null,
-        relationship: null,
-        baptismYear: undefined,
-        ageDepartment: null,
-        boardServiceDate: null,
-        visitDepartment: null,
-        notes: null,
-      });
+        visitTeamId
+      );
 
       if (!createResult.success) {
         errorCount++;
@@ -746,6 +874,7 @@ export async function importMembers(
         });
       } else {
         successCount++;
+        knownMemberCodes.add(createResult.data.code.toLowerCase());
         results.push({
           row: rowNumber,
           success: true,
@@ -760,6 +889,9 @@ export async function importMembers(
 
     if (successCount > 0) {
       revalidatePath("/members");
+      if (householdsCreated > 0) {
+        revalidatePath("/households");
+      }
     }
 
     return {
@@ -767,6 +899,6 @@ export async function importMembers(
       data: { successCount, errorCount, results },
     };
   } catch {
-    return { success: false, error: "Không thể import CSV" };
+    return { success: false, error: "Không thể import file Excel" };
   }
 }
