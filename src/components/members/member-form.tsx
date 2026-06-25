@@ -21,7 +21,7 @@ import {
   MEMBER_STATUSES,
   STATUS_LABELS,
 } from "@/lib/member-list";
-import { parseMemberFormData, type MemberFormInput } from "@/lib/validations/member";
+import { parseMemberFormData, CREATE_NEW_HOUSEHOLD, type MemberFormInput } from "@/lib/validations/member";
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]";
@@ -99,22 +99,36 @@ export function MemberForm({
   options,
   member,
   defaultHouseholdId,
+  forceCreateHousehold = false,
 }: {
   mode: "create" | "edit";
   options: MemberFormOptions;
   member?: MemberFormDefaults;
   defaultHouseholdId?: string;
+  /** Khi chưa có hộ nào — tự tạo hộ mới khi lưu */
+  forceCreateHousehold?: boolean;
 }) {
   const router = useRouter();
   const isEdit = mode === "edit" && member;
+  const createNewHousehold = !isEdit && forceCreateHousehold;
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isHead, setIsHead] = useState(member?.isHead ?? false);
+  const [isHead, setIsHead] = useState(
+    member?.isHead ?? createNewHousehold
+  );
   const [isBaptized, setIsBaptized] = useState(member?.isBaptized ?? false);
   const [firstName, setFirstName] = useState(member?.firstName ?? "");
   const [lastName, setLastName] = useState(member?.lastName ?? "");
   const [address, setAddress] = useState<AddressState>(addressFromMember(member));
+  const [householdId, setHouseholdId] = useState(
+    createNewHousehold
+      ? CREATE_NEW_HOUSEHOLD
+      : member?.householdId ?? defaultHouseholdId ?? ""
+  );
+
+  const isCreatingHousehold =
+    !isEdit && (createNewHousehold || householdId === CREATE_NEW_HOUSEHOLD);
 
   const fullNamePreview = useMemo(
     () => (firstName || lastName ? buildFullName(firstName, lastName) : ""),
@@ -135,6 +149,20 @@ export function MemberForm({
 
   function updateAddress(field: keyof AddressState, value: string) {
     setAddress((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleHouseholdChange(value: string) {
+    setHouseholdId(value);
+    if (value === CREATE_NEW_HOUSEHOLD) {
+      setIsHead(true);
+    }
+  }
+
+  function handleIsHeadChange(checked: boolean) {
+    if (isCreatingHousehold && !checked) {
+      return;
+    }
+    setIsHead(checked);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -318,29 +346,50 @@ export function MemberForm({
       </Section>
 
       <Section title="Hộ gia đình">
-        <Field label="Mã hộ *">
-          <select
-            name="householdId"
-            className={selectClass}
-            required
-            defaultValue={member?.householdId ?? defaultHouseholdId ?? ""}
-          >
-            <option value="" disabled>— Chọn mã hộ —</option>
-            {options.households.map((household) => (
-              <option key={household.id} value={household.id}>
-                {household.code}
+        {isCreatingHousehold ? (
+          <>
+            <input type="hidden" name="householdId" value={CREATE_NEW_HOUSEHOLD} />
+            <input type="hidden" name="createNewHousehold" value="on" />
+            <div className="space-y-2 sm:col-span-2">
+              <p className="text-sm text-gray-600">
+                {forceCreateHousehold
+                  ? "Chưa có hộ gia đình nào — hệ thống sẽ tự tạo hộ mới khi lưu. Thành viên này là chủ hộ."
+                  : "Hộ gia đình mới sẽ được tạo tự động khi lưu. Thành viên này là chủ hộ."}
+              </p>
+            </div>
+          </>
+        ) : (
+          <Field label="Mã hộ *">
+            <select
+              name="householdId"
+              className={selectClass}
+              required
+              value={householdId}
+              onChange={(e) => handleHouseholdChange(e.target.value)}
+            >
+              <option value="" disabled>
+                — Chọn mã hộ —
               </option>
-            ))}
-          </select>
-        </Field>
+              {!isEdit && (
+                <option value={CREATE_NEW_HOUSEHOLD}>+ Tạo hộ mới</option>
+              )}
+              {options.households.map((household) => (
+                <option key={household.id} value={household.id}>
+                  {household.code}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="Chủ hộ" className="space-y-2 flex items-end">
           <label className="flex items-center gap-2 text-sm text-gray-700">
             <input
               type="checkbox"
               name="isHead"
               checked={isHead}
-              onChange={(e) => setIsHead(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
+              onChange={(e) => handleIsHeadChange(e.target.checked)}
+              disabled={isCreatingHousehold}
+              className="h-4 w-4 rounded border-gray-300 disabled:opacity-60"
             />
             Là chủ hộ
           </label>

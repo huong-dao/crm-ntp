@@ -19,7 +19,27 @@ export default async function NewMemberPage({
 }) {
   const params = await searchParams;
   const householdId = pickParam(params, "householdId");
-  const options = await getMemberFormOptions();
+
+  let options;
+  try {
+    options = await getMemberFormOptions();
+  } catch {
+    return (
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Thêm thành viên mới</h1>
+          </div>
+          <Button variant="outline" asChild>
+            <Link href="/members">← Quay lại</Link>
+          </Button>
+        </div>
+        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          Không thể tải form. Vui lòng đăng nhập lại hoặc thử lại sau.
+        </div>
+      </div>
+    );
+  }
 
   const householdValid =
     householdId &&
@@ -43,17 +63,12 @@ export default async function NewMemberPage({
         </Button>
       </div>
 
-      {options.households.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Chưa có hộ gia đình. Cần tạo hộ trước khi thêm thành viên.
-        </div>
-      ) : (
-        <MemberForm
-          mode="create"
-          options={options}
-          defaultHouseholdId={householdValid ? householdId : undefined}
-        />
-      )}
+      <MemberForm
+        mode="create"
+        options={options}
+        defaultHouseholdId={householdValid ? householdId : undefined}
+        forceCreateHousehold={options.households.length === 0}
+      />
     </div>
   );
 }

@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Giá trị select khi user chọn tạo hộ gia đình mới cùng lúc tạo thành viên */
+export const CREATE_NEW_HOUSEHOLD = "__new__";
+
 const currentYear = new Date().getFullYear();
 
 const optionalPhone = z
@@ -54,7 +57,8 @@ export const memberFormSchema = z.object({
   mobile2: optionalPhone,
   landline: optionalPhone,
 
-  householdId: z.string().min(1, "Mã hộ không được trống"),
+  householdId: z.string().optional().nullable(),
+  createNewHousehold: z.boolean(),
   isHead: z.boolean(),
   relationship: z.string().trim().max(100).optional().nullable(),
 
@@ -67,6 +71,25 @@ export const memberFormSchema = z.object({
 
   visitTeamId: z.string().optional().nullable(),
   notes: z.string().trim().max(5000).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.createNewHousehold) {
+    if (!data.isHead) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Thành viên tạo hộ mới phải là chủ hộ",
+        path: ["isHead"],
+      });
+    }
+    return;
+  }
+
+  if (!data.householdId?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Chọn mã hộ hoặc tạo hộ mới",
+      path: ["householdId"],
+    });
+  }
 });
 
 export type MemberFormInput = z.infer<typeof memberFormSchema>;
@@ -95,7 +118,16 @@ export function parseMemberFormData(form: FormData): Record<string, unknown> {
     mobile1: emptyToNull("mobile1"),
     mobile2: emptyToNull("mobile2"),
     landline: emptyToNull("landline"),
-    householdId: form.get("householdId"),
+    householdId: (() => {
+      const value = form.get("householdId");
+      if (typeof value !== "string" || value === CREATE_NEW_HOUSEHOLD) {
+        return null;
+      }
+      return value.trim() || null;
+    })(),
+    createNewHousehold:
+      form.get("createNewHousehold") === "on" ||
+      form.get("householdId") === CREATE_NEW_HOUSEHOLD,
     isHead: form.get("isHead") === "on",
     relationship: emptyToNull("relationship"),
     isBaptized: form.get("isBaptized") === "on",

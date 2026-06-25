@@ -60,7 +60,8 @@
 - [ ] Mã tín hữu tự sinh
 - [ ] Họ tên đầy đủ tự ghép
 - [ ] Địa chỉ đầy đủ tự ghép
-- [ ] Validate bắt buộc: Họ, Tên, Mã hộ
+- [ ] Validate bắt buộc: Họ, Tên
+- [ ] Chọn mã hộ có sẵn **hoặc** tạo hộ mới (chủ hộ) khi chưa có hộ nào
 
 ### US-06: Sửa thông tin thành viên
 **As a** user  

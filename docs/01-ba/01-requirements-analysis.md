@@ -56,6 +56,8 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Mỗi tín hữu có mã duy nhất, không trùng
 - Một hộ có nhiều thành viên, chỉ 1 chủ hộ
 - Mã tổ thăm viếng liên kết với tổ phụ trách khu vực
+- Khi thêm thành viên mà chưa có hộ nào (hoặc chọn **Tạo hộ mới**): hệ thống tự sinh mã hộ và gán thành viên đó làm chủ hộ
+- Thành viên thuộc hộ có sẵn: chọn mã hộ trong danh sách
 
 ---
 
@@ -71,7 +73,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 | Số thành viên | integer | Auto | Đếm từ members theo mã hộ |
 
 **Quy tắc nghiệp vụ:**
-- Mã hộ tự sinh khi tạo hộ mới
+- Mã hộ tự sinh khi tạo hộ mới (từ màn hình Hộ gia đình hoặc khi thêm thành viên với tùy chọn **Tạo hộ mới**)
 - Số thành viên tự cập nhật khi thêm/xóa member trong hộ
 - Chủ hộ phải là member có `is_head_of_household = true`
 

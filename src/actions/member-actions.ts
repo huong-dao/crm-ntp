@@ -8,6 +8,7 @@ import {
   buildFullName,
   buildNewFullAddress,
   buildOldFullAddress,
+  generateHouseholdCode,
   generateMemberCode,
 } from "@/lib/generate-code";
 import {
@@ -375,11 +376,13 @@ export async function createMember(
 
     const data = parsed.data;
 
-    const household = await prisma.household.findUnique({
-      where: { id: data.householdId },
-    });
-    if (!household) {
-      return { success: false, error: "Mã hộ không tồn tại" };
+    if (!data.createNewHousehold) {
+      const household = await prisma.household.findUnique({
+        where: { id: data.householdId! },
+      });
+      if (!household) {
+        return { success: false, error: "Mã hộ không tồn tại" };
+      }
     }
 
     if (data.visitTeamId) {
@@ -392,21 +395,40 @@ export async function createMember(
     }
 
     const code = await generateMemberCode();
-    const built = buildMemberWriteData(parsed.data, code);
+    const built = buildMemberWriteData(
+      {
+        ...data,
+        householdId: data.createNewHousehold ? null : data.householdId,
+      },
+      code
+    );
     if (!built.ok) {
       return { success: false, error: built.error };
     }
 
     const member = await prisma.$transaction(async (tx) => {
-      const created = await tx.member.create({ data: built.data });
+      let householdId = data.householdId!;
 
-      await applyHeadOfHousehold(tx, data.householdId, created.id, data.isHead);
+      if (data.createNewHousehold) {
+        const householdCode = await generateHouseholdCode();
+        const household = await tx.household.create({
+          data: { code: householdCode },
+        });
+        householdId = household.id;
+      }
+
+      const created = await tx.member.create({
+        data: { ...built.data, householdId },
+      });
+
+      await applyHeadOfHousehold(tx, householdId, created.id, data.isHead);
 
       return created;
     });
 
     revalidatePath("/members");
-    revalidatePath(`/households/${data.householdId}`);
+    revalidatePath("/households");
+    revalidatePath(`/households/${member.householdId}`);
 
     return { success: true, data: { id: member.id, code: member.code } };
   } catch {
@@ -435,8 +457,14 @@ export async function updateMember(
       return { success: false, error: "Thành viên không tồn tại" };
     }
 
+    if (data.createNewHousehold || !data.householdId) {
+      return { success: false, error: "Mã hộ không được trống" };
+    }
+
+    const householdId = data.householdId;
+
     const household = await prisma.household.findUnique({
-      where: { id: data.householdId },
+      where: { id: householdId },
     });
     if (!household) {
       return { success: false, error: "Mã hộ không tồn tại" };
@@ -464,9 +492,9 @@ export async function updateMember(
         data: built.data,
       });
 
-      await applyHeadOfHousehold(tx, data.householdId, id, data.isHead);
+      await applyHeadOfHousehold(tx, householdId, id, data.isHead);
 
-      if (oldHouseholdId && oldHouseholdId !== data.householdId) {
+      if (oldHouseholdId && oldHouseholdId !== householdId) {
         const oldHousehold = await tx.household.findUnique({
           where: { id: oldHouseholdId },
           select: { headMemberId: true },
@@ -484,8 +512,8 @@ export async function updateMember(
 
     revalidatePath("/members");
     revalidatePath(`/members/${id}`);
-    revalidatePath(`/households/${data.householdId}`);
-    if (oldHouseholdId && oldHouseholdId !== data.householdId) {
+    revalidatePath(`/households/${householdId}`);
+    if (oldHouseholdId && oldHouseholdId !== householdId) {
       revalidatePath(`/households/${oldHouseholdId}`);
     }
 
@@ -684,6 +712,7 @@ export async function importMembers(
         firstName: row.firstName,
         lastName: row.lastName,
         householdId,
+        createNewHousehold: false,
         isHead: false,
         isBaptized: false,
         mobile1: row.mobile1,

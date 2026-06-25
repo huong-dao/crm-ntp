@@ -107,7 +107,8 @@
 - Di động 1 | Di động 2 | ĐT bàn
 
 **Hộ gia đình:**
-- Mã hộ (search/select)
+- Mã hộ (select hộ có sẵn, hoặc **+ Tạo hộ mới**)
+- Khi chưa có hộ nào: form hiển thị thông báo tự tạo hộ; thành viên mặc định là chủ hộ
 - Chủ hộ (checkbox)
 - Quan hệ (text, hiện khi không phải chủ hộ)
 
@@ -125,7 +126,7 @@
 ### Validation
 - Họ và lót: required, max 100 chars
 - Tên: required, max 50 chars
-- Mã hộ: required
+- Mã hộ: required trừ khi chọn **Tạo hộ mới** (khi đó bắt buộc là chủ hộ)
 - Năm sinh: 1900–current year
 - Phone: optional, pattern validation
 
