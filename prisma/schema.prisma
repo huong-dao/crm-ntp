@@ -52,6 +52,19 @@ model User {
   @@map("users")
 }
 
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  minAge    Int?     @map("min_age")
+  maxAge    Int?     @map("max_age")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ageMembers    Member[] @relation("MemberAgeDepartment")
+  actualMembers Member[] @relation("MemberActualDepartment")
+
+  @@map("departments")
+}
+
 model VisitTeam {
   id             String   @id @default(cuid())
   code           String   @unique
@@ -112,9 +125,9 @@ model Member {
 
   isBaptized       Boolean   @default(false) @map("is_baptized")
   baptismYear      Int?      @map("baptism_year")
-  ageDepartment    String?   @map("age_department")
-  actualDepartment String?   @map("actual_department")
-  boardServiceDate DateTime? @map("board_service_date")
+  ageDepartmentId    String? @map("age_department_id")
+  actualDepartmentId String? @map("actual_department_id")
+  boardServiceDate   DateTime? @map("board_service_date")
   visitDepartment  String?   @map("visit_department")
 
   visitTeamId String? @map("visit_team_id")
@@ -123,13 +136,17 @@ model Member {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  household Household? @relation(fields: [householdId], references: [id])
-  visitTeam VisitTeam? @relation(fields: [visitTeamId], references: [id])
+  household        Household?  @relation(fields: [householdId], references: [id])
+  visitTeam        VisitTeam?  @relation(fields: [visitTeamId], references: [id])
+  ageDepartment    Department? @relation("MemberAgeDepartment", fields: [ageDepartmentId], references: [id], onDelete: SetNull)
+  actualDepartment Department? @relation("MemberActualDepartment", fields: [actualDepartmentId], references: [id], onDelete: SetNull)
   linkedUser User?
   representativeVisitRequests VisitRequest[] @relation("VisitRequestRepresentative")
 
   @@index([householdId])
   @@index([visitTeamId])
+  @@index([ageDepartmentId])
+  @@index([actualDepartmentId])
   @@index([status])
   @@index([fullName])
   @@map("members")

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { MemberImportRowStatus, Prisma } from "@prisma/client";
+import { resolveDepartmentIdByName } from "@/actions/department-actions";
 import type { ActionResult } from "@/actions/user-actions";
 import { auth } from "@/lib/auth";
 import { generateMemberCode } from "@/lib/generate-code";
@@ -110,6 +111,11 @@ async function createMemberFromImport(
 ): Promise<ActionResult<{ id: string; code: string }>> {
   const code = row.memberCode?.trim() || (await generateMemberCode());
 
+  const [ageDepartmentId, actualDepartmentId] = await Promise.all([
+    resolveDepartmentIdByName(row.ageDepartment),
+    resolveDepartmentIdByName(row.actualDepartment),
+  ]);
+
   const formInput: MemberFormInput = {
     status: row.status,
     firstName: row.firstName,
@@ -133,8 +139,8 @@ async function createMemberFromImport(
     relationship: row.relationship,
     isBaptized: row.isBaptized,
     baptismYear: row.baptismYear ?? undefined,
-    ageDepartment: row.ageDepartment,
-    actualDepartment: row.actualDepartment,
+    ageDepartmentId,
+    actualDepartmentId,
     boardServiceDate: row.boardServiceDate,
     visitDepartment: row.visitDepartment,
     visitTeamId,

@@ -64,8 +64,8 @@ export const memberFormSchema = z.object({
 
   isBaptized: z.boolean(),
   baptismYear: optionalYear,
-  ageDepartment: z.string().trim().max(100).optional().nullable(),
-  actualDepartment: z.string().trim().max(100).optional().nullable(),
+  ageDepartmentId: z.string().trim().optional().nullable(),
+  actualDepartmentId: z.string().trim().optional().nullable(),
   boardServiceDate: z.string().trim().optional().nullable(),
   visitDepartment: z.string().trim().max(100).optional().nullable(),
 
@@ -141,8 +141,8 @@ export function parseMemberFormData(form: FormData): Record<string, unknown> {
     relationship: emptyToNull("relationship"),
     isBaptized: form.get("isBaptized") === "on",
     baptismYear: emptyToNull("baptismYear"),
-    ageDepartment: emptyToNull("ageDepartment"),
-    actualDepartment: emptyToNull("actualDepartment"),
+    ageDepartmentId: emptyToNull("ageDepartmentId"),
+    actualDepartmentId: emptyToNull("actualDepartmentId"),
     boardServiceDate: emptyToNull("boardServiceDate"),
     visitDepartment: emptyToNull("visitDepartment"),
     visitTeamId: emptyToNull("visitTeamId"),

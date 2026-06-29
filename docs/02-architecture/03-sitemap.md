@@ -16,6 +16,10 @@
 ├── /households             → Danh sách hộ gia đình [AUTH]
 │   └── /households/[id]    → Chi tiết hộ (thành viên trong hộ) [AUTH]
 │
+├── /departments            → Danh sách ban ngành [AUTH]
+│   ├── /departments/new    → Thêm ban ngành [AUTH]
+│   └── /departments/[id]   → Chi tiết / sửa ban ngành [AUTH]
+│
 ├── /visit-teams            → Danh sách tổ thăm viếng [AUTH]
 │
 ├── /visit-requests         → Danh sách đơn thăm viếng [AUTH]
@@ -39,6 +43,8 @@
 │  👥 Thành viên          │  → /members
 │                         │
 │  🏠 Hộ gia đình         │  → /households
+│                         │
+│  📚 Ban ngành           │  → /departments
 │                         │
 │  📋 Tổ thăm viếng       │  → /visit-teams
 │                         │
@@ -94,6 +100,16 @@
 ### `/households/[id]`
 - **Content:** Info hộ + table members trong hộ
 
+### `/departments`
+- **Layout:** Dashboard layout
+- **Content:** Table ban ngành + tìm kiếm + [+ Thêm ban ngành]
+
+### `/departments/new` & `/departments/[id]/edit`
+- **Content:** Form tên ban ngành, độ tuổi min/max
+
+### `/departments/[id]`
+- **Content:** Chi tiết ban ngành + [Sửa]
+
 ### `/visit-teams`
 - **Layout:** Dashboard layout
 - **Content:** Table tổ + [+ Thêm tổ] + inline edit
@@ -124,6 +140,10 @@
 | `/members/[id]/edit` | Dynamic edit |
 | `/households` | Static list |
 | `/households/[id]` | Dynamic detail |
+| `/departments` | Static list |
+| `/departments/new` | Static create |
+| `/departments/[id]` | Dynamic detail |
+| `/departments/[id]/edit` | Dynamic edit |
 | `/visit-teams` | Static list |
 | `/visit-requests` | Static list |
 | `/visit-requests/new` | Static create |

@@ -46,8 +46,8 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 | Quan hệ | string | Không | Mô tả quan hệ trong hộ (vd. Vợ, Con) — độc lập với cờ **Chủ hộ** |
 | Báp têm | boolean | Không | yes/no |
 | Năm báp têm | integer | Không | |
-| Ban ngành theo tuổi | string | Không | Trẻ em, Thanh niên, Người lớn... |
-| Ban ngành thực tế | string | Không | Ban thực tế đang phục vụ |
+| Ban ngành theo tuổi | FK → departments | Không | Chọn từ danh mục ban ngành (combobox có tìm kiếm) |
+| Ban ngành thực tế | FK → departments | Không | Ban thực tế đang phục vụ — chọn từ danh mục |
 | Ban chấp sự | date | Không | Ngày tham gia làm chấp sự |
 | Ban thăm viếng | string | Không | Tên ban thăm viếng |
 | Ghi chú | text | Không | |
@@ -63,7 +63,27 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 
 ---
 
-### 2.2 Module Hộ gia đình (Households)
+### 2.2 Module Ban ngành (Departments)
+
+**Mục đích:** Danh mục ban ngành dùng cho form thành viên (ban ngành theo tuổi, ban ngành thực tế) và filter danh sách thành viên.
+
+| Trường | Kiểu | Bắt buộc | Ghi chú |
+|--------|------|----------|---------|
+| ID | uuid/cuid | Có | Auto |
+| Tên ban ngành | string | Có | Unique — danh mục chuẩn: Tráng Niên, Trung Niên, Cao Niên, Thanh Tráng, Thiếu Nhi, Thiếu Niên, Thanh Niên |
+| Độ tuổi Min | integer | Không | Tuổi tối thiểu (tham chiếu nghiệp vụ) |
+| Độ tuổi Max | integer | Không | Tuổi tối đa |
+| Ngày tạo | datetime | Auto | |
+
+**Quy tắc nghiệp vụ:**
+- Tên ban ngành không trùng
+- Min ≤ Max khi cả hai có giá trị
+- Không xóa ban ngành đang được gán cho thành viên
+- Import thành viên: cột ban ngành khớp theo **tên** với danh mục (không khớp → để trống)
+
+---
+
+### 2.3 Module Hộ gia đình (Households)
 
 **Mục đích:** Nhóm thành viên theo hộ gia đình.
 
@@ -82,7 +102,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 
 ---
 
-### 2.3 Module Tổ thăm viếng (Visit Teams)
+### 2.4 Module Tổ thăm viếng (Visit Teams)
 
 **Mục đích:** Quản lý các tổ thăm viếng và khu vực phụ trách.
 
@@ -100,7 +120,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 
 ---
 
-### 2.4 Module Đơn thăm viếng (Visit Requests)
+### 2.5 Module Đơn thăm viếng (Visit Requests)
 
 **Mục đích:** Danh sách các lượt thăm viếng cần thực hiện.
 
@@ -123,7 +143,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 
 ---
 
-### 2.5 Module Authentication (Users)
+### 2.6 Module Authentication (Users)
 
 **Mục đích:** Đăng nhập hệ thống, phân quyền.
 

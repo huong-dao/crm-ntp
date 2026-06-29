@@ -123,6 +123,21 @@ model VisitTeam {
   @@map("visit_teams")
 }
 
+// ─── DEPARTMENTS (Ban ngành) ─────────────────────────
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  minAge    Int?     @map("min_age")
+  maxAge    Int?     @map("max_age")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ageMembers    Member[] @relation("MemberAgeDepartment")
+  actualMembers Member[] @relation("MemberActualDepartment")
+
+  @@map("departments")
+}
+
 // ─── HOUSEHOLDS (Hộ gia đình) ────────────────────────
 
 model Household {
@@ -179,8 +194,8 @@ model Member {
   // Tin lành
   isBaptized        Boolean       @default(false) @map("is_baptized")
   baptismYear       Int?          @map("baptism_year")
-  ageDepartment     String?       @map("age_department")
-  actualDepartment  String?       @map("actual_department")
+  ageDepartmentId   String?       @map("age_department_id")
+  actualDepartmentId String?      @map("actual_department_id")
   boardServiceDate  DateTime?     @map("board_service_date")
   visitDepartment   String?       @map("visit_department")
 
@@ -194,9 +209,13 @@ model Member {
 
   household         Household?    @relation(fields: [householdId], references: [id])
   visitTeam         VisitTeam?    @relation(fields: [visitTeamId], references: [id])
+  ageDepartment     Department?   @relation("MemberAgeDepartment", fields: [ageDepartmentId], references: [id], onDelete: SetNull)
+  actualDepartment  Department?   @relation("MemberActualDepartment", fields: [actualDepartmentId], references: [id], onDelete: SetNull)
 
   @@index([householdId])
   @@index([visitTeamId])
+  @@index([ageDepartmentId])
+  @@index([actualDepartmentId])
   @@index([status])
   @@index([fullName])
   @@map("members")

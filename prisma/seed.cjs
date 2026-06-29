@@ -3,6 +3,32 @@ const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
+/** Danh mục ban ngành chuẩn — khớp giá trị cột actual_department trên server */
+const STANDARD_DEPARTMENTS = [
+  "Tráng Niên",
+  "Trung Niên",
+  "Cao Niên",
+  "Thanh Tráng",
+  "Thiếu Nhi",
+  "Thiếu Niên",
+  "Thanh Niên",
+];
+
+async function seedDepartments() {
+  const byName = {};
+
+  for (const name of STANDARD_DEPARTMENTS) {
+    const department = await prisma.department.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+    byName[name] = department;
+  }
+
+  return byName;
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash("admin123", 12);
 
@@ -18,6 +44,9 @@ async function main() {
 
   console.log("Seed OK — admin / admin123 (đổi password sau khi go-live)");
 
+  const departments = await seedDepartments();
+  console.log(`Seeded ${STANDARD_DEPARTMENTS.length} ban ngành chuẩn`);
+
   const household = await prisma.household.upsert({
     where: { code: "0001" },
     update: {},
@@ -32,7 +61,9 @@ async function main() {
 
   await prisma.member.upsert({
     where: { code: "00001" },
-    update: {},
+    update: {
+      actualDepartmentId: departments["Thanh Niên"].id,
+    },
     create: {
       code: "00001",
       firstName: "Nguyễn Văn",
@@ -40,7 +71,7 @@ async function main() {
       fullName: "Nguyễn Văn An",
       status: "active",
       mobile1: "0901234567",
-      actualDepartment: "Thanh niên",
+      actualDepartmentId: departments["Thanh Niên"].id,
       householdId: household.id,
       visitTeamId: visitTeam.id,
       gender: "male",
@@ -50,7 +81,9 @@ async function main() {
 
   await prisma.member.upsert({
     where: { code: "00002" },
-    update: {},
+    update: {
+      actualDepartmentId: departments["Trung Niên"].id,
+    },
     create: {
       code: "00002",
       firstName: "Trần Thị",
@@ -58,7 +91,7 @@ async function main() {
       fullName: "Trần Thị Bình",
       status: "active",
       mobile1: "0912345678",
-      actualDepartment: "Phụ nữ",
+      actualDepartmentId: departments["Trung Niên"].id,
       householdId: household.id,
       visitTeamId: visitTeam.id,
       gender: "female",
@@ -66,7 +99,9 @@ async function main() {
     },
   });
 
-  console.log("Sample household 0001, team 3A, members 00001/00002 seeded");
+  console.log(
+    "Sample household 0001, team 3A, members 00001/00002 seeded"
+  );
 }
 
 main()

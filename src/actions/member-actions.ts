@@ -27,7 +27,7 @@ export type MemberListItem = {
   fullName: string;
   status: MemberStatus;
   mobile1: string | null;
-  actualDepartment: string | null;
+  actualDepartmentName: string | null;
   householdCode: string | null;
 };
 
@@ -41,12 +41,13 @@ export type MembersResult = {
 
 export type MemberFilterOptions = {
   visitTeams: { id: string; code: string; area: string }[];
-  departments: string[];
+  departments: { id: string; name: string }[];
 };
 
 export type MemberFormOptions = {
   households: { id: string; code: string }[];
   visitTeams: { id: string; code: string; area: string }[];
+  departments: { id: string; name: string; minAge: number | null; maxAge: number | null }[];
 };
 
 export type MemberFormDefaults = {
@@ -74,8 +75,8 @@ export type MemberFormDefaults = {
   relationship: string | null;
   isBaptized: boolean;
   baptismYear: number | null;
-  ageDepartment: string | null;
-  actualDepartment: string | null;
+  ageDepartmentId: string | null;
+  actualDepartmentId: string | null;
   boardServiceDate: string;
   visitDepartment: string | null;
   visitTeamId: string | null;
@@ -124,7 +125,7 @@ function buildWhere(filters: MemberFiltersInput): Prisma.MemberWhereInput {
   }
 
   if (filters.department) {
-    where.actualDepartment = filters.department;
+    where.actualDepartmentId = filters.department;
   }
 
   return where;
@@ -153,7 +154,7 @@ export async function getMembers(
         fullName: true,
         status: true,
         mobile1: true,
-        actualDepartment: true,
+        actualDepartment: { select: { name: true } },
         household: { select: { code: true } },
       },
     }),
@@ -166,7 +167,7 @@ export async function getMembers(
     fullName: row.fullName,
     status: row.status,
     mobile1: row.mobile1,
-    actualDepartment: row.actualDepartment,
+    actualDepartmentName: row.actualDepartment?.name ?? null,
     householdCode: row.household?.code ?? null,
   }));
 
@@ -182,21 +183,16 @@ export async function getMembers(
 export async function getMemberFilterOptions(): Promise<MemberFilterOptions> {
   await requireAuth();
 
-  const visitTeams = await prisma.visitTeam.findMany({
-    select: { id: true, code: true, area: true },
-    orderBy: { code: "asc" },
-  });
-
-  const departmentRows = await prisma.member.findMany({
-    where: { actualDepartment: { not: null } },
-    select: { actualDepartment: true },
-    distinct: ["actualDepartment"],
-    orderBy: { actualDepartment: "asc" },
-  });
-
-  const departments = departmentRows
-    .map((row) => row.actualDepartment)
-    .filter((value): value is string => value !== null);
+  const [visitTeams, departments] = await Promise.all([
+    prisma.visitTeam.findMany({
+      select: { id: true, code: true, area: true },
+      orderBy: { code: "asc" },
+    }),
+    prisma.department.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return { visitTeams, departments };
 }
@@ -204,7 +200,7 @@ export async function getMemberFilterOptions(): Promise<MemberFilterOptions> {
 export async function getMemberFormOptions(): Promise<MemberFormOptions> {
   await requireAuth();
 
-  const [households, visitTeams] = await Promise.all([
+  const [households, visitTeams, departments] = await Promise.all([
     prisma.household.findMany({
       select: { id: true, code: true },
       orderBy: { code: "asc" },
@@ -213,9 +209,13 @@ export async function getMemberFormOptions(): Promise<MemberFormOptions> {
       select: { id: true, code: true, area: true },
       orderBy: { code: "asc" },
     }),
+    prisma.department.findMany({
+      select: { id: true, name: true, minAge: true, maxAge: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
-  return { households, visitTeams };
+  return { households, visitTeams, departments };
 }
 
 export async function getMemberById(
@@ -251,8 +251,8 @@ export async function getMemberById(
     relationship: member.relationship,
     isBaptized: member.isBaptized,
     baptismYear: member.baptismYear,
-    ageDepartment: member.ageDepartment,
-    actualDepartment: member.actualDepartment,
+    ageDepartmentId: member.ageDepartmentId,
+    actualDepartmentId: member.actualDepartmentId,
     boardServiceDate: formatDateForInput(member.boardServiceDate),
     visitDepartment: member.visitDepartment,
     visitTeamId: member.visitTeamId,
@@ -291,6 +291,24 @@ export async function createMember(
       });
       if (!team) {
         return { success: false, error: "Tổ thăm viếng không tồn tại" };
+      }
+    }
+
+    if (data.ageDepartmentId) {
+      const department = await prisma.department.findUnique({
+        where: { id: data.ageDepartmentId },
+      });
+      if (!department) {
+        return { success: false, error: "Ban ngành theo tuổi không tồn tại" };
+      }
+    }
+
+    if (data.actualDepartmentId) {
+      const department = await prisma.department.findUnique({
+        where: { id: data.actualDepartmentId },
+      });
+      if (!department) {
+        return { success: false, error: "Ban ngành thực tế không tồn tại" };
       }
     }
 
@@ -376,6 +394,24 @@ export async function updateMember(
       });
       if (!team) {
         return { success: false, error: "Tổ thăm viếng không tồn tại" };
+      }
+    }
+
+    if (data.ageDepartmentId) {
+      const department = await prisma.department.findUnique({
+        where: { id: data.ageDepartmentId },
+      });
+      if (!department) {
+        return { success: false, error: "Ban ngành theo tuổi không tồn tại" };
+      }
+    }
+
+    if (data.actualDepartmentId) {
+      const department = await prisma.department.findUnique({
+        where: { id: data.actualDepartmentId },
+      });
+      if (!department) {
+        return { success: false, error: "Ban ngành thực tế không tồn tại" };
       }
     }
 
@@ -487,7 +523,7 @@ export async function exportMembers(
         fullName: true,
         status: true,
         mobile1: true,
-        actualDepartment: true,
+        actualDepartment: { select: { name: true } },
         household: { select: { code: true } },
         visitTeam: { select: { code: true } },
       },
@@ -509,7 +545,7 @@ export async function exportMembers(
       member.household?.code ?? "",
       STATUS_LABELS[member.status],
       member.mobile1 ?? "",
-      member.actualDepartment ?? "",
+      member.actualDepartment?.name ?? "",
       member.visitTeam?.code ?? "",
     ]);
 

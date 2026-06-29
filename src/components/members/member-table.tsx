@@ -200,7 +200,7 @@ export function MemberTable({
                   {member.mobile1 ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-gray-600">
-                  {member.actualDepartment ?? "—"}
+                  {member.actualDepartmentName ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
@@ -268,7 +268,7 @@ export function MemberTable({
                 {member.mobile1 ?? "—"}
               </MobileDataRow>
               <MobileDataRow label="Ban ngành">
-                {member.actualDepartment ?? "—"}
+                {member.actualDepartmentName ?? "—"}
               </MobileDataRow>
             </div>
           </MobileDataCard>

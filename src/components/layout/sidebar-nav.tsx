@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileText,
   UserCog,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ export const sidebarNavItems: SidebarNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/members", label: "Thành viên", icon: Users },
   { href: "/households", label: "Hộ gia đình", icon: Home },
+  { href: "/departments", label: "Ban ngành", icon: Layers },
   { href: "/visit-teams", label: "Tổ thăm viếng", icon: ClipboardList },
   { href: "/visit-requests", label: "Đơn thăm viếng", icon: FileText },
 ];

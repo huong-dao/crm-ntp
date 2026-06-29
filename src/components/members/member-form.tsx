@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { formatAgeRange } from "@/lib/validations/department";
 import {
   buildNewFullAddress,
   buildOldFullAddress,
@@ -126,6 +128,12 @@ export function MemberForm({
       ? CREATE_NEW_HOUSEHOLD
       : member?.householdId ?? defaultHouseholdId ?? ""
   );
+  const [ageDepartmentId, setAgeDepartmentId] = useState(
+    member?.ageDepartmentId ?? ""
+  );
+  const [actualDepartmentId, setActualDepartmentId] = useState(
+    member?.actualDepartmentId ?? ""
+  );
 
   const isCreatingHousehold =
     !isEdit && (createNewHousehold || householdId === CREATE_NEW_HOUSEHOLD);
@@ -143,6 +151,16 @@ export function MemberForm({
   const newFullAddressPreview = useMemo(
     () => buildNewFullAddress(address) || "—",
     [address]
+  );
+
+  const departmentOptions = useMemo(
+    () =>
+      options.departments.map((department) => ({
+        value: department.id,
+        label: department.name,
+        searchText: `${department.name} ${formatAgeRange(department.minAge, department.maxAge)}`,
+      })),
+    [options.departments]
   );
 
   const cancelHref = isEdit ? `/members/${member.id}` : "/members";
@@ -430,17 +448,27 @@ export function MemberForm({
           </Field>
         )}
         <Field label="Ban ngành theo tuổi">
-          <Input
-            name="ageDepartment"
-            maxLength={100}
-            defaultValue={member?.ageDepartment ?? ""}
+          <SearchableSelect
+            id="ageDepartmentId"
+            name="ageDepartmentId"
+            options={departmentOptions}
+            value={ageDepartmentId}
+            onChange={setAgeDepartmentId}
+            placeholder="— Chọn ban ngành —"
+            searchPlaceholder="Tìm theo tên ban ngành..."
+            emptyMessage="Chưa có ban ngành — thêm tại menu Ban ngành"
           />
         </Field>
         <Field label="Ban ngành thực tế">
-          <Input
-            name="actualDepartment"
-            maxLength={100}
-            defaultValue={member?.actualDepartment ?? ""}
+          <SearchableSelect
+            id="actualDepartmentId"
+            name="actualDepartmentId"
+            options={departmentOptions}
+            value={actualDepartmentId}
+            onChange={setActualDepartmentId}
+            placeholder="— Chọn ban ngành —"
+            searchPlaceholder="Tìm theo tên ban ngành..."
+            emptyMessage="Chưa có ban ngành — thêm tại menu Ban ngành"
           />
         </Field>
         <Field label="Ban chấp sự (ngày)">

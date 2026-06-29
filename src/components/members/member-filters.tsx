@@ -118,8 +118,8 @@ export function MemberFilters({
           >
             <option value="">Tất cả</option>
             {options.departments.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
               </option>
             ))}
           </select>
