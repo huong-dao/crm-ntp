@@ -350,6 +350,7 @@ export function MemberForm({
           <>
             <input type="hidden" name="householdId" value={CREATE_NEW_HOUSEHOLD} />
             <input type="hidden" name="createNewHousehold" value="on" />
+            <input type="hidden" name="isHead" value="on" />
             <div className="space-y-2 sm:col-span-2">
               <p className="text-sm text-gray-600">
                 {forceCreateHousehold

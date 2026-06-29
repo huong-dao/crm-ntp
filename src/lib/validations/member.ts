@@ -125,10 +125,19 @@ export function parseMemberFormData(form: FormData): Record<string, unknown> {
       }
       return value.trim() || null;
     })(),
-    createNewHousehold:
-      form.get("createNewHousehold") === "on" ||
-      form.get("householdId") === CREATE_NEW_HOUSEHOLD,
-    isHead: form.get("isHead") === "on",
+    createNewHousehold: (() => {
+      return (
+        form.get("createNewHousehold") === "on" ||
+        form.get("householdId") === CREATE_NEW_HOUSEHOLD
+      );
+    })(),
+    isHead: (() => {
+      const createNewHousehold =
+        form.get("createNewHousehold") === "on" ||
+        form.get("householdId") === CREATE_NEW_HOUSEHOLD;
+      // Checkbox disabled không gửi trong FormData — tạo hộ mới luôn là chủ hộ
+      return createNewHousehold || form.get("isHead") === "on";
+    })(),
     relationship: emptyToNull("relationship"),
     isBaptized: form.get("isBaptized") === "on",
     baptismYear: emptyToNull("baptismYear"),
