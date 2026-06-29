@@ -3,6 +3,28 @@ const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
+function assertDepartmentModel() {
+  if (typeof prisma.department?.upsert === "function") {
+    return;
+  }
+
+  console.error(
+    [
+      "",
+      "Lỗi: Prisma Client chưa có model Department.",
+      "",
+      "Trên server, chạy lần lượt từ thư mục app (có package.json):",
+      "  npx prisma migrate deploy",
+      "  npx prisma generate",
+      "  node prisma/seed.cjs",
+      "",
+      "Hoặc: npm run db:migrate && npm run db:generate && npm run db:seed",
+      "",
+    ].join("\n")
+  );
+  process.exit(1);
+}
+
 /** Danh mục ban ngành chuẩn — khớp giá trị cột actual_department trên server */
 const STANDARD_DEPARTMENTS = [
   "Tráng Niên",
@@ -30,6 +52,8 @@ async function seedDepartments() {
 }
 
 async function main() {
+  assertDepartmentModel();
+
   const passwordHash = await bcrypt.hash("admin123", 12);
 
   await prisma.user.upsert({

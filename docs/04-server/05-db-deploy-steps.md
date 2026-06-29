@@ -19,8 +19,9 @@ NEXTAUTH_URL="https://thamvieng.ntpchurch.org"
 ```
 
 ```bash
-# Tạo tables + admin user
+# Tạo tables + Prisma Client + admin + ban ngành
 npm run db:migrate
+npm run db:generate
 npm run db:seed
 
 # Build & restart

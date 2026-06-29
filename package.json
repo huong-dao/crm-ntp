@@ -10,7 +10,7 @@
     "start:app": "cross-env NODE_ENV=production node app.js",
     "lint": "eslint",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "prisma db seed",
+    "db:seed": "prisma generate && prisma db seed",
     "db:generate": "prisma generate"
   },
   "prisma": {
