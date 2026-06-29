@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    // Giảm worker khi build trên VPS RAM thấp (tránh worker OOM → _global-error fail)
+    // Giảm worker khi build trên hosting RAM/thread thấp (CloudLinux/cPanel)
+    workerThreads: false,
     cpus: 1,
   },
 };

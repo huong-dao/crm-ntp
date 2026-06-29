@@ -69,7 +69,13 @@ if (!existsSync(nextBin)) {
 ensurePrismaClient();
 ensureBuildDeps();
 
-const env = { ...process.env, NODE_ENV: "production" };
+const env = {
+  ...process.env,
+  NODE_ENV: "production",
+  // SWC (Rust/rayon) spawn nhiều thread → errno 11 trên shared hosting
+  RAYON_NUM_THREADS: process.env.RAYON_NUM_THREADS ?? "1",
+  UV_THREADPOOL_SIZE: process.env.UV_THREADPOOL_SIZE ?? "1",
+};
 
 console.log("[build] NODE_ENV shell:", process.env.NODE_ENV ?? "(unset)");
 console.log("[build] NODE_ENV build:", env.NODE_ENV);
