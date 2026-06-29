@@ -77,15 +77,24 @@ export type MemberFormDefaults = {
   baptismYear: number | null;
   ageDepartmentId: string | null;
   actualDepartmentId: string | null;
-  boardServiceDate: string;
-  visitDepartment: string | null;
+  boardServiceYear: number | null;
+  visitDepartmentYear: number | null;
   visitTeamId: string | null;
   notes: string | null;
 };
 
-function formatDateForInput(date: Date | null): string {
-  if (!date) return "";
-  return date.toISOString().slice(0, 10);
+function yearFromDate(date: Date | null): number | null {
+  if (!date) return null;
+  return date.getFullYear();
+}
+
+function parseVisitDepartmentYear(value: string | null): number | null {
+  if (!value?.trim()) return null;
+  const trimmed = value.trim();
+  if (!/^\d{4}$/.test(trimmed)) return null;
+  const year = Number(trimmed);
+  if (!Number.isInteger(year) || year < 1900) return null;
+  return year;
 }
 
 async function requireAuth() {
@@ -253,8 +262,8 @@ export async function getMemberById(
     baptismYear: member.baptismYear,
     ageDepartmentId: member.ageDepartmentId,
     actualDepartmentId: member.actualDepartmentId,
-    boardServiceDate: formatDateForInput(member.boardServiceDate),
-    visitDepartment: member.visitDepartment,
+    boardServiceYear: yearFromDate(member.boardServiceDate),
+    visitDepartmentYear: parseVisitDepartmentYear(member.visitDepartment),
     visitTeamId: member.visitTeamId,
     notes: member.notes,
   };

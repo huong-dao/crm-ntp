@@ -6,15 +6,15 @@ import {
 } from "@/lib/member-format";
 import type { MemberFormInput } from "@/lib/validations/member";
 
-function parseBoardServiceDate(
-  value?: string | null
+function yearToBoardServiceDate(
+  year?: number | null
 ): { date: Date | null } | { error: string } {
-  if (!value) return { date: null };
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) {
-    return { error: "Ngày ban chấp sự không hợp lệ" };
+  if (year == null) return { date: null };
+  const date = new Date(Date.UTC(year, 0, 1));
+  if (Number.isNaN(date.getTime())) {
+    return { error: "Năm ban chấp sự không hợp lệ" };
   }
-  return { date: parsedDate };
+  return { date };
 }
 
 export function buildMemberWriteData(
@@ -26,7 +26,7 @@ export function buildMemberWriteData(
   const fullName = buildFullName(data.firstName, data.lastName);
   const oldFullAddress = buildOldFullAddress(data);
   const newFullAddress = buildNewFullAddress(data);
-  const boardParsed = parseBoardServiceDate(data.boardServiceDate);
+  const boardParsed = yearToBoardServiceDate(data.boardServiceYear);
   if ("error" in boardParsed) {
     return { ok: false, error: boardParsed.error };
   }
@@ -59,7 +59,8 @@ export function buildMemberWriteData(
     ageDepartmentId: data.ageDepartmentId ?? null,
     actualDepartmentId: data.actualDepartmentId ?? null,
     boardServiceDate: boardParsed.date,
-    visitDepartment: data.visitDepartment,
+    visitDepartment:
+      data.visitDepartmentYear != null ? String(data.visitDepartmentYear) : null,
     visitTeamId: data.visitTeamId ?? null,
     notes: data.notes,
   };

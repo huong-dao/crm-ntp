@@ -141,8 +141,8 @@ async function createMemberFromImport(
     baptismYear: row.baptismYear ?? undefined,
     ageDepartmentId,
     actualDepartmentId,
-    boardServiceDate: row.boardServiceDate,
-    visitDepartment: row.visitDepartment,
+    boardServiceYear: row.boardServiceYear ?? undefined,
+    visitDepartmentYear: row.visitDepartmentYear ?? undefined,
     visitTeamId,
     notes: row.notes,
   };

@@ -302,6 +302,19 @@ function parseOptionalInt(value?: string): number | null {
   return Number.isFinite(num) ? num : null;
 }
 
+function parseOptionalYear(value?: string): number | null {
+  if (!value?.trim()) return null;
+  const trimmed = value.trim();
+  if (/^\d{4}$/.test(trimmed)) {
+    return parseOptionalInt(trimmed);
+  }
+  const parsedDate = new Date(trimmed);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    return parsedDate.getFullYear();
+  }
+  return null;
+}
+
 function emptyToNull(value?: string): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -374,8 +387,8 @@ export function validateImportRow(
       baptismYear: isBaptized ? parseOptionalInt(row.baptismYear) : null,
       ageDepartment: emptyToNull(row.ageDepartment),
       actualDepartment: emptyToNull(row.actualDepartment),
-      boardServiceDate: emptyToNull(row.boardServiceDate),
-      visitDepartment: emptyToNull(row.visitDepartment),
+      boardServiceYear: parseOptionalYear(row.boardServiceDate),
+      visitDepartmentYear: parseOptionalYear(row.visitDepartment),
       visitTeamCode: visitTeamCode || null,
       notes: emptyToNull(row.notes),
     },
@@ -407,8 +420,8 @@ export type ImportRowValid = {
   baptismYear: number | null;
   ageDepartment: string | null;
   actualDepartment: string | null;
-  boardServiceDate: string | null;
-  visitDepartment: string | null;
+  boardServiceYear: number | null;
+  visitDepartmentYear: number | null;
   visitTeamCode: string | null;
   notes: string | null;
 };

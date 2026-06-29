@@ -471,18 +471,24 @@ export function MemberForm({
             emptyMessage="Chưa có ban ngành — thêm tại menu Ban ngành"
           />
         </Field>
-        <Field label="Ban chấp sự (ngày)">
+        <Field label="Ban chấp sự">
           <Input
-            name="boardServiceDate"
-            type="date"
-            defaultValue={member?.boardServiceDate ?? ""}
+            name="boardServiceYear"
+            type="number"
+            min={1900}
+            max={new Date().getFullYear()}
+            defaultValue={member?.boardServiceYear ?? ""}
+            placeholder="Năm"
           />
         </Field>
         <Field label="Ban thăm viếng">
           <Input
-            name="visitDepartment"
-            maxLength={100}
-            defaultValue={member?.visitDepartment ?? ""}
+            name="visitDepartmentYear"
+            type="number"
+            min={1900}
+            max={new Date().getFullYear()}
+            defaultValue={member?.visitDepartmentYear ?? ""}
+            placeholder="Năm"
           />
         </Field>
       </Section>
