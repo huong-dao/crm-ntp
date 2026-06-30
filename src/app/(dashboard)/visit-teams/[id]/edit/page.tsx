@@ -7,6 +7,7 @@ import {
 import { DeleteVisitTeamButton } from "@/components/visit-teams/delete-visit-team-button";
 import { VisitTeamForm } from "@/components/visit-teams/visit-team-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon, ViewIcon } from "@/lib/button-icons";
 
 export default async function EditVisitTeamPage({
   params,
@@ -36,11 +37,11 @@ export default async function EditVisitTeamPage({
           <p className="mt-1 text-sm text-gray-600">Cập nhật khu vực và trưởng tổ</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild icon={ViewIcon}>
             <Link href={`/visit-teams/${team.id}`}>Chi tiết tổ</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/visit-teams">← Danh sách tổ</Link>
+          <Button variant="outline" asChild icon={BackIcon}>
+            <Link href="/visit-teams">Danh sách tổ</Link>
           </Button>
           {canDelete && (
             <DeleteVisitTeamButton teamId={team.id} teamCode={team.code} />

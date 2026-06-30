@@ -15,6 +15,8 @@ import {
 } from "@/lib/member-list";
 import { buildExcelBase64, memberToImportExportRow } from "@/lib/member-excel";
 import { MEMBER_IMPORT_TEMPLATE_HEADERS } from "@/lib/csv";
+import { ageFromBirthYear } from "@/lib/department-age";
+import { buildOldFullAddress, buildNewFullAddress } from "@/lib/member-format";
 import { applyHeadOfHousehold, buildMemberWriteData } from "@/lib/member-write";
 import { prisma } from "@/lib/prisma";
 import {
@@ -82,6 +84,44 @@ export type MemberFormDefaults = {
   visitDepartmentYear: number | null;
   visitTeamId: string | null;
   notes: string | null;
+};
+
+export type MemberDetail = {
+  id: string;
+  code: string;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  status: MemberStatus;
+  gender: "male" | "female" | null;
+  birthYear: number | null;
+  age: number | null;
+  occupation: string | null;
+  houseNumber: string | null;
+  street: string | null;
+  oldWard: string | null;
+  oldDistrict: string | null;
+  oldProvince: string | null;
+  oldFullAddress: string | null;
+  newWard: string | null;
+  newProvince: string | null;
+  newFullAddress: string | null;
+  mobile1: string | null;
+  mobile2: string | null;
+  landline: string | null;
+  isHead: boolean;
+  relationship: string | null;
+  household: { id: string; code: string } | null;
+  isBaptized: boolean;
+  baptismYear: number | null;
+  ageDepartment: { id: string; name: string } | null;
+  actualDepartment: { id: string; name: string } | null;
+  boardServiceYear: number | null;
+  visitDepartmentYear: number | null;
+  visitTeam: { id: string; code: string; area: string } | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 function yearFromDate(date: Date | null): number | null {
@@ -267,6 +307,72 @@ export async function getMemberById(
     visitDepartmentYear: parseVisitDepartmentYear(member.visitDepartment),
     visitTeamId: member.visitTeamId,
     notes: member.notes,
+  };
+}
+
+export async function getMemberDetail(id: string): Promise<MemberDetail | null> {
+  await requireAuth();
+
+  const member = await prisma.member.findUnique({
+    where: { id },
+    include: {
+      household: { select: { id: true, code: true } },
+      visitTeam: { select: { id: true, code: true, area: true } },
+      ageDepartment: { select: { id: true, name: true } },
+      actualDepartment: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!member) return null;
+
+  const oldFullAddress =
+    member.oldFullAddress ||
+    buildOldFullAddress(member) ||
+    null;
+  const newFullAddress =
+    member.newFullAddress ||
+    buildNewFullAddress(member) ||
+    null;
+
+  return {
+    id: member.id,
+    code: member.code,
+    fullName: member.fullName,
+    firstName: member.firstName,
+    lastName: member.lastName,
+    status: member.status,
+    gender: member.gender,
+    birthYear: member.birthYear,
+    age:
+      member.birthYear != null
+        ? ageFromBirthYear(member.birthYear)
+        : null,
+    occupation: member.occupation,
+    houseNumber: member.houseNumber,
+    street: member.street,
+    oldWard: member.oldWard,
+    oldDistrict: member.oldDistrict,
+    oldProvince: member.oldProvince,
+    oldFullAddress,
+    newWard: member.newWard,
+    newProvince: member.newProvince,
+    newFullAddress,
+    mobile1: member.mobile1,
+    mobile2: member.mobile2,
+    landline: member.landline,
+    isHead: member.isHead,
+    relationship: member.relationship,
+    household: member.household,
+    isBaptized: member.isBaptized,
+    baptismYear: member.baptismYear,
+    ageDepartment: member.ageDepartment,
+    actualDepartment: member.actualDepartment,
+    boardServiceYear: yearFromDate(member.boardServiceDate),
+    visitDepartmentYear: parseVisitDepartmentYear(member.visitDepartment),
+    visitTeam: member.visitTeam,
+    notes: member.notes,
+    createdAt: member.createdAt.toISOString(),
+    updatedAt: member.updatedAt.toISOString(),
   };
 }
 

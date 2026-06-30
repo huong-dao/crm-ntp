@@ -6,6 +6,7 @@ import {
 } from "@/actions/visit-request-actions";
 import { VisitRequestForm } from "@/components/visit-requests/visit-request-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 export default async function EditVisitRequestPage({
   params,
@@ -33,8 +34,8 @@ export default async function EditVisitRequestPage({
             Cập nhật thông tin đơn thăm viếng
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href={`/visit-requests/${id}`}>← Chi tiết đơn</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href={`/visit-requests/${id}`}>Chi tiết đơn</Link>
         </Button>
       </div>
 

@@ -13,6 +13,7 @@ import {
   type VisitRequestStaffOption,
 } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
@@ -384,6 +385,7 @@ export function VisitRequestForm({
         <Button
           type="submit"
           disabled={loading || teamLoading || staffLoading}
+          icon={loading ? undefined : SaveIcon}
         >
           {loading
             ? "Đang lưu..."
@@ -391,7 +393,7 @@ export function VisitRequestForm({
               ? "Lưu thay đổi"
               : "Tạo đơn thăm viếng"}
         </Button>
-        <Button type="button" variant="outline" asChild>
+        <Button type="button" variant="outline" asChild icon={CancelIcon}>
           <Link href={cancelHref}>Hủy</Link>
         </Button>
       </div>

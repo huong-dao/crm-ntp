@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { VisitRequestListItem } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
+import { EditIcon, NextIcon, PrevIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 import { cn } from "@/lib/utils";
 import {
@@ -118,7 +119,7 @@ export function VisitRequestTable({
                   {request.staffCodes ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild icon={EditIcon}>
                     <Link href={`/visit-requests/${request.id}`}>
                       Cập nhật
                     </Link>
@@ -135,7 +136,7 @@ export function VisitRequestTable({
           <MobileDataCard
             key={request.id}
             actions={
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild icon={EditIcon}>
                 <Link href={`/visit-requests/${request.id}`}>Cập nhật</Link>
               </Button>
             }
@@ -185,7 +186,7 @@ export function VisitRequestTable({
           Hiển thị {start}–{end} / {total} đơn
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild disabled={page <= 1}>
+          <Button variant="outline" size="sm" asChild icon={PrevIcon} disabled={page <= 1}>
             <Link
               href={page <= 1 ? "#" : buildVisitRequestListUrl(filters, page - 1)}
               className={page <= 1 ? "pointer-events-none opacity-50" : ""}
@@ -200,6 +201,8 @@ export function VisitRequestTable({
             variant="outline"
             size="sm"
             asChild
+            icon={NextIcon}
+            iconPosition="end"
             disabled={page >= totalPages}
           >
             <Link

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUser } from "@/actions/user-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, CreateUserIcon, SaveIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { UserRole } from "@prisma/client";
@@ -42,7 +43,7 @@ export function CreateUserDialog() {
 
   if (!open) {
     return (
-      <Button type="button" onClick={() => setOpen(true)}>
+      <Button type="button" icon={CreateUserIcon} onClick={() => setOpen(true)}>
         Tạo tài khoản
       </Button>
     );
@@ -98,6 +99,7 @@ export function CreateUserDialog() {
             <Button
               type="button"
               variant="outline"
+              icon={CancelIcon}
               onClick={() => {
                 setOpen(false);
                 setError("");
@@ -106,7 +108,7 @@ export function CreateUserDialog() {
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} icon={loading ? undefined : SaveIcon}>
               {loading ? "Đang tạo..." : "Tạo"}
             </Button>
           </div>

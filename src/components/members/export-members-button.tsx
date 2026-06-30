@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Download } from "lucide-react";
 import { exportMembers } from "@/actions/member-actions";
+import { ExportIcon } from "@/lib/button-icons";
 import { Button } from "@/components/ui/button";
 import { downloadBase64File } from "@/lib/download-base64";
 import { MEMBER_STATUSES } from "@/lib/member-list";
@@ -56,8 +56,8 @@ export function ExportMembersButton() {
         variant="outline"
         onClick={handleExport}
         disabled={loading}
+        icon={loading ? undefined : ExportIcon}
       >
-        <Download className="h-4 w-4" />
         {loading ? "Đang xuất..." : "Export Excel"}
       </Button>
       {error && (

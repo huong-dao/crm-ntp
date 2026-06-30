@@ -2,6 +2,7 @@ import { getVisitTeams } from "@/actions/visit-team-actions";
 import { ImportVisitTeamsDialog } from "@/components/visit-teams/import-visit-teams-dialog";
 import { VisitTeamTable } from "@/components/visit-teams/visit-team-table";
 import { Button } from "@/components/ui/button";
+import { AddIcon, CancelIcon, SearchIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -38,14 +39,11 @@ export default async function VisitTeamsPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Danh sách Tổ thăm viếng</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Quản lý tổ thăm viếng và khu vực phụ trách
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ImportVisitTeamsDialog />
-          <Button asChild>
-            <Link href="/visit-teams/new">+ Thêm tổ</Link>
+          <Button asChild icon={AddIcon}>
+            <Link href="/visit-teams/new">Thêm tổ</Link>
           </Button>
         </div>
       </div>
@@ -64,9 +62,9 @@ export default async function VisitTeamsPage({
               defaultValue={search ?? ""}
             />
           </div>
-          <Button type="submit">Tìm</Button>
+          <Button type="submit" icon={SearchIcon}>Tìm</Button>
           {search && (
-            <Button type="button" variant="outline" asChild>
+            <Button type="button" variant="outline" asChild icon={CancelIcon}>
               <a href="/visit-teams">Xóa bộ lọc</a>
             </Button>
           )}

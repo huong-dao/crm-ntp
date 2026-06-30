@@ -2,10 +2,12 @@ import Link from "next/link";
 import type { MemberListItem } from "@/actions/member-actions";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { Button } from "@/components/ui/button";
+import { EditIcon, NextIcon, PrevIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 import { cn } from "@/lib/utils";
 import {
   STATUS_LABELS,
+  statusBadgeClass,
   type MemberFiltersInput,
 } from "@/lib/member-list";
 
@@ -62,21 +64,6 @@ function SortHeader({
       )}
     </Link>
   );
-}
-
-function statusBadgeClass(status: MemberListItem["status"]) {
-  switch (status) {
-    case "active":
-      return "bg-green-100 text-green-800";
-    case "inactive":
-      return "bg-gray-100 text-gray-700";
-    case "transferred":
-      return "bg-amber-100 text-amber-800";
-    case "deceased":
-      return "bg-red-100 text-red-800";
-    default:
-      return "bg-gray-100 text-gray-700";
-  }
 }
 
 export function MemberTable({
@@ -204,7 +191,7 @@ export function MemberTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild icon={EditIcon}>
                       <Link href={`/members/${member.id}/edit`}>Sửa</Link>
                     </Button>
                     {isAdmin && (
@@ -228,7 +215,7 @@ export function MemberTable({
             key={member.id}
             actions={
               <>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild icon={EditIcon}>
                   <Link href={`/members/${member.id}/edit`}>Sửa</Link>
                 </Button>
                 {isAdmin && (
@@ -284,6 +271,7 @@ export function MemberTable({
             variant="outline"
             size="sm"
             asChild
+            icon={PrevIcon}
             disabled={page <= 1}
           >
             <Link
@@ -305,6 +293,8 @@ export function MemberTable({
             variant="outline"
             size="sm"
             asChild
+            icon={NextIcon}
+            iconPosition="end"
             disabled={page >= totalPages}
           >
             <Link

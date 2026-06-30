@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { MemberImportLogListItem } from "@/actions/member-import-actions";
 import { Button } from "@/components/ui/button";
+import { NextIcon, PrevIcon, ViewIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 
 function formatDate(iso: string) {
@@ -55,7 +56,7 @@ export function MemberImportLogsTable({
                 <td className="px-4 py-3 text-green-700">{log.successCount}</td>
                 <td className="px-4 py-3 text-red-700">{log.errorCount}</td>
                 <td className="px-4 py-3">
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild icon={ViewIcon}>
                     <Link href={`/members/imports/${log.id}`}>Xem</Link>
                   </Button>
                 </td>
@@ -70,7 +71,7 @@ export function MemberImportLogsTable({
           <MobileDataCard
             key={log.id}
             actions={
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild icon={ViewIcon}>
                 <Link href={`/members/imports/${log.id}`}>Chi tiết</Link>
               </Button>
             }
@@ -88,16 +89,16 @@ export function MemberImportLogsTable({
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           {prevPage ? (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/members/imports?page=${prevPage}`}>← Trước</Link>
+            <Button variant="outline" size="sm" asChild icon={PrevIcon}>
+              <Link href={`/members/imports?page=${prevPage}`}>Trước</Link>
             </Button>
           ) : null}
           <span className="text-sm text-gray-600">
             Trang {page} / {totalPages}
           </span>
           {nextPage ? (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/members/imports?page=${nextPage}`}>Sau →</Link>
+            <Button variant="outline" size="sm" asChild icon={NextIcon} iconPosition="end">
+              <Link href={`/members/imports?page=${nextPage}`}>Sau</Link>
             </Button>
           ) : null}
         </div>

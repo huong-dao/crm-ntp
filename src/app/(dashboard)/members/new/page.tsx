@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getMemberFormOptions } from "@/actions/member-actions";
 import { MemberForm } from "@/components/members/member-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -30,8 +31,8 @@ export default async function NewMemberPage({
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Thêm thành viên mới</h1>
           </div>
-          <Button variant="outline" asChild>
-            <Link href="/members">← Quay lại</Link>
+          <Button variant="outline" asChild icon={BackIcon}>
+            <Link href="/members">Quay lại</Link>
           </Button>
         </div>
         <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
@@ -58,8 +59,8 @@ export default async function NewMemberPage({
             Nhập thông tin thành viên — mã tín hữu tự động sinh khi lưu
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href={backHref}>← Quay lại</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href={backHref}>Quay lại</Link>
         </Button>
       </div>
 

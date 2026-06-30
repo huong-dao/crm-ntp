@@ -6,6 +6,7 @@ import {
 } from "@/actions/member-actions";
 import { MemberForm } from "@/components/members/member-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 export default async function EditMemberPage({
   params,
@@ -31,8 +32,8 @@ export default async function EditMemberPage({
           </h1>
           <p className="mt-1 text-sm text-gray-600">{member.fullName}</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href={`/members/${member.id}`}>← Chi tiết</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href={`/members/${member.id}`}>Chi tiết</Link>
         </Button>
       </div>
 

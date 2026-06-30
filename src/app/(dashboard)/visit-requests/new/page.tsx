@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getVisitRequestFormContext } from "@/actions/visit-request-actions";
 import { VisitRequestForm } from "@/components/visit-requests/visit-request-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -40,8 +41,8 @@ export default async function NewVisitRequestPage({
             Lên kế hoạch thăm viếng cho hộ gia đình
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href={backHref}>← Quay lại</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href={backHref}>Quay lại</Link>
         </Button>
       </div>
 

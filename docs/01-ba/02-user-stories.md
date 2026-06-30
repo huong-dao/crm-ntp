@@ -73,6 +73,18 @@
 - [ ] Cập nhật thành công hiển thị thông báo
 - [ ] Họ tên đầy đủ tự cập nhật khi sửa họ/tên
 
+### US-06b: Xem chi tiết thành viên
+**As a** user  
+**I want to** xem đầy đủ thông tin một thành viên trên một trang  
+**So that** tôi tra cứu nhanh mà không cần mở form sửa
+
+**Acceptance Criteria:**
+- [ ] URL `/members/[id]` hiển thị read-only tất cả nhóm thông tin (cơ bản, địa chỉ, liên lạc, hộ, tin lành, thăm viếng, ghi chú)
+- [ ] Header: mã tín hữu, họ tên, badge tình trạng
+- [ ] Link sang hộ gia đình, tổ thăm viếng, ban ngành (nếu có)
+- [ ] Nút [Sửa] → `/members/[id]/edit`; [Xóa] chỉ admin
+- [ ] Nút quay lại danh sách thành viên
+
 ### US-07: Export danh sách thành viên
 **As a** user  
 **I want to** xuất danh sách ra file Excel  

@@ -2,6 +2,7 @@ import { getHouseholds } from "@/actions/household-actions";
 import { ImportHouseholdsDialog } from "@/components/households/import-households-dialog";
 import { HouseholdTable } from "@/components/households/household-table";
 import { Button } from "@/components/ui/button";
+import { AddIcon, CancelIcon, SearchIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -38,14 +39,11 @@ export default async function HouseholdsPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Danh sách Hộ gia đình</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Quản lý hộ gia đình và thành viên trong hộ
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ImportHouseholdsDialog />
-          <Button asChild>
-            <Link href="/households/new">+ Thêm hộ</Link>
+          <Button asChild icon={AddIcon}>
+            <Link href="/households/new">Thêm hộ</Link>
           </Button>
         </div>
       </div>
@@ -64,9 +62,9 @@ export default async function HouseholdsPage({
               defaultValue={search ?? ""}
             />
           </div>
-          <Button type="submit">Tìm</Button>
+          <Button type="submit" icon={SearchIcon}>Tìm</Button>
           {search && (
-            <Button type="button" variant="outline" asChild>
+            <Button type="button" variant="outline" asChild icon={CancelIcon}>
               <a href="/households">Xóa bộ lọc</a>
             </Button>
           )}

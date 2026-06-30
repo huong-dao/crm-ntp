@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDepartmentById } from "@/actions/department-actions";
 import { Button } from "@/components/ui/button";
+import { BackIcon, EditIcon } from "@/lib/button-icons";
 import { formatAgeRange } from "@/lib/validations/department";
 
 export default async function DepartmentDetailPage({
@@ -26,11 +27,11 @@ export default async function DepartmentDetailPage({
           <p className="mt-1 text-sm text-gray-600">Chi tiết ban ngành</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild icon={EditIcon}>
             <Link href={`/departments/${department.id}/edit`}>Sửa</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/departments">← Danh sách ban ngành</Link>
+          <Button variant="outline" asChild icon={BackIcon}>
+            <Link href="/departments">Danh sách ban ngành</Link>
           </Button>
         </div>
       </div>

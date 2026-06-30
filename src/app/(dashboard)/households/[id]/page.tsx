@@ -4,6 +4,7 @@ import { getHouseholdById } from "@/actions/household-actions";
 import { DeleteHouseholdButton } from "@/components/households/delete-household-button";
 import { HouseholdMembersTable } from "@/components/households/household-members-table";
 import { Button } from "@/components/ui/button";
+import { AddIcon, BackIcon, EditIcon } from "@/lib/button-icons";
 
 export default async function HouseholdDetailPage({
   params,
@@ -29,10 +30,10 @@ export default async function HouseholdDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/households">← Danh sách hộ</Link>
+          <Button variant="outline" asChild icon={BackIcon}>
+            <Link href="/households">Danh sách hộ</Link>
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild icon={EditIcon}>
             <Link href={`/households/${household.id}/edit`}>Sửa hộ</Link>
           </Button>
           {household.memberCount === 0 && (
@@ -41,9 +42,9 @@ export default async function HouseholdDetailPage({
               householdCode={household.code}
             />
           )}
-          <Button asChild>
+          <Button asChild icon={AddIcon}>
             <Link href={`/members/new?householdId=${household.id}`}>
-              + Thêm thành viên vào hộ
+              Thêm thành viên vào hộ
             </Link>
           </Button>
         </div>

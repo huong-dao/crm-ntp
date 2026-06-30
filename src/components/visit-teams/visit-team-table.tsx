@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { VisitTeamListItem } from "@/actions/visit-team-actions";
 import { Button } from "@/components/ui/button";
+import { EditIcon, NextIcon, PrevIcon, ViewIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 
 function buildPageUrl(search: string | undefined, page: number): string {
@@ -84,10 +85,10 @@ export function VisitTeamTable({
                 <td className="px-4 py-3 text-gray-600">{team.memberCount}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild icon={ViewIcon}>
                       <Link href={`/visit-teams/${team.id}`}>Chi tiết</Link>
                     </Button>
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild icon={EditIcon}>
                       <Link href={`/visit-teams/${team.id}/edit`}>Sửa</Link>
                     </Button>
                   </div>
@@ -104,10 +105,10 @@ export function VisitTeamTable({
             key={team.id}
             actions={
               <>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild icon={ViewIcon}>
                   <Link href={`/visit-teams/${team.id}`}>Chi tiết</Link>
                 </Button>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild icon={EditIcon}>
                   <Link href={`/visit-teams/${team.id}/edit`}>Sửa</Link>
                 </Button>
               </>
@@ -138,7 +139,7 @@ export function VisitTeamTable({
           Hiển thị {start}–{end} / {total} tổ
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild disabled={page <= 1}>
+          <Button variant="outline" size="sm" asChild icon={PrevIcon} disabled={page <= 1}>
             <Link
               href={page <= 1 ? "#" : buildPageUrl(search, page - 1)}
               className={page <= 1 ? "pointer-events-none opacity-50" : ""}
@@ -153,6 +154,8 @@ export function VisitTeamTable({
             variant="outline"
             size="sm"
             asChild
+            icon={NextIcon}
+            iconPosition="end"
             disabled={page >= totalPages}
           >
             <Link

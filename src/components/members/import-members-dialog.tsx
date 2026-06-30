@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload } from "lucide-react";
 import {
   cancelMemberImportLog,
   getMemberImportTemplate,
@@ -12,6 +11,7 @@ import {
   type ImportMembersResult,
 } from "@/actions/member-import-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, ImportIcon, SaveIcon, TemplateIcon } from "@/lib/button-icons";
 import { Label } from "@/components/ui/label";
 import { downloadBase64File } from "@/lib/download-base64";
 import {
@@ -200,8 +200,7 @@ export function ImportMembersDialog() {
 
   if (!open) {
     return (
-      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
-        <Upload className="h-4 w-4" />
+      <Button type="button" variant="outline" icon={ImportIcon} onClick={() => setOpen(true)}>
         Import Excel
       </Button>
     );
@@ -230,7 +229,9 @@ export function ImportMembersDialog() {
             Dùng file Excel (.xlsx) với đầy đủ cột như file mẫu. Bắt buộc:{" "}
             <strong>Họ và lót</strong>, <strong>Tên</strong>, <strong>Mã hộ</strong>.
             Hộ chưa có sẽ được <strong>tự tạo</strong> theo mã hộ trong file.
-            Mã tín hữu giữ nguyên nếu có cột Mã tín hữu, không thì tự sinh.
+            Mã tín hữu đã có sẽ được <strong>cập nhật</strong>, chưa có thì tạo mới
+            (tự sinh mã nếu để trống). Ban ngành theo tuổi được{" "}
+            <strong>tự gán</strong> từ năm sinh và khoảng tuổi ban ngành.
           </p>
 
           <div className="mt-4 space-y-4">
@@ -238,6 +239,7 @@ export function ImportMembersDialog() {
               type="button"
               variant="outline"
               size="sm"
+              icon={templateLoading ? undefined : TemplateIcon}
               onClick={downloadTemplate}
               disabled={templateLoading || importing}
             >
@@ -313,13 +315,19 @@ export function ImportMembersDialog() {
             <Button
               type="button"
               variant="outline"
+              icon={CancelIcon}
               onClick={handleClose}
               disabled={importing}
             >
               {result ? "Đóng" : "Hủy"}
             </Button>
             {!result && (
-              <Button type="button" onClick={handleImport} disabled={importing}>
+              <Button
+                type="button"
+                icon={importing ? undefined : SaveIcon}
+                onClick={handleImport}
+                disabled={importing}
+              >
                 {importing ? "Đang import..." : "Import"}
               </Button>
             )}

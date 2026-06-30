@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLeaderMemberOptions } from "@/actions/visit-team-actions";
 import { VisitTeamForm } from "@/components/visit-teams/visit-team-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 export default async function NewVisitTeamPage() {
   const leaderOptions = await getLeaderMemberOptions();
@@ -15,8 +16,8 @@ export default async function NewVisitTeamPage() {
             Mã tổ tự động sinh — nhập khu vực phụ trách
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/visit-teams">← Danh sách tổ</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href="/visit-teams">Danh sách tổ</Link>
         </Button>
       </div>
 

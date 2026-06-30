@@ -31,9 +31,41 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
-  /** Icon component from react-icons (e.g. HiMiniCheck from react-icons/hi2) */
+  /** Icon component from react-icons/hi2 */
   icon?: IconType;
   iconPosition?: "start" | "end";
+}
+
+function renderIcon(Icon: IconType) {
+  return <Icon className="size-4 shrink-0" aria-hidden />;
+}
+
+function injectIconIntoChild(
+  children: React.ReactNode,
+  Icon: IconType,
+  iconPosition: "start" | "end"
+): React.ReactNode {
+  if (!React.isValidElement<{ children?: React.ReactNode }>(children)) {
+    return children;
+  }
+
+  const childContent = children.props.children;
+  const iconNode = renderIcon(Icon);
+
+  return React.cloneElement(children, {
+    children:
+      iconPosition === "end" ? (
+        <>
+          {childContent}
+          {iconNode}
+        </>
+      ) : (
+        <>
+          {iconNode}
+          {childContent}
+        </>
+      ),
+  });
 }
 
 function Button({
@@ -47,25 +79,23 @@ function Button({
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : "button";
+  const classes = cn(buttonVariants({ variant, size, className }));
+
+  if (asChild) {
+    return (
+      <Comp className={classes} {...props}>
+        {Icon
+          ? injectIconIntoChild(children, Icon, iconPosition)
+          : children}
+      </Comp>
+    );
+  }
 
   return (
-    <Comp
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    >
-      {asChild ? (
-        children
-      ) : (
-        <>
-          {Icon && iconPosition === "start" && (
-            <Icon className="size-4 shrink-0" aria-hidden />
-          )}
-          {children}
-          {Icon && iconPosition === "end" && (
-            <Icon className="size-4 shrink-0" aria-hidden />
-          )}
-        </>
-      )}
+    <Comp className={classes} {...props}>
+      {Icon && iconPosition === "start" && renderIcon(Icon)}
+      {children}
+      {Icon && iconPosition === "end" && renderIcon(Icon)}
     </Comp>
   );
 }

@@ -4,17 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteMember } from "@/actions/member-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, DeleteIcon } from "@/lib/button-icons";
 
 export function DeleteMemberButton({
   memberId,
   memberCode,
   memberName,
   redirectTo = "/members",
+  size = "sm",
 }: {
   memberId: string;
   memberCode: string;
   memberName: string;
   redirectTo?: string;
+  size?: "default" | "sm";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -43,8 +46,9 @@ export function DeleteMemberButton({
       <Button
         type="button"
         variant="outline"
-        size="sm"
+        size={size}
         className="text-red-700 hover:bg-red-50 hover:text-red-800"
+        icon={DeleteIcon}
         onClick={() => setOpen(true)}
       >
         Xóa
@@ -80,6 +84,7 @@ export function DeleteMemberButton({
           <Button
             type="button"
             variant="outline"
+            icon={CancelIcon}
             onClick={() => {
               setOpen(false);
               setError("");
@@ -91,6 +96,7 @@ export function DeleteMemberButton({
           <Button
             type="button"
             className="bg-red-700 hover:bg-red-800"
+            icon={loading ? undefined : DeleteIcon}
             onClick={handleDelete}
             disabled={loading}
           >

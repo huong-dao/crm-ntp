@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { AddIcon, CancelIcon, FilterIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { MemberFilterOptions } from "@/actions/member-actions";
@@ -126,8 +127,8 @@ export function MemberFilters({
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button type="submit">Lọc</Button>
-        <Button type="button" variant="outline" onClick={handleReset}>
+        <Button type="submit" icon={FilterIcon}>Lọc</Button>
+        <Button type="button" variant="outline" icon={CancelIcon} onClick={handleReset}>
           Xóa bộ lọc
         </Button>
       </div>
@@ -137,8 +138,8 @@ export function MemberFilters({
 
 export function AddMemberLink() {
   return (
-    <Button asChild>
-      <Link href="/members/new">+ Thêm thành viên</Link>
+    <Button asChild icon={AddIcon}>
+      <Link href="/members/new">Thêm thành viên</Link>
     </Button>
   );
 }

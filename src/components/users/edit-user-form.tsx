@@ -9,6 +9,7 @@ import {
   type UserDetail,
 } from "@/actions/user-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -139,10 +140,10 @@ export function EditUserForm({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} icon={loading ? undefined : SaveIcon}>
           {loading ? "Đang lưu..." : "Lưu thay đổi"}
         </Button>
-        <Button type="button" variant="outline" asChild>
+        <Button type="button" variant="outline" asChild icon={CancelIcon}>
           <Link href="/users">Hủy</Link>
         </Button>
       </div>

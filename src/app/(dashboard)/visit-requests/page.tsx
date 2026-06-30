@@ -3,6 +3,7 @@ import { getVisitRequests, getVisitRequestFilterOptions } from "@/actions/visit-
 import { VisitRequestFilters } from "@/components/visit-requests/visit-request-filters";
 import { VisitRequestTable } from "@/components/visit-requests/visit-request-table";
 import { Button } from "@/components/ui/button";
+import { AddIcon } from "@/lib/button-icons";
 import {
   VISIT_REQUEST_STATUSES,
   type VisitRequestFilterValues,
@@ -78,8 +79,8 @@ export default async function VisitRequestsPage({
             Theo dõi lịch và tình trạng thăm viếng các hộ gia đình
           </p>
         </div>
-        <Button asChild>
-          <Link href="/visit-requests/new">+ Tạo đơn</Link>
+        <Button asChild icon={AddIcon}>
+          <Link href="/visit-requests/new">Tạo đơn</Link>
         </Button>
       </div>
 

@@ -7,6 +7,7 @@ import {
   type LeaderMemberOption,
 } from "@/actions/visit-team-actions";
 import { Button } from "@/components/ui/button";
+import { SaveIcon } from "@/lib/button-icons";
 import { Label } from "@/components/ui/label";
 
 const selectClass =
@@ -80,7 +81,7 @@ export function AssignMembersForm({
         <p className="text-sm text-red-600" role="alert">{error}</p>
       )}
 
-      <Button type="submit" disabled={loading}>
+      <Button type="submit" disabled={loading} icon={loading ? undefined : SaveIcon}>
         {loading ? "Đang gán..." : "Gán thành viên vào tổ"}
       </Button>
     </form>

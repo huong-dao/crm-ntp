@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteHousehold } from "@/actions/household-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, DeleteIcon } from "@/lib/button-icons";
 
 export function DeleteHouseholdButton({
   householdId,
@@ -40,6 +41,7 @@ export function DeleteHouseholdButton({
         type="button"
         variant="outline"
         className="text-red-700 hover:bg-red-50 hover:text-red-800"
+        icon={DeleteIcon}
         onClick={() => setOpen(true)}
       >
         Xóa hộ
@@ -66,6 +68,7 @@ export function DeleteHouseholdButton({
           <Button
             type="button"
             variant="outline"
+            icon={CancelIcon}
             onClick={() => {
               setOpen(false);
               setError("");
@@ -77,6 +80,7 @@ export function DeleteHouseholdButton({
           <Button
             type="button"
             className="bg-red-700 hover:bg-red-800"
+            icon={loading ? undefined : DeleteIcon}
             onClick={handleDelete}
             disabled={loading}
           >

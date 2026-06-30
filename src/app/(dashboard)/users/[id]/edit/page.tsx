@@ -6,6 +6,7 @@ import {
 } from "@/actions/user-actions";
 import { EditUserForm } from "@/components/users/edit-user-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 import { auth } from "@/lib/auth";
 
 export default async function EditUserPage({
@@ -39,8 +40,8 @@ export default async function EditUserPage({
             Cập nhật mật khẩu, role, trạng thái và liên kết thành viên
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/users">← Danh sách tài khoản</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href="/users">Danh sách tài khoản</Link>
         </Button>
       </div>
 

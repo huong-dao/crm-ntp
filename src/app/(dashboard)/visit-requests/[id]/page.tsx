@@ -4,6 +4,7 @@ import { getVisitRequestById } from "@/actions/visit-request-actions";
 import { VisitRequestStaffDisplay } from "@/components/visit-requests/visit-request-staff-display";
 import { VisitRequestStatusForm } from "@/components/visit-requests/visit-request-status-form";
 import { Button } from "@/components/ui/button";
+import { AddIcon, BackIcon, EditIcon, PrintIcon } from "@/lib/button-icons";
 import { cn } from "@/lib/utils";
 import {
   formatVisitRequestDate,
@@ -45,16 +46,16 @@ export default async function VisitRequestDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild icon={PrintIcon}>
             <Link href={`/visit-requests/${id}/print`} target="_blank">
               Xuất PDF
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild icon={EditIcon}>
             <Link href={`/visit-requests/${id}/edit`}>Sửa đơn</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/visit-requests">← Danh sách đơn</Link>
+          <Button variant="outline" asChild icon={BackIcon}>
+            <Link href="/visit-requests">Danh sách đơn</Link>
           </Button>
         </div>
       </div>

@@ -1,11 +1,7 @@
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-      <p className="mt-2 text-gray-600">Đang phát triển...</p>
-    </div>
-  );
-}
+import { notFound } from "next/navigation";
+import { getMemberDetail } from "@/actions/member-actions";
+import { MemberDetailView } from "@/components/members/member-detail-view";
+import { auth } from "@/lib/auth";
 
 export default async function MemberDetailPage({
   params,
@@ -13,5 +9,13 @@ export default async function MemberDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <PlaceholderPage title={`Chi tiết thành viên: ${id}`} />;
+  const [member, session] = await Promise.all([getMemberDetail(id), auth()]);
+
+  if (!member) {
+    notFound();
+  }
+
+  const isAdmin = session?.user?.role === "admin";
+
+  return <MemberDetailView member={member} isAdmin={isAdmin} />;
 }

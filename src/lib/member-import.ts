@@ -322,8 +322,7 @@ function emptyToNull(value?: string): string | null {
 
 export function validateImportRow(
   row: ParsedImportRow,
-  visitTeamCodes: Set<string>,
-  existingMemberCodes: Set<string>
+  visitTeamCodes: Set<string>
 ): { ok: true; data: ImportRowValid } | { ok: false; error: string } {
   let firstName = row.firstName?.trim() ?? "";
   let lastName = row.lastName?.trim() ?? "";
@@ -347,9 +346,6 @@ export function validateImportRow(
   }
 
   const memberCode = row.code?.trim();
-  if (memberCode && existingMemberCodes.has(memberCode.toLowerCase())) {
-    return { ok: false, error: `Mã tín hữu "${memberCode}" đã tồn tại` };
-  }
 
   const visitTeamCode = row.visitTeamCode?.trim();
   if (visitTeamCode && !visitTeamCodes.has(visitTeamCode.toLowerCase())) {

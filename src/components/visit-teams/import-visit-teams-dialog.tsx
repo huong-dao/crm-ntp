@@ -2,13 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload } from "lucide-react";
 import {
   getVisitTeamImportTemplate,
   importVisitTeamBatch,
   type ImportVisitTeamsResult,
 } from "@/actions/visit-team-import-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, ImportIcon, SaveIcon, TemplateIcon } from "@/lib/button-icons";
 import { Label } from "@/components/ui/label";
 import {
   ImportProgressModal,
@@ -156,8 +156,7 @@ export function ImportVisitTeamsDialog() {
 
   if (!open) {
     return (
-      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
-        <Upload className="h-4 w-4" />
+      <Button type="button" variant="outline" icon={ImportIcon} onClick={() => setOpen(true)}>
         Import Excel
       </Button>
     );
@@ -196,6 +195,7 @@ export function ImportVisitTeamsDialog() {
               type="button"
               variant="outline"
               size="sm"
+              icon={templateLoading ? undefined : TemplateIcon}
               onClick={downloadTemplate}
               disabled={templateLoading || importing}
             >
@@ -261,13 +261,19 @@ export function ImportVisitTeamsDialog() {
             <Button
               type="button"
               variant="outline"
+              icon={CancelIcon}
               onClick={handleClose}
               disabled={importing}
             >
               {result ? "Đóng" : "Hủy"}
             </Button>
             {!result && (
-              <Button type="button" onClick={handleImport} disabled={importing}>
+              <Button
+                type="button"
+                icon={importing ? undefined : SaveIcon}
+                onClick={handleImport}
+                disabled={importing}
+              >
                 {importing ? "Đang import..." : "Import"}
               </Button>
             )}

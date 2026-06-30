@@ -19,6 +19,7 @@ import {
 } from "@/lib/member-list";
 import type { MemberStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
+import { ViewIcon } from "@/lib/button-icons";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -90,12 +91,10 @@ export default async function MembersPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Danh sách Thành viên</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Tìm kiếm, lọc và quản lý thành viên hội thánh
-          </p>
+          
         </div>
         <div className="flex flex-wrap items-start gap-2">
-          <Button variant="outline" size="default" asChild>
+          <Button variant="outline" size="default" asChild icon={ViewIcon}>
             <Link href="/members/imports">Lịch sử import</Link>
           </Button>
           <Suspense fallback={null}>

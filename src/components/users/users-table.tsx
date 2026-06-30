@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toggleUserActive, type UserListItem } from "@/actions/user-actions";
 import { Button } from "@/components/ui/button";
+import { EditIcon, LockIcon, UnlockIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 import { cn } from "@/lib/utils";
 
@@ -124,13 +125,20 @@ export function UsersTable({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" size="sm" asChild>
+                      <Button type="button" variant="outline" size="sm" asChild icon={EditIcon}>
                         <a href={`/users/${user.id}/edit`}>Sửa</a>
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
+                        icon={
+                          isPending
+                            ? undefined
+                            : user.isActive
+                              ? LockIcon
+                              : UnlockIcon
+                        }
                         disabled={isSelf || isPending}
                         onClick={() => handleToggle(user)}
                       >
@@ -159,13 +167,20 @@ export function UsersTable({
               key={user.id}
               actions={
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" asChild>
+                  <Button type="button" variant="outline" size="sm" asChild icon={EditIcon}>
                     <a href={`/users/${user.id}/edit`}>Sửa</a>
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    icon={
+                      isPending
+                        ? undefined
+                        : user.isActive
+                          ? LockIcon
+                          : UnlockIcon
+                    }
                     disabled={isSelf || isPending}
                     onClick={() => handleToggle(user)}
                   >

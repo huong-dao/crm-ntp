@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, MenuIcon } from "@/lib/button-icons";
 
 export function MobileSidebar({ isAdmin }: { isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
@@ -32,11 +32,10 @@ export function MobileSidebar({ isAdmin }: { isAdmin: boolean }) {
         variant="outline"
         size="sm"
         className="lg:hidden"
+        icon={MenuIcon}
         onClick={() => setOpen(true)}
         aria-label="Mở menu điều hướng"
-      >
-        <Menu className="h-4 w-4" />
-      </Button>
+      />
 
       {open && (
         <>
@@ -59,11 +58,10 @@ export function MobileSidebar({ isAdmin }: { isAdmin: boolean }) {
                 variant="outline"
                 size="sm"
                 className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                icon={CancelIcon}
                 onClick={() => setOpen(false)}
                 aria-label="Đóng menu"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              />
             </div>
             <div className="flex-1 overflow-y-auto p-3">
               <SidebarNav

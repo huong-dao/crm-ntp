@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { VisitRequestStatus } from "@prisma/client";
 import { updateVisitStatus } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -106,7 +107,7 @@ export function VisitRequestStatusForm({
         <p className="text-sm text-red-600" role="alert">{error}</p>
       )}
 
-      <Button type="submit" disabled={loading}>
+      <Button type="submit" disabled={loading} icon={loading ? undefined : SaveIcon}>
         {loading ? "Đang lưu..." : "Cập nhật tình trạng"}
       </Button>
     </form>

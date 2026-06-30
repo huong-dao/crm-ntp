@@ -132,6 +132,37 @@
 
 ---
 
+## F-04b: Chi tiết Thành viên
+
+**URL:** `/members/[id]`  
+**Access:** Authenticated users
+
+### UI Layout
+- **Header:** Họ tên đầy đủ, mã tín hữu, badge tình trạng
+- **Actions:** [← Danh sách] [Sửa] [Xóa — admin only]
+- **Thẻ tóm tắt:** Mã tín hữu · Tình trạng · Mã hộ (link) · Tổ thăm viếng (link)
+
+### Nội dung read-only (theo section form F-04)
+
+| Section | Trường hiển thị |
+|---------|------------------|
+| Thông tin cơ bản | Họ và lót, Tên, Giới tính, Năm sinh, Tuổi (tính từ năm sinh), Nghề nghiệp |
+| Địa chỉ cũ | Số nhà, Tên đường, Phường/Quận/Tỉnh cũ, Địa chỉ cũ đầy đủ |
+| Địa chỉ mới | Phường/Tỉnh mới, Địa chỉ mới đầy đủ |
+| Liên lạc | Di động 1, Di động 2, ĐT bàn |
+| Hộ gia đình | Mã hộ (link), Chủ hộ, Quan hệ |
+| Tin lành | Báp têm, Năm báp têm, Ban ngành theo tuổi (link), Ban ngành thực tế (link), Ban chấp sự, Ban thăm viếng |
+| Thăm viếng | Mã tổ + khu vực (link) |
+| Ghi chú | Text đầy đủ |
+| Hệ thống | Ngày tạo, Ngày cập nhật |
+
+### Logic
+- `getMemberDetail(id)` — load member + quan hệ household, visitTeam, departments
+- Không tìm thấy → 404
+- Giá trị trống hiển thị `—`
+
+---
+
 ## F-03b: Import Excel & Log import
 
 **URL:** `/members` (Import) · `/members/imports` · `/members/imports/[id]`  

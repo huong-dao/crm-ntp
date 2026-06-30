@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { MemberImportRowStatus, Prisma } from "@prisma/client";
-import { resolveDepartmentIdByName } from "@/actions/department-actions";
+import { resolveDepartmentIdByAge, type DepartmentAgeRange } from "@/lib/department-age";
 import type { ActionResult } from "@/actions/user-actions";
 import { auth } from "@/lib/auth";
 import { generateMemberCode } from "@/lib/generate-code";
@@ -104,17 +104,25 @@ async function ensureHouseholdByCode(
   return created.id;
 }
 
-async function createMemberFromImport(
+async function buildImportFormInput(
   row: ImportRowValid,
   householdId: string,
-  visitTeamId: string | null
-): Promise<ActionResult<{ id: string; code: string }>> {
-  const code = row.memberCode?.trim() || (await generateMemberCode());
+  visitTeamId: string | null,
+  departments: DepartmentAgeRange[],
+  departmentNameToId: Map<string, string>
+): Promise<ActionResult<MemberFormInput>> {
+  let ageDepartmentId: string | null = null;
+  if (row.birthYear != null) {
+    ageDepartmentId = resolveDepartmentIdByAge(row.birthYear, departments);
+  }
+  if (!ageDepartmentId && row.ageDepartment) {
+    ageDepartmentId =
+      departmentNameToId.get(row.ageDepartment.trim().toLowerCase()) ?? null;
+  }
 
-  const [ageDepartmentId, actualDepartmentId] = await Promise.all([
-    resolveDepartmentIdByName(row.ageDepartment),
-    resolveDepartmentIdByName(row.actualDepartment),
-  ]);
+  const actualDepartmentId = row.actualDepartment
+    ? departmentNameToId.get(row.actualDepartment.trim().toLowerCase()) ?? null
+    : null;
 
   const formInput: MemberFormInput = {
     status: row.status,
@@ -155,7 +163,83 @@ async function createMemberFromImport(
     };
   }
 
-  const built = buildMemberWriteData(parsed.data, code);
+  return { success: true, data: parsed.data };
+}
+
+async function upsertMemberFromImport(
+  row: ImportRowValid,
+  householdId: string,
+  visitTeamId: string | null,
+  memberCodeToId: Map<string, string>,
+  departments: DepartmentAgeRange[],
+  departmentNameToId: Map<string, string>
+): Promise<ActionResult<{ id: string; code: string }>> {
+  const formResult = await buildImportFormInput(
+    row,
+    householdId,
+    visitTeamId,
+    departments,
+    departmentNameToId
+  );
+  if (!formResult.success) {
+    return formResult;
+  }
+
+  const data = formResult.data;
+  const memberCode = row.memberCode?.trim();
+  const existingId = memberCode
+    ? memberCodeToId.get(memberCode.toLowerCase())
+    : undefined;
+
+  if (existingId) {
+    const built = buildMemberWriteData(data);
+    if (!built.ok) {
+      return { success: false, error: built.error };
+    }
+
+    try {
+      const existing = await prisma.member.findUnique({
+        where: { id: existingId },
+        select: { householdId: true },
+      });
+
+      if (!existing) {
+        return { success: false, error: "Thành viên không tồn tại" };
+      }
+
+      const oldHouseholdId = existing.householdId;
+
+      const member = await prisma.$transaction(async (tx) => {
+        const updated = await tx.member.update({
+          where: { id: existingId },
+          data: { ...built.data, householdId },
+        });
+        await applyHeadOfHousehold(tx, householdId, existingId, data.isHead);
+
+        if (oldHouseholdId && oldHouseholdId !== householdId) {
+          const oldHousehold = await tx.household.findUnique({
+            where: { id: oldHouseholdId },
+            select: { headMemberId: true },
+          });
+          if (oldHousehold?.headMemberId === existingId) {
+            await tx.household.update({
+              where: { id: oldHouseholdId },
+              data: { headMemberId: null },
+            });
+          }
+        }
+
+        return updated;
+      });
+
+      return { success: true, data: { id: member.id, code: member.code } };
+    } catch {
+      return { success: false, error: "Không thể cập nhật thành viên" };
+    }
+  }
+
+  const code = memberCode || (await generateMemberCode());
+  const built = buildMemberWriteData(data, code);
   if (!built.ok) {
     return { success: false, error: built.error };
   }
@@ -169,10 +253,13 @@ async function createMemberFromImport(
         tx,
         householdId,
         created.id,
-        parsed.data.isHead
+        data.isHead
       );
       return created;
     });
+
+    memberCodeToId.set(member.code.toLowerCase(), member.id);
+
     return { success: true, data: { id: member.id, code: member.code } };
   } catch {
     return { success: false, error: "Không thể tạo thành viên" };
@@ -186,7 +273,9 @@ type ProcessRowInput = {
   householdCodeToId: Map<string, string>;
   teamCodeToId: Map<string, string>;
   visitTeamCodes: Set<string>;
-  knownMemberCodes: Set<string>;
+  memberCodeToId: Map<string, string>;
+  departments: DepartmentAgeRange[];
+  departmentNameToId: Map<string, string>;
 };
 
 async function processImportRow(
@@ -205,15 +294,13 @@ async function processImportRow(
     householdCodeToId,
     teamCodeToId,
     visitTeamCodes,
-    knownMemberCodes,
+    memberCodeToId,
+    departments,
+    departmentNameToId,
   } = input;
 
   const importRow = rowToImportData(headers, cells, rowNumber);
-  const validated = validateImportRow(
-    importRow,
-    visitTeamCodes,
-    knownMemberCodes
-  );
+  const validated = validateImportRow(importRow, visitTeamCodes);
 
   if (!validated.ok) {
     return { success: false, error: validated.error, householdsCreated: 0 };
@@ -246,26 +333,27 @@ async function processImportRow(
     ? teamCodeToId.get(row.visitTeamCode.toLowerCase()) ?? null
     : null;
 
-  const createResult = await createMemberFromImport(
+  const upsertResult = await upsertMemberFromImport(
     row,
     householdId,
-    visitTeamId
+    visitTeamId,
+    memberCodeToId,
+    departments,
+    departmentNameToId
   );
 
-  if (!createResult.success) {
+  if (!upsertResult.success) {
     return {
       success: false,
-      error: createResult.error,
+      error: upsertResult.error,
       householdsCreated,
     };
   }
 
-  knownMemberCodes.add(createResult.data.code.toLowerCase());
-
   return {
     success: true,
-    code: createResult.data.code,
-    memberId: createResult.data.id,
+    code: upsertResult.data.code,
+    memberId: upsertResult.data.id,
     householdsCreated,
   };
 }
@@ -287,17 +375,27 @@ async function loadImportContext() {
   const visitTeamCodes = new Set(teams.map((t) => t.code.toLowerCase()));
 
   const existingMembers = await prisma.member.findMany({
-    select: { code: true },
+    select: { id: true, code: true },
   });
-  const knownMemberCodes = new Set(
-    existingMembers.map((member) => member.code.toLowerCase())
+  const memberCodeToId = new Map(
+    existingMembers.map((member) => [member.code.toLowerCase(), member.id])
+  );
+
+  const departments = await prisma.department.findMany({
+    select: { id: true, name: true, minAge: true, maxAge: true },
+    orderBy: { name: "asc" },
+  });
+  const departmentNameToId = new Map(
+    departments.map((department) => [department.name.toLowerCase(), department.id])
   );
 
   return {
     householdCodeToId,
     teamCodeToId,
     visitTeamCodes,
-    knownMemberCodes,
+    memberCodeToId,
+    departments,
+    departmentNameToId,
   };
 }
 

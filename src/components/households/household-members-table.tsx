@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { HouseholdMemberItem } from "@/actions/household-actions";
 import { Button } from "@/components/ui/button";
+import { EditIcon } from "@/lib/button-icons";
 import { cn } from "@/lib/utils";
 import { STATUS_LABELS } from "@/lib/member-list";
 
@@ -93,7 +94,7 @@ export function HouseholdMembersTable({
                 {member.mobile1 ?? "—"}
               </td>
               <td className="px-4 py-3 text-right">
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild icon={EditIcon}>
                   <Link href={`/members/${member.id}/edit`}>Sửa</Link>
                 </Button>
               </td>

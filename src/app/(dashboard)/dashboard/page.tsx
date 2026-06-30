@@ -5,6 +5,7 @@ import {
 } from "@/actions/dashboard-actions";
 import { DashboardRecentVisitsTable } from "@/components/dashboard/dashboard-recent-visits-table";
 import { Button } from "@/components/ui/button";
+import { ViewIcon } from "@/lib/button-icons";
 
 const statCards = [
   {
@@ -69,7 +70,7 @@ export default async function DashboardPage() {
               5 đơn lên lịch sắp tới theo ngày thăm viếng
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild icon={ViewIcon}>
             <Link href="/visit-requests?status=scheduled">Xem tất cả</Link>
           </Button>
         </div>

@@ -8,6 +8,7 @@ import {
   updateDepartment,
 } from "@/actions/department-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -108,14 +109,14 @@ export function DepartmentForm({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} icon={loading ? undefined : SaveIcon}>
           {loading
             ? "Đang lưu..."
             : isEdit
               ? "Lưu thay đổi"
               : "Tạo ban ngành"}
         </Button>
-        <Button type="button" variant="outline" asChild>
+        <Button type="button" variant="outline" asChild icon={CancelIcon}>
           <Link href={cancelHref}>Hủy</Link>
         </Button>
       </div>

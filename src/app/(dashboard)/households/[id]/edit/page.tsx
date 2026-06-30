@@ -6,6 +6,7 @@ import {
 } from "@/actions/household-actions";
 import { HouseholdForm } from "@/components/households/household-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 export default async function EditHouseholdPage({
   params,
@@ -31,8 +32,8 @@ export default async function EditHouseholdPage({
           </h1>
           <p className="mt-1 text-sm text-gray-600">Cập nhật chủ hộ</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href={`/households/${household.id}`}>← Chi tiết</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href={`/households/${household.id}`}>Chi tiết</Link>
         </Button>
       </div>
 

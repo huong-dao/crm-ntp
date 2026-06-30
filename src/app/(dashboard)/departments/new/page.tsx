@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DepartmentForm } from "@/components/departments/department-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 export default function NewDepartmentPage() {
   return (
@@ -12,8 +13,8 @@ export default function NewDepartmentPage() {
             Nhập tên ban ngành và khoảng độ tuổi (nếu có)
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/departments">← Danh sách ban ngành</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href="/departments">Danh sách ban ngành</Link>
         </Button>
       </div>
 

@@ -9,6 +9,7 @@ import {
   type HeadMemberOption,
 } from "@/actions/household-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 import { Label } from "@/components/ui/label";
 
 const selectClass =
@@ -100,14 +101,14 @@ export function HouseholdForm({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} icon={loading ? undefined : SaveIcon}>
           {loading
             ? "Đang lưu..."
             : isEdit
               ? "Lưu thay đổi"
               : "Tạo hộ gia đình"}
         </Button>
-        <Button type="button" variant="outline" asChild>
+        <Button type="button" variant="outline" asChild icon={CancelIcon}>
           <Link href={cancelHref}>Hủy</Link>
         </Button>
       </div>

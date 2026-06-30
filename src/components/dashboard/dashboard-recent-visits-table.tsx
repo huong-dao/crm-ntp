@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { RecentVisitRequest } from "@/actions/dashboard-actions";
 import { Button } from "@/components/ui/button";
+import { AddIcon, EditIcon, ViewIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 import { cn } from "@/lib/utils";
 import {
@@ -18,8 +19,8 @@ export function DashboardRecentVisitsTable({
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
         <p className="text-gray-600">Không có đơn thăm viếng đang lên lịch.</p>
-        <Button variant="outline" size="sm" className="mt-4" asChild>
-          <Link href="/visit-requests/new">+ Tạo đơn thăm viếng</Link>
+        <Button variant="outline" size="sm" className="mt-4" asChild icon={AddIcon}>
+          <Link href="/visit-requests/new">Tạo đơn thăm viếng</Link>
         </Button>
       </div>
     );
@@ -98,7 +99,7 @@ export function DashboardRecentVisitsTable({
                 {visit.staffCodes ?? "—"}
               </td>
               <td className="px-4 py-3 text-right">
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild icon={EditIcon}>
                   <Link href={`/visit-requests/${visit.id}`}>Cập nhật</Link>
                 </Button>
               </td>
@@ -113,7 +114,7 @@ export function DashboardRecentVisitsTable({
         <MobileDataCard
           key={visit.id}
           actions={
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild icon={EditIcon}>
               <Link href={`/visit-requests/${visit.id}`}>Cập nhật</Link>
             </Button>
           }

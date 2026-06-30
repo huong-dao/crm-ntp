@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { VisitTeamMemberItem } from "@/actions/visit-team-actions";
 import { removeMemberFromVisitTeam } from "@/actions/visit-team-actions";
 import { Button } from "@/components/ui/button";
+import { DeleteIcon, EditIcon } from "@/lib/button-icons";
 import { cn } from "@/lib/utils";
 import type { MemberStatus } from "@prisma/client";
 import { STATUS_LABELS } from "@/lib/member-list";
@@ -132,12 +133,13 @@ export function VisitTeamMembersTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild icon={EditIcon}>
                       <Link href={`/members/${member.id}/edit`}>Sửa</Link>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
+                      icon={removingId === member.id ? undefined : DeleteIcon}
                       disabled={removingId === member.id}
                       onClick={() => handleRemove(member.id, member.fullName)}
                     >

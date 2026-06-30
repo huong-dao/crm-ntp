@@ -1,6 +1,7 @@
 import { getDepartments } from "@/actions/department-actions";
 import { DepartmentTable } from "@/components/departments/department-table";
 import { Button } from "@/components/ui/button";
+import { AddIcon, CancelIcon, SearchIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -37,12 +38,9 @@ export default async function DepartmentsPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Danh sách Ban ngành</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Quản lý ban ngành theo tuổi và ban ngành thực tế
-          </p>
         </div>
-        <Button asChild>
-          <Link href="/departments/new">+ Thêm ban ngành</Link>
+        <Button asChild icon={AddIcon}>
+          <Link href="/departments/new">Thêm ban ngành</Link>
         </Button>
       </div>
 
@@ -60,9 +58,9 @@ export default async function DepartmentsPage({
               defaultValue={search ?? ""}
             />
           </div>
-          <Button type="submit">Tìm</Button>
+          <Button type="submit" icon={SearchIcon}>Tìm</Button>
           {search && (
-            <Button type="button" variant="outline" asChild>
+            <Button type="button" variant="outline" asChild icon={CancelIcon}>
               <a href="/departments">Xóa bộ lọc</a>
             </Button>
           )}

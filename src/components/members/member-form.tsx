@@ -24,7 +24,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/member-list";
 import { parseMemberFormData, CREATE_NEW_HOUSEHOLD, type MemberFormInput } from "@/lib/validations/member";
-import { HiMiniCheck } from "react-icons/hi2";
+import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]";
@@ -534,7 +534,7 @@ export function MemberForm({
         <Button
           type="submit"
           disabled={loading}
-          icon={loading ? undefined : HiMiniCheck}
+          icon={loading ? undefined : SaveIcon}
         >
           {loading
             ? "Đang lưu..."
@@ -542,7 +542,7 @@ export function MemberForm({
               ? "Lưu thay đổi"
               : "Lưu thành viên"}
         </Button>
-        <Button type="button" variant="outline" asChild>
+        <Button type="button" variant="outline" asChild icon={CancelIcon}>
           <Link href={cancelHref}>Hủy</Link>
         </Button>
       </div>

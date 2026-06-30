@@ -7,6 +7,7 @@ import {
   retryFailedImportRows,
 } from "@/actions/member-import-actions";
 import { Button } from "@/components/ui/button";
+import { ExportIcon, RetryIcon } from "@/lib/button-icons";
 import { downloadBase64File } from "@/lib/download-base64";
 
 const EXCEL_MIME =
@@ -68,6 +69,7 @@ export function MemberImportLogActions({
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
+          icon={retryLoading ? undefined : RetryIcon}
           onClick={handleRetry}
           disabled={retryLoading || exportLoading}
         >
@@ -76,6 +78,7 @@ export function MemberImportLogActions({
         <Button
           type="button"
           variant="outline"
+          icon={exportLoading ? undefined : ExportIcon}
           onClick={handleExportFailed}
           disabled={retryLoading || exportLoading}
         >

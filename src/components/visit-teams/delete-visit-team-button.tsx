@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteVisitTeam } from "@/actions/visit-team-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, DeleteIcon } from "@/lib/button-icons";
 
 export function DeleteVisitTeamButton({
   teamId,
@@ -40,6 +41,7 @@ export function DeleteVisitTeamButton({
         type="button"
         variant="outline"
         className="text-red-700 hover:bg-red-50 hover:text-red-800"
+        icon={DeleteIcon}
         onClick={() => setOpen(true)}
       >
         Xóa tổ
@@ -66,6 +68,7 @@ export function DeleteVisitTeamButton({
           <Button
             type="button"
             variant="outline"
+            icon={CancelIcon}
             onClick={() => {
               setOpen(false);
               setError("");
@@ -77,6 +80,7 @@ export function DeleteVisitTeamButton({
           <Button
             type="button"
             className="bg-red-700 hover:bg-red-800"
+            icon={loading ? undefined : DeleteIcon}
             onClick={handleDelete}
             disabled={loading}
           >

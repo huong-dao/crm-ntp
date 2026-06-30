@@ -4,6 +4,7 @@ import { getDepartmentById } from "@/actions/department-actions";
 import { DeleteDepartmentButton } from "@/components/departments/delete-department-button";
 import { DepartmentForm } from "@/components/departments/department-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon, ViewIcon } from "@/lib/button-icons";
 
 export default async function EditDepartmentPage({
   params,
@@ -32,11 +33,11 @@ export default async function EditDepartmentPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild icon={ViewIcon}>
             <Link href={`/departments/${department.id}`}>Chi tiết</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/departments">← Danh sách ban ngành</Link>
+          <Button variant="outline" asChild icon={BackIcon}>
+            <Link href="/departments">Danh sách ban ngành</Link>
           </Button>
         </div>
       </div>

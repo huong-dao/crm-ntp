@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { VisitRequestTeamOption } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, FilterIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -100,9 +101,9 @@ export function VisitRequestFilters({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button type="submit">Lọc</Button>
+        <Button type="submit" icon={FilterIcon}>Lọc</Button>
         {hasFilters && (
-          <Button type="button" variant="outline" asChild>
+          <Button type="button" variant="outline" asChild icon={CancelIcon}>
             <Link href="/visit-requests">Xóa bộ lọc</Link>
           </Button>
         )}

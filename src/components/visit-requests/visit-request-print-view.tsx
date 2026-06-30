@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import type { VisitRequestPrintData } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
+import { CancelIcon, PrintIcon } from "@/lib/button-icons";
 import {
   formatVisitRequestDate,
   VISIT_REQUEST_STATUS_LABELS,
@@ -37,10 +38,10 @@ export function VisitRequestPrintView({
             </p>
           </div>
           <div className="flex gap-2">
-            <Button type="button" onClick={() => window.print()}>
+            <Button type="button" icon={PrintIcon} onClick={() => window.print()}>
               In / Lưu PDF
             </Button>
-            <Button type="button" variant="outline" asChild>
+            <Button type="button" variant="outline" asChild icon={CancelIcon}>
               <Link href={`/visit-requests/${request.id}`}>Đóng</Link>
             </Button>
           </div>

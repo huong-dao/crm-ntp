@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getHeadMemberOptions } from "@/actions/household-actions";
 import { HouseholdForm } from "@/components/households/household-form";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 export default async function NewHouseholdPage() {
   const headOptions = await getHeadMemberOptions();
@@ -15,8 +16,8 @@ export default async function NewHouseholdPage() {
             Mã hộ tự động sinh — có thể chọn chủ hộ sau
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/households">← Danh sách hộ</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href="/households">Danh sách hộ</Link>
         </Button>
       </div>
 

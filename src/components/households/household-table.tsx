@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { HouseholdListItem } from "@/actions/household-actions";
 import { Button } from "@/components/ui/button";
+import { NextIcon, PrevIcon, ViewIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 
 function buildPageUrl(
@@ -80,7 +81,7 @@ export function HouseholdTable({
                   {household.memberCount}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild icon={ViewIcon}>
                     <Link href={`/households/${household.id}`}>Chi tiết</Link>
                   </Button>
                 </td>
@@ -95,7 +96,7 @@ export function HouseholdTable({
           <MobileDataCard
             key={household.id}
             actions={
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild icon={ViewIcon}>
                 <Link href={`/households/${household.id}`}>Chi tiết</Link>
               </Button>
             }
@@ -123,7 +124,7 @@ export function HouseholdTable({
           Hiển thị {start}–{end} / {total} hộ
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild disabled={page <= 1}>
+          <Button variant="outline" size="sm" asChild icon={PrevIcon} disabled={page <= 1}>
             <Link
               href={page <= 1 ? "#" : buildPageUrl(search, page - 1)}
               className={page <= 1 ? "pointer-events-none opacity-50" : ""}
@@ -138,6 +139,8 @@ export function HouseholdTable({
             variant="outline"
             size="sm"
             asChild
+            icon={NextIcon}
+            iconPosition="end"
             disabled={page >= totalPages}
           >
             <Link

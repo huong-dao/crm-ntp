@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getMemberImportLogs } from "@/actions/member-import-actions";
 import { MemberImportLogsTable } from "@/components/members/member-import-logs-table";
 import { Button } from "@/components/ui/button";
+import { BackIcon } from "@/lib/button-icons";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -38,8 +39,8 @@ export default async function MemberImportLogsPage({
             Xem kết quả từng lần import, dòng thành công và dòng lỗi
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/members">← Danh sách thành viên</Link>
+        <Button variant="outline" asChild icon={BackIcon}>
+          <Link href="/members">Danh sách thành viên</Link>
         </Button>
       </div>
 
