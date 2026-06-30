@@ -24,6 +24,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/member-list";
 import { parseMemberFormData, CREATE_NEW_HOUSEHOLD, type MemberFormInput } from "@/lib/validations/member";
+import { HiMiniCheck } from "react-icons/hi2";
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]";
@@ -41,7 +42,7 @@ function Section({
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">{children}</div>
     </section>
   );
 }
@@ -209,7 +210,7 @@ export function MemberForm({
   return (
     <form onSubmit={handleSubmit} className="mt-6 space-y-6">
       <Section title="Thông tin cơ bản">
-        <Field label="Mã tín hữu" className="space-y-2 sm:col-span-2">
+        <Field label="Mã tín hữu">
           <Input
             readOnly
             value={isEdit ? member.code : "Tự động (00001)"}
@@ -229,6 +230,7 @@ export function MemberForm({
             ))}
           </select>
         </Field>
+        <div className="sm:col-span-1"></div>
         <Field label="Họ và lót *">
           <Input
             name="firstName"
@@ -324,7 +326,7 @@ export function MemberForm({
             onChange={(e) => updateAddress("oldProvince", e.target.value)}
           />
         </Field>
-        <Field label="Địa chỉ cũ đầy đủ" className="space-y-2 sm:col-span-2">
+        <Field label="Địa chỉ cũ đầy đủ">
           <Input readOnly value={oldFullAddressPreview} className="bg-gray-50" />
         </Field>
       </Section>
@@ -346,7 +348,7 @@ export function MemberForm({
             onChange={(e) => updateAddress("newProvince", e.target.value)}
           />
         </Field>
-        <Field label="Địa chỉ mới đầy đủ" className="space-y-2 sm:col-span-2">
+        <Field label="Địa chỉ mới đầy đủ">
           <Input readOnly value={newFullAddressPreview} className="bg-gray-50" />
         </Field>
       </Section>
@@ -364,12 +366,25 @@ export function MemberForm({
       </Section>
 
       <Section title="Hộ gia đình">
+      <Field label="Chủ hộ" className="space-y-2">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              name="isHead"
+              checked={isHead}
+              onChange={(e) => handleIsHeadChange(e.target.checked)}
+              disabled={isCreatingHousehold}
+              className="h-4 w-4 rounded border-gray-300 disabled:opacity-60"
+            />
+            Là chủ hộ
+          </label>
+        </Field>
         {isCreatingHousehold ? (
           <>
             <input type="hidden" name="householdId" value={CREATE_NEW_HOUSEHOLD} />
             <input type="hidden" name="createNewHousehold" value="on" />
             <input type="hidden" name="isHead" value="on" />
-            <div className="space-y-2 sm:col-span-2">
+            <div>
               <p className="text-sm text-gray-600">
                 {forceCreateHousehold
                   ? "Chưa có hộ gia đình nào — hệ thống sẽ tự tạo hộ mới khi lưu. Thành viên này là chủ hộ."
@@ -400,20 +415,7 @@ export function MemberForm({
             </select>
           </Field>
         )}
-        <Field label="Chủ hộ" className="space-y-2">
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              name="isHead"
-              checked={isHead}
-              onChange={(e) => handleIsHeadChange(e.target.checked)}
-              disabled={isCreatingHousehold}
-              className="h-4 w-4 rounded border-gray-300 disabled:opacity-60"
-            />
-            Là chủ hộ
-          </label>
-        </Field>
-        <Field label="Quan hệ" className="space-y-2 sm:col-span-2">
+        <Field label="Quan hệ">
           <Input
             name="relationship"
             maxLength={100}
@@ -494,7 +496,7 @@ export function MemberForm({
       </Section>
 
       <Section title="Thăm viếng">
-        <Field label="Mã tổ thăm viếng" className="space-y-2 sm:col-span-2">
+        <Field label="Mã tổ thăm viếng">
           <select
             name="visitTeamId"
             className={selectClass}
@@ -529,7 +531,11 @@ export function MemberForm({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={loading}>
+        <Button
+          type="submit"
+          disabled={loading}
+          icon={loading ? undefined : HiMiniCheck}
+        >
           {loading
             ? "Đang lưu..."
             : isEdit

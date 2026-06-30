@@ -13,7 +13,8 @@ import {
   STATUS_LABELS,
   type MemberFiltersInput,
 } from "@/lib/member-list";
-import { buildExcelBase64 } from "@/lib/member-excel";
+import { buildExcelBase64, memberToImportExportRow } from "@/lib/member-excel";
+import { MEMBER_IMPORT_TEMPLATE_HEADERS } from "@/lib/csv";
 import { applyHeadOfHousehold, buildMemberWriteData } from "@/lib/member-write";
 import { prisma } from "@/lib/prisma";
 import {
@@ -529,37 +530,39 @@ export async function exportMembers(
       orderBy: { [sortBy]: sortOrder },
       select: {
         code: true,
-        fullName: true,
         status: true,
+        firstName: true,
+        lastName: true,
+        houseNumber: true,
+        street: true,
+        oldWard: true,
+        oldDistrict: true,
+        oldProvince: true,
+        newWard: true,
+        newProvince: true,
         mobile1: true,
-        actualDepartment: { select: { name: true } },
+        mobile2: true,
+        landline: true,
+        birthYear: true,
+        gender: true,
+        occupation: true,
+        isHead: true,
+        relationship: true,
+        isBaptized: true,
+        baptismYear: true,
+        boardServiceDate: true,
+        visitDepartment: true,
+        notes: true,
         household: { select: { code: true } },
         visitTeam: { select: { code: true } },
+        ageDepartment: { select: { name: true } },
+        actualDepartment: { select: { name: true } },
       },
     });
 
-    const headers = [
-      "Mã tín hữu",
-      "Họ tên",
-      "Mã hộ",
-      "Tình trạng",
-      "Di động",
-      "Ban ngành",
-      "Mã tổ thăm viếng",
-    ];
-
-    const rows = members.map((member) => [
-      member.code,
-      member.fullName,
-      member.household?.code ?? "",
-      STATUS_LABELS[member.status],
-      member.mobile1 ?? "",
-      member.actualDepartment?.name ?? "",
-      member.visitTeam?.code ?? "",
-    ]);
-
+    const rows = members.map(memberToImportExportRow);
     const date = new Date().toISOString().slice(0, 10);
-    const base64 = buildExcelBase64(headers, rows);
+    const base64 = buildExcelBase64(MEMBER_IMPORT_TEMPLATE_HEADERS, rows);
     return {
       success: true,
       data: { base64, fileName: `thanh-vien-${date}.xlsx` },

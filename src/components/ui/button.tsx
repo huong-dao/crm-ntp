@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import type { IconType } from "react-icons";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -30,6 +31,9 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  /** Icon component from react-icons (e.g. HiMiniCheck from react-icons/hi2) */
+  icon?: IconType;
+  iconPosition?: "start" | "end";
 }
 
 function Button({
@@ -37,14 +41,32 @@ function Button({
   variant,
   size,
   asChild = false,
+  icon: Icon,
+  iconPosition = "start",
+  children,
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : "button";
+
   return (
     <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {asChild ? (
+        children
+      ) : (
+        <>
+          {Icon && iconPosition === "start" && (
+            <Icon className="size-4 shrink-0" aria-hidden />
+          )}
+          {children}
+          {Icon && iconPosition === "end" && (
+            <Icon className="size-4 shrink-0" aria-hidden />
+          )}
+        </>
+      )}
+    </Comp>
   );
 }
 
