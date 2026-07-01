@@ -4,12 +4,27 @@ export type MemberFiltersInput = {
   search?: string;
   status?: MemberStatus;
   visitTeamId?: string;
-  department?: string;
+  ageDepartment?: string;
+  actualDepartment?: string;
   page?: number;
   pageSize?: number;
   sortBy?: "fullName" | "code" | "status";
   sortOrder?: "asc" | "desc";
 };
+
+export function membersFilterUrl(
+  filters: Partial<Pick<MemberFiltersInput, "ageDepartment" | "actualDepartment">>
+): string {
+  const params = new URLSearchParams();
+  if (filters.ageDepartment) {
+    params.set("ageDepartment", filters.ageDepartment);
+  }
+  if (filters.actualDepartment) {
+    params.set("actualDepartment", filters.actualDepartment);
+  }
+  const query = params.toString();
+  return query ? `/members?${query}` : "/members";
+}
 
 export const MEMBER_STATUSES: MemberStatus[] = [
   "active",

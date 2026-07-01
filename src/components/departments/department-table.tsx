@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EditIcon, ViewIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
+import { membersFilterUrl } from "@/lib/member-list";
 import { formatAgeRange } from "@/lib/validations/department";
 
 function buildPageUrl(search: string | undefined, page: number): string {
@@ -16,6 +17,24 @@ function buildPageUrl(search: string | undefined, page: number): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("vi-VN");
+}
+
+function MemberCountLink({
+  count,
+  href,
+}: {
+  count: number;
+  href: string;
+}) {
+  if (count === 0) {
+    return <span className="text-gray-600">0</span>;
+  }
+
+  return (
+    <Link href={href} className="text-[#1e3a5f] hover:underline">
+      {count}
+    </Link>
+  );
 }
 
 export function DepartmentTable({
@@ -58,7 +77,10 @@ export function DepartmentTable({
                 Độ tuổi
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
-                Số thành viên
+                Số thành viên theo độ tuổi
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Số thành viên thực tế
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
                 Ngày tạo
@@ -84,7 +106,16 @@ export function DepartmentTable({
                   {formatAgeRange(department.minAge, department.maxAge)}
                 </td>
                 <td className="px-4 py-3 text-gray-600">
-                  {department.memberCount}
+                  <MemberCountLink
+                    count={department.ageMemberCount}
+                    href={membersFilterUrl({ ageDepartment: department.id })}
+                  />
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  <MemberCountLink
+                    count={department.actualMemberCount}
+                    href={membersFilterUrl({ actualDepartment: department.id })}
+                  />
                 </td>
                 <td className="px-4 py-3 text-gray-600">
                   {formatDate(department.createdAt)}
@@ -130,8 +161,17 @@ export function DepartmentTable({
               <MobileDataRow label="Độ tuổi">
                 {formatAgeRange(department.minAge, department.maxAge)}
               </MobileDataRow>
-              <MobileDataRow label="Số thành viên">
-                {department.memberCount}
+              <MobileDataRow label="Số thành viên theo độ tuổi">
+                <MemberCountLink
+                  count={department.ageMemberCount}
+                  href={membersFilterUrl({ ageDepartment: department.id })}
+                />
+              </MobileDataRow>
+              <MobileDataRow label="Số thành viên thực tế">
+                <MemberCountLink
+                  count={department.actualMemberCount}
+                  href={membersFilterUrl({ actualDepartment: department.id })}
+                />
               </MobileDataRow>
               <MobileDataRow label="Ngày tạo">
                 {formatDate(department.createdAt)}

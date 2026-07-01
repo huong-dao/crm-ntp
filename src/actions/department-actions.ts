@@ -16,7 +16,8 @@ export type DepartmentListItem = {
   name: string;
   minAge: number | null;
   maxAge: number | null;
-  memberCount: number;
+  ageMemberCount: number;
+  actualMemberCount: number;
   createdAt: string;
 };
 
@@ -113,7 +114,8 @@ export async function getDepartments(
     name: row.name,
     minAge: row.minAge,
     maxAge: row.maxAge,
-    memberCount: row._count.ageMembers + row._count.actualMembers,
+    ageMemberCount: row._count.ageMembers,
+    actualMemberCount: row._count.actualMembers,
     createdAt: row.createdAt.toISOString(),
   }));
 

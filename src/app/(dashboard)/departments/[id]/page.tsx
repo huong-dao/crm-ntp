@@ -3,7 +3,26 @@ import { notFound } from "next/navigation";
 import { getDepartmentById } from "@/actions/department-actions";
 import { Button } from "@/components/ui/button";
 import { BackIcon, EditIcon } from "@/lib/button-icons";
+import { membersFilterUrl } from "@/lib/member-list";
 import { formatAgeRange } from "@/lib/validations/department";
+
+function MemberCountLink({
+  count,
+  href,
+}: {
+  count: number;
+  href: string;
+}) {
+  if (count === 0) {
+    return <span>{count} thành viên</span>;
+  }
+
+  return (
+    <Link href={href} className="text-[#1e3a5f] hover:underline">
+      {count} thành viên
+    </Link>
+  );
+}
 
 export default async function DepartmentDetailPage({
   params,
@@ -50,12 +69,20 @@ export default async function DepartmentDetailPage({
           </div>
           <div>
             <dt className="text-sm text-gray-500">Ban ngành theo tuổi</dt>
-            <dd className="mt-1 text-gray-900">{department.ageMemberCount} thành viên</dd>
+            <dd className="mt-1 text-gray-900">
+              <MemberCountLink
+                count={department.ageMemberCount}
+                href={membersFilterUrl({ ageDepartment: department.id })}
+              />
+            </dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">Ban ngành thực tế</dt>
             <dd className="mt-1 text-gray-900">
-              {department.actualMemberCount} thành viên
+              <MemberCountLink
+                count={department.actualMemberCount}
+                href={membersFilterUrl({ actualDepartment: department.id })}
+              />
             </dd>
           </div>
           <div>

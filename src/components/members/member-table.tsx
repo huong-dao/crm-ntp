@@ -91,7 +91,8 @@ export function MemberTable({
     search: filters.search,
     status: filters.status,
     visitTeamId: filters.visitTeamId,
-    department: filters.department,
+    ageDepartment: filters.ageDepartment,
+    actualDepartment: filters.actualDepartment,
     sortBy,
     sortOrder,
   };

@@ -174,8 +174,12 @@ function buildWhere(filters: MemberFiltersInput): Prisma.MemberWhereInput {
     where.visitTeamId = filters.visitTeamId;
   }
 
-  if (filters.department) {
-    where.actualDepartmentId = filters.department;
+  if (filters.ageDepartment) {
+    where.ageDepartmentId = filters.ageDepartment;
+  }
+
+  if (filters.actualDepartment) {
+    where.actualDepartmentId = filters.actualDepartment;
   }
 
   return where;

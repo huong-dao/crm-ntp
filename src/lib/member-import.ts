@@ -535,6 +535,14 @@ export function validateImportRow(
     return { ok: false, error: landlineResult.error };
   }
 
+  const houseNumber = row.houseNumber?.trim();
+  if (houseNumber && houseNumber.length > 191) {
+    return {
+      ok: false,
+      error: importFieldError("Số nhà", "tối đa 191 ký tự", houseNumber),
+    };
+  }
+
   const occupation = row.occupation?.trim();
   if (occupation && occupation.length > 200) {
     return {

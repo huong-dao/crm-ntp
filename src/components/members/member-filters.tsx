@@ -18,7 +18,7 @@ const selectClass =
 
 type FilterValues = Pick<
   MemberFiltersInput,
-  "search" | "status" | "visitTeamId" | "department"
+  "search" | "status" | "visitTeamId" | "ageDepartment" | "actualDepartment"
 >;
 
 export function MemberFilters({
@@ -44,6 +44,7 @@ export function MemberFilters({
     }
 
     params.delete("page");
+    params.delete("department");
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -54,7 +55,8 @@ export function MemberFilters({
       search: (form.get("search") as string) || undefined,
       status: (form.get("status") as string) || undefined,
       visitTeamId: (form.get("visitTeamId") as string) || undefined,
-      department: (form.get("department") as string) || undefined,
+      ageDepartment: (form.get("ageDepartment") as string) || undefined,
+      actualDepartment: (form.get("actualDepartment") as string) || undefined,
     });
   }
 
@@ -67,8 +69,8 @@ export function MemberFilters({
       onSubmit={handleSubmit}
       className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="space-y-2 sm:col-span-2 xl:col-span-1">
           <Label htmlFor="member-search">Tìm kiếm</Label>
           <Input
             id="member-search"
@@ -110,12 +112,28 @@ export function MemberFilters({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="member-department">Ban ngành</Label>
+          <Label htmlFor="member-age-department">Ban ngành theo độ tuổi</Label>
           <select
-            id="member-department"
-            name="department"
+            id="member-age-department"
+            name="ageDepartment"
             className={selectClass}
-            defaultValue={values.department ?? ""}
+            defaultValue={values.ageDepartment ?? ""}
+          >
+            <option value="">Tất cả</option>
+            {options.departments.map((dept) => (
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="member-actual-department">Ban ngành thực tế</Label>
+          <select
+            id="member-actual-department"
+            name="actualDepartment"
+            className={selectClass}
+            defaultValue={values.actualDepartment ?? ""}
           >
             <option value="">Tất cả</option>
             {options.departments.map((dept) => (

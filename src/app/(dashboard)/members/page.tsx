@@ -47,7 +47,9 @@ function parseFilters(params: SearchParams): MemberFiltersInput {
         ? (status as MemberStatus)
         : undefined,
     visitTeamId: pickParam(params, "visitTeamId"),
-    department: pickParam(params, "department"),
+    ageDepartment: pickParam(params, "ageDepartment"),
+    actualDepartment:
+      pickParam(params, "actualDepartment") ?? pickParam(params, "department"),
     page: Number.isFinite(parsedPage) ? parsedPage : 1,
     pageSize: DEFAULT_PAGE_SIZE,
     sortBy:
@@ -85,7 +87,8 @@ export default async function MembersPage({
     search: filters.search,
     status: filters.status,
     visitTeamId: filters.visitTeamId,
-    department: filters.department,
+    ageDepartment: filters.ageDepartment,
+    actualDepartment: filters.actualDepartment,
   };
 
   return (

@@ -45,7 +45,12 @@ export const memberFormSchema = z.object({
   birthYear: optionalYear,
   occupation: z.string().trim().max(200).optional().nullable(),
 
-  houseNumber: z.string().trim().max(50).optional().nullable(),
+  houseNumber: z
+    .string()
+    .trim()
+    .max(191, "Số nhà tối đa 191 ký tự")
+    .optional()
+    .nullable(),
   street: z.string().trim().max(200).optional().nullable(),
   oldWard: z.string().trim().max(100).optional().nullable(),
   oldDistrict: z.string().trim().max(100).optional().nullable(),

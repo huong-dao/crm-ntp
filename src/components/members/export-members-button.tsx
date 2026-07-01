@@ -31,7 +31,11 @@ export function ExportMembersButton() {
           ? (status as MemberStatus)
           : undefined,
       visitTeamId: searchParams.get("visitTeamId") || undefined,
-      department: searchParams.get("department") || undefined,
+      ageDepartment: searchParams.get("ageDepartment") || undefined,
+      actualDepartment:
+        searchParams.get("actualDepartment") ||
+        searchParams.get("department") ||
+        undefined,
       sortBy:
         sortBy === "code" || sortBy === "fullName" || sortBy === "status"
           ? sortBy
