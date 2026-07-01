@@ -149,17 +149,29 @@ async function validateTeamMembers(
   }
 
   const uniqueIds = [...new Set(allIds)];
-  const members = await prisma.member.findMany({
-    where: { id: { in: uniqueIds } },
-    select: { id: true, code: true, visitTeamId: true },
-  });
+  const [members, visitTeam] = await Promise.all([
+    prisma.member.findMany({
+      where: { id: { in: uniqueIds } },
+      select: { id: true, code: true, visitTeamId: true },
+    }),
+    prisma.visitTeam.findUnique({
+      where: { id: visitTeamId },
+      select: { leaderMemberId: true },
+    }),
+  ]);
 
   if (members.length !== uniqueIds.length) {
     throw new Error("Một hoặc nhiều nhân sự không tồn tại");
   }
 
+  const leaderMemberId = visitTeam?.leaderMemberId ?? null;
+
   for (const member of members) {
-    if (member.visitTeamId !== visitTeamId) {
+    const belongsToTeam =
+      member.visitTeamId === visitTeamId ||
+      (leaderMemberId !== null && member.id === leaderMemberId);
+
+    if (!belongsToTeam) {
       throw new Error(
         `Nhân sự ${member.code} không thuộc tổ thăm viếng đã chọn`
       );
