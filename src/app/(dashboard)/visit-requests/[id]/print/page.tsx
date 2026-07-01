@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getVisitRequestForPrint } from "@/actions/visit-request-actions";
 import { VisitRequestPrintView } from "@/components/visit-requests/visit-request-print-view";
-import { getAppBaseUrl } from "@/lib/app-url";
+import { getAppBaseUrl } from "@/lib/app-url.server";
 import { generateQrDataUrl } from "@/lib/qrcode";
 
 export default async function VisitRequestPrintPage({

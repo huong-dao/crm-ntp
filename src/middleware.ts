@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
-import { sanitizeCallbackUrl } from "@/lib/app-url";
+import { sanitizeCallbackUrl } from "@/lib/callback-url";
 
 const { auth } = NextAuth(authConfig);
 

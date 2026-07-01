@@ -1,3 +1,5 @@
+import "server-only";
+
 import { headers } from "next/headers";
 
 /** Base URL công khai của app (dùng cho QR, link ngoài). */
@@ -14,17 +16,4 @@ export async function getAppBaseUrl(): Promise<string> {
   }
 
   return "http://localhost:3000";
-}
-
-/** Chỉ cho phép redirect nội bộ (tránh open redirect). */
-export function sanitizeCallbackUrl(
-  callbackUrl: string | null | undefined,
-  fallback = "/dashboard"
-): string {
-  if (!callbackUrl) return fallback;
-  const trimmed = callbackUrl.trim();
-  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) {
-    return fallback;
-  }
-  return trimmed;
 }

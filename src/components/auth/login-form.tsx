@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LoginIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { sanitizeCallbackUrl } from "@/lib/app-url";
+import { sanitizeCallbackUrl } from "@/lib/callback-url";
 
 export default function LoginForm({
   callbackUrl,

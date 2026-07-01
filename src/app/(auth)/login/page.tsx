@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import LoginForm from "@/components/auth/login-form";
 import Image from "next/image";
-import { sanitizeCallbackUrl } from "@/lib/app-url";
+import { sanitizeCallbackUrl } from "@/lib/callback-url";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
