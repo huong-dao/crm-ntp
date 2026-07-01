@@ -334,16 +334,42 @@ export async function getVisitRequestFormContext(): Promise<VisitRequestFormCont
   };
 }
 
+export type VisitTeamStaffResult = {
+  members: VisitRequestStaffOption[];
+  leaderMemberId: string | null;
+};
+
 export async function getVisitTeamStaffMembers(
   visitTeamId: string
-): Promise<VisitRequestStaffOption[]> {
+): Promise<VisitTeamStaffResult> {
   await assertTeamAccess(visitTeamId);
 
-  return prisma.member.findMany({
+  const team = await prisma.visitTeam.findUnique({
+    where: { id: visitTeamId },
+    select: { leaderMemberId: true },
+  });
+
+  const members = await prisma.member.findMany({
     where: { visitTeamId },
     select: { id: true, code: true, fullName: true },
     orderBy: { fullName: "asc" },
   });
+
+  const leaderMemberId = team?.leaderMemberId ?? null;
+  if (
+    leaderMemberId &&
+    !members.some((member) => member.id === leaderMemberId)
+  ) {
+    const leader = await prisma.member.findUnique({
+      where: { id: leaderMemberId },
+      select: { id: true, code: true, fullName: true },
+    });
+    if (leader) {
+      members.unshift(leader);
+    }
+  }
+
+  return { members, leaderMemberId };
 }
 
 export async function getDefaultVisitTeamForHousehold(

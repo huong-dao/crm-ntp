@@ -84,16 +84,37 @@ export function VisitRequestForm({
     setStaffLoading(true);
 
     getVisitTeamStaffMembers(visitTeamId)
-      .then((members) => {
+      .then(({ members, leaderMemberId }) => {
         if (cancelled) return;
         setTeamStaff(members);
 
-        if (isEdit && request) {
+        const isSameTeamAsSaved =
+          isEdit && request && visitTeamId === request.visitTeamId;
+
+        if (isSameTeamAsSaved) {
           const additional = matchStaffMemberIds(request.staffCodes, members);
           setAdditionalStaffIds(additional);
           if (request.representativeMemberId) {
             setRepresentativeMemberId(request.representativeMemberId);
+          } else if (
+            leaderMemberId &&
+            members.some((member) => member.id === leaderMemberId)
+          ) {
+            setRepresentativeMemberId(leaderMemberId);
+          } else {
+            setRepresentativeMemberId("");
           }
+          return;
+        }
+
+        setAdditionalStaffIds([]);
+        if (
+          leaderMemberId &&
+          members.some((member) => member.id === leaderMemberId)
+        ) {
+          setRepresentativeMemberId(leaderMemberId);
+        } else {
+          setRepresentativeMemberId("");
         }
       })
       .catch(() => {
@@ -343,7 +364,8 @@ export function VisitRequestForm({
             emptyMessage="Tổ chưa có thành viên"
           />
           <p className="text-xs text-gray-500">
-            Chọn một nhân sự đại diện thuộc tổ đã chọn.
+            Mặc định chọn trưởng tổ khi đổi tổ; bạn có thể chọn nhân sự khác
+            thuộc tổ đã chọn.
           </p>
         </div>
 
