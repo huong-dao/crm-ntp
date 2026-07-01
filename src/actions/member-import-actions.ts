@@ -12,8 +12,10 @@ import {
   parseSpreadsheetToRows,
 } from "@/lib/member-excel";
 import { DEFAULT_PAGE_SIZE } from "@/lib/member-list";
+import { formatZodImportErrors } from "@/lib/import-error-format";
 import {
   extractImportDataRows,
+  extractImportRowDisplayFromCells,
   mapCsvHeaders,
   parseImportHeaders,
   rowToImportData,
@@ -66,6 +68,8 @@ export type MemberImportLogRowItem = {
   rowNumber: number;
   status: MemberImportRowStatus;
   memberCode: string | null;
+  memberName: string | null;
+  householdCode: string | null;
   error: string | null;
   retriedAt: string | null;
 };
@@ -196,7 +200,7 @@ async function buildImportFormInput(
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ",
+      error: formatZodImportErrors(parsed.error),
     };
   }
 
@@ -324,6 +328,9 @@ async function processImportRow(
   householdsCreated: number;
   visitTeamsCreated: number;
   departmentsCreated: number;
+  memberCode?: string | null;
+  memberName?: string | null;
+  householdCode?: string | null;
 }> {
   const {
     rowNumber,
@@ -337,6 +344,7 @@ async function processImportRow(
   } = input;
 
   const importRow = rowToImportData(headers, cells, rowNumber);
+  const display = extractImportRowDisplayFromCells(headers, cells, rowNumber);
   const validated = validateImportRow(importRow);
 
   if (!validated.ok) {
@@ -346,10 +354,18 @@ async function processImportRow(
       householdsCreated: 0,
       visitTeamsCreated: 0,
       departmentsCreated: 0,
+      memberCode: display.memberCode,
+      memberName: display.memberName,
+      householdCode: display.householdCode,
     };
   }
 
   const row = validated.data;
+  const rowDisplay = {
+    memberCode: row.memberCode ?? display.memberCode,
+    memberName: display.memberName ?? `${row.firstName} ${row.lastName}`.trim(),
+    householdCode: row.householdCode,
+  };
   const householdKey = row.householdCode.toLowerCase();
   const hadHousehold = householdCodeToId.has(householdKey);
   let householdsCreated = 0;
@@ -369,6 +385,7 @@ async function processImportRow(
       householdsCreated: 0,
       visitTeamsCreated: 0,
       departmentsCreated: 0,
+      ...rowDisplay,
     };
   }
 
@@ -389,6 +406,7 @@ async function processImportRow(
         householdsCreated,
         visitTeamsCreated: 0,
         departmentsCreated: 0,
+        ...rowDisplay,
       };
     }
   }
@@ -424,6 +442,7 @@ async function processImportRow(
       householdsCreated,
       visitTeamsCreated,
       departmentsCreated,
+      ...rowDisplay,
     };
   }
 
@@ -434,6 +453,9 @@ async function processImportRow(
     householdsCreated,
     visitTeamsCreated,
     departmentsCreated,
+    memberCode: upsertResult.data.code,
+    memberName: rowDisplay.memberName,
+    householdCode: row.householdCode,
   };
 }
 
@@ -522,6 +544,7 @@ async function processBatchRows(
           logId,
           rowNumber,
           status: "failed",
+          memberCode: outcome.memberCode ?? null,
           error: outcome.error ?? "Lỗi không xác định",
           rowData: cells as Prisma.InputJsonValue,
         },
@@ -799,6 +822,7 @@ export async function getMemberImportLogById(
             memberCode: true,
             error: true,
             retriedAt: true,
+            rowData: true,
           },
         },
       },
@@ -807,6 +831,9 @@ export async function getMemberImportLogById(
     if (!log) {
       return { success: false, error: "Không tìm thấy log import" };
     }
+
+    const rawHeaders = log.columnHeaders as string[];
+    const headers = mapCsvHeaders(rawHeaders);
 
     return {
       success: true,
@@ -818,14 +845,23 @@ export async function getMemberImportLogById(
         successCount: log.successCount,
         errorCount: log.errorCount,
         createdAt: log.createdAt.toISOString(),
-        rows: log.rows.map((row) => ({
-          id: row.id,
-          rowNumber: row.rowNumber,
-          status: row.status,
-          memberCode: row.memberCode,
-          error: row.error,
-          retriedAt: row.retriedAt?.toISOString() ?? null,
-        })),
+        rows: log.rows.map((row) => {
+          const display = extractImportRowDisplayFromCells(
+            headers,
+            row.rowData as string[],
+            row.rowNumber
+          );
+          return {
+            id: row.id,
+            rowNumber: row.rowNumber,
+            status: row.status,
+            memberCode: row.memberCode ?? display.memberCode,
+            memberName: display.memberName,
+            householdCode: display.householdCode,
+            error: row.error,
+            retriedAt: row.retriedAt?.toISOString() ?? null,
+          };
+        }),
       },
     };
   } catch {
@@ -904,6 +940,7 @@ export async function retryFailedImportRows(
           where: { id: logRow.id },
           data: {
             error: outcome.error ?? "Lỗi không xác định",
+            memberCode: outcome.memberCode ?? logRow.memberCode,
             retriedAt: new Date(),
           },
         });

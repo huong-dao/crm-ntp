@@ -1,5 +1,12 @@
 import type { Gender, MemberStatus } from "@prisma/client";
+import { importFieldError } from "@/lib/import-error-format";
 import { MEMBER_STATUSES, STATUS_LABELS } from "@/lib/member-list";
+
+const CURRENT_YEAR = new Date().getFullYear();
+const VALID_STATUS_LABELS = MEMBER_STATUSES.map((status) => STATUS_LABELS[status]).join(
+  ", "
+);
+const PHONE_PATTERN = /^[\d\s+\-()]+$/;
 
 const HEADER_ALIASES: Record<string, string> = {
   code: "code",
@@ -296,28 +303,135 @@ export function parseImportGender(value?: string): Gender | null {
   return null;
 }
 
-function parseOptionalInt(value?: string): number | null {
-  if (!value?.trim()) return null;
-  const num = parseInt(value.trim(), 10);
-  return Number.isFinite(num) ? num : null;
-}
-
-function parseOptionalYear(value?: string): number | null {
-  if (!value?.trim()) return null;
-  const trimmed = value.trim();
-  if (/^\d{4}$/.test(trimmed)) {
-    return parseOptionalInt(trimmed);
-  }
-  const parsedDate = new Date(trimmed);
-  if (!Number.isNaN(parsedDate.getTime())) {
-    return parsedDate.getFullYear();
-  }
-  return null;
-}
-
 function emptyToNull(value?: string): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function validateOptionalYear(
+  value: string | undefined,
+  column: string
+): { ok: true; value: number | null } | { ok: false; error: string } {
+  if (!value?.trim()) {
+    return { ok: true, value: null };
+  }
+
+  const trimmed = value.trim();
+  if (/^\d{4}$/.test(trimmed)) {
+    const year = parseInt(trimmed, 10);
+    if (year < 1900 || year > CURRENT_YEAR) {
+      return {
+        ok: false,
+        error: importFieldError(
+          column,
+          `phải từ 1900 đến ${CURRENT_YEAR}`,
+          trimmed
+        ),
+      };
+    }
+    return { ok: true, value: year };
+  }
+
+  const parsedDate = new Date(trimmed);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    const year = parsedDate.getFullYear();
+    if (year < 1900 || year > CURRENT_YEAR) {
+      return {
+        ok: false,
+        error: importFieldError(
+          column,
+          `phải từ 1900 đến ${CURRENT_YEAR}`,
+          trimmed
+        ),
+      };
+    }
+    return { ok: true, value: year };
+  }
+
+  return {
+    ok: false,
+    error: importFieldError(
+      column,
+      "phải là năm (4 chữ số) hoặc ngày hợp lệ",
+      trimmed
+    ),
+  };
+}
+
+function validateOptionalInt(
+  value: string | undefined,
+  column: string
+): { ok: true; value: number | null } | { ok: false; error: string } {
+  if (!value?.trim()) {
+    return { ok: true, value: null };
+  }
+
+  const trimmed = value.trim();
+  const num = parseInt(trimmed, 10);
+  if (!Number.isFinite(num)) {
+    return {
+      ok: false,
+      error: importFieldError(column, "phải là số nguyên", trimmed),
+    };
+  }
+  return { ok: true, value: num };
+}
+
+function validatePhone(
+  value: string | undefined,
+  column: string
+): { ok: true; value: string | null } | { ok: false; error: string } {
+  if (!value?.trim()) {
+    return { ok: true, value: null };
+  }
+
+  const trimmed = value.trim();
+  if (!PHONE_PATTERN.test(trimmed)) {
+    return {
+      ok: false,
+      error: importFieldError(
+        column,
+        "chỉ được chứa số, khoảng trắng và ký tự + - ( )",
+        trimmed
+      ),
+    };
+  }
+  return { ok: true, value: trimmed };
+}
+
+export type ImportRowDisplay = {
+  memberCode: string | null;
+  memberName: string | null;
+  householdCode: string | null;
+};
+
+export function extractImportRowDisplay(row: ParsedImportRow): ImportRowDisplay {
+  const memberCode = row.code?.trim() || null;
+  const householdCode = row.householdCode?.trim() || null;
+
+  const first = row.firstName?.trim();
+  const last = row.lastName?.trim();
+  let memberName: string | null = null;
+
+  if (first && last) {
+    memberName = `${first} ${last}`;
+  } else if (row.fullName?.trim()) {
+    memberName = row.fullName.trim();
+  } else if (first) {
+    memberName = first;
+  } else if (last) {
+    memberName = last;
+  }
+
+  return { memberCode, memberName, householdCode };
+}
+
+export function extractImportRowDisplayFromCells(
+  headers: string[],
+  cells: string[],
+  rowNumber: number
+): ImportRowDisplay {
+  return extractImportRowDisplay(rowToImportData(headers, cells, rowNumber));
 }
 
 export function validateImportRow(
@@ -333,24 +447,117 @@ export function validateImportRow(
   }
 
   if (!firstName) {
-    return { ok: false, error: "Thiếu họ và lót hoặc họ tên" };
+    return { ok: false, error: importFieldError("Họ và lót", "không được trống") };
   }
   if (!lastName) {
-    return { ok: false, error: "Thiếu tên hoặc họ tên" };
+    return { ok: false, error: importFieldError("Tên", "không được trống") };
   }
 
   const householdCode = row.householdCode?.trim();
   if (!householdCode) {
-    return { ok: false, error: "Thiếu mã hộ" };
+    return { ok: false, error: importFieldError("Mã hộ", "không được trống") };
   }
 
   const memberCode = row.code?.trim();
-
   const visitTeamCode = row.visitTeamCode?.trim();
 
-  const status = parseImportStatus(row.status) ?? "active";
+  let status: MemberStatus = "active";
+  if (row.status?.trim()) {
+    const parsedStatus = parseImportStatus(row.status);
+    if (!parsedStatus) {
+      return {
+        ok: false,
+        error: importFieldError(
+          "Tình trạng",
+          `không hợp lệ. Chấp nhận: ${VALID_STATUS_LABELS}`,
+          row.status
+        ),
+      };
+    }
+    status = parsedStatus;
+  }
+
+  let gender: Gender | null = null;
+  if (row.gender?.trim()) {
+    const parsedGender = parseImportGender(row.gender);
+    if (!parsedGender) {
+      return {
+        ok: false,
+        error: importFieldError(
+          "Giới tính",
+          "không hợp lệ. Chấp nhận: Nam, Nữ",
+          row.gender
+        ),
+      };
+    }
+    gender = parsedGender;
+  }
+
+  const birthYearResult = validateOptionalYear(row.birthYear, "Năm sinh");
+  if (!birthYearResult.ok) {
+    return { ok: false, error: birthYearResult.error };
+  }
+
   const isHead = parseYesNo(row.isHead);
   const isBaptized = parseYesNo(row.isBaptized);
+
+  let baptismYear: number | null = null;
+  if (isBaptized && row.baptismYear?.trim()) {
+    const baptismResult = validateOptionalInt(row.baptismYear, "Năm báp têm");
+    if (!baptismResult.ok) {
+      return { ok: false, error: baptismResult.error };
+    }
+    baptismYear = baptismResult.value;
+  }
+
+  const boardResult = validateOptionalYear(row.boardServiceDate, "Ban chấp sự");
+  if (!boardResult.ok) {
+    return { ok: false, error: boardResult.error };
+  }
+
+  const visitDeptResult = validateOptionalYear(row.visitDepartment, "Ban thăm viếng");
+  if (!visitDeptResult.ok) {
+    return { ok: false, error: visitDeptResult.error };
+  }
+
+  const mobile1Result = validatePhone(row.mobile1, "Di động 1");
+  if (!mobile1Result.ok) {
+    return { ok: false, error: mobile1Result.error };
+  }
+
+  const mobile2Result = validatePhone(row.mobile2, "Di động 2");
+  if (!mobile2Result.ok) {
+    return { ok: false, error: mobile2Result.error };
+  }
+
+  const landlineResult = validatePhone(row.landline, "ĐT bàn");
+  if (!landlineResult.ok) {
+    return { ok: false, error: landlineResult.error };
+  }
+
+  const occupation = row.occupation?.trim();
+  if (occupation && occupation.length > 200) {
+    return {
+      ok: false,
+      error: importFieldError("Nghề nghiệp", "tối đa 200 ký tự", occupation),
+    };
+  }
+
+  const relationship = row.relationship?.trim();
+  if (relationship && relationship.length > 100) {
+    return {
+      ok: false,
+      error: importFieldError("Quan hệ", "tối đa 100 ký tự", relationship),
+    };
+  }
+
+  const notes = row.notes?.trim();
+  if (notes && notes.length > 5000) {
+    return {
+      ok: false,
+      error: importFieldError("Ghi chú", "tối đa 5000 ký tự"),
+    };
+  }
 
   return {
     ok: true,
@@ -367,20 +574,20 @@ export function validateImportRow(
       oldProvince: emptyToNull(row.oldProvince),
       newWard: emptyToNull(row.newWard),
       newProvince: emptyToNull(row.newProvince),
-      mobile1: emptyToNull(row.mobile1),
-      mobile2: emptyToNull(row.mobile2),
-      landline: emptyToNull(row.landline),
-      birthYear: parseOptionalInt(row.birthYear),
-      gender: parseImportGender(row.gender),
+      mobile1: mobile1Result.value,
+      mobile2: mobile2Result.value,
+      landline: landlineResult.value,
+      birthYear: birthYearResult.value,
+      gender,
       occupation: emptyToNull(row.occupation),
       isHead,
       relationship: emptyToNull(row.relationship),
       isBaptized,
-      baptismYear: isBaptized ? parseOptionalInt(row.baptismYear) : null,
+      baptismYear,
       ageDepartment: emptyToNull(row.ageDepartment),
       actualDepartment: emptyToNull(row.actualDepartment),
-      boardServiceYear: parseOptionalYear(row.boardServiceDate),
-      visitDepartmentYear: parseOptionalYear(row.visitDepartment),
+      boardServiceYear: boardResult.value,
+      visitDepartmentYear: visitDeptResult.value,
       visitTeamCode: visitTeamCode || null,
       notes: emptyToNull(row.notes),
     },

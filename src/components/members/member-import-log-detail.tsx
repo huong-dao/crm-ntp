@@ -10,6 +10,10 @@ function formatDate(iso: string) {
   });
 }
 
+function displayValue(value: string | null | undefined) {
+  return value?.trim() ? value : "—";
+}
+
 export function MemberImportLogDetailView({ log }: { log: MemberImportLogDetail }) {
   const failedRows = log.rows.filter((row) => row.status === "failed");
 
@@ -49,6 +53,8 @@ export function MemberImportLogDetailView({ log }: { log: MemberImportLogDetail 
               <th className="px-4 py-3 font-medium">Dòng</th>
               <th className="px-4 py-3 font-medium">Trạng thái</th>
               <th className="px-4 py-3 font-medium">Mã tín hữu</th>
+              <th className="px-4 py-3 font-medium">Họ tên</th>
+              <th className="px-4 py-3 font-medium">Mã hộ</th>
               <th className="px-4 py-3 font-medium">Lỗi / Ghi chú</th>
               <th className="px-4 py-3 font-medium">Import lại</th>
             </tr>
@@ -69,8 +75,10 @@ export function MemberImportLogDetailView({ log }: { log: MemberImportLogDetail 
                     {row.status === "success" ? "Thành công" : "Lỗi"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-900">{row.memberCode ?? "—"}</td>
-                <td className="max-w-md px-4 py-3 text-gray-700">
+                <td className="px-4 py-3 text-gray-900">{displayValue(row.memberCode)}</td>
+                <td className="px-4 py-3 text-gray-900">{displayValue(row.memberName)}</td>
+                <td className="px-4 py-3 text-gray-900">{displayValue(row.householdCode)}</td>
+                <td className="max-w-md px-4 py-3 text-gray-700 whitespace-pre-wrap break-words">
                   {row.error ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs">
@@ -88,15 +96,17 @@ export function MemberImportLogDetailView({ log }: { log: MemberImportLogDetail 
             <p className="font-semibold text-gray-900">Dòng {row.rowNumber}</p>
             <div className="mt-2">
               <MobileDataRow label="Trạng thái">
-              {row.status === "success" ? "Thành công" : "Lỗi"}
-            </MobileDataRow>
-            <MobileDataRow label="Mã tín hữu">{row.memberCode ?? "—"}</MobileDataRow>
-            <MobileDataRow label="Lỗi">{row.error ?? "—"}</MobileDataRow>
-            {row.retriedAt && (
-              <MobileDataRow label="Import lại lúc">
-                {formatDate(row.retriedAt)}
+                {row.status === "success" ? "Thành công" : "Lỗi"}
               </MobileDataRow>
-            )}
+              <MobileDataRow label="Mã tín hữu">{displayValue(row.memberCode)}</MobileDataRow>
+              <MobileDataRow label="Họ tên">{displayValue(row.memberName)}</MobileDataRow>
+              <MobileDataRow label="Mã hộ">{displayValue(row.householdCode)}</MobileDataRow>
+              <MobileDataRow label="Lỗi">{row.error ?? "—"}</MobileDataRow>
+              {row.retriedAt && (
+                <MobileDataRow label="Import lại lúc">
+                  {formatDate(row.retriedAt)}
+                </MobileDataRow>
+              )}
             </div>
           </MobileDataCard>
         ))}
