@@ -111,7 +111,7 @@ async function getAuthUserRecord() {
       id: true,
       role: true,
       memberId: true,
-      member: { select: { visitTeamId: true } },
+      member: { select: { visitStaffTeamId: true } },
     },
   });
 }
@@ -122,7 +122,7 @@ async function assertTeamAccess(visitTeamId: string) {
 
   if (user.role === "admin") return user;
 
-  const lockedTeamId = user.member?.visitTeamId ?? null;
+  const lockedTeamId = user.member?.visitStaffTeamId ?? null;
   if (!lockedTeamId || lockedTeamId !== visitTeamId) {
     throw new Error("Không có quyền thao tác tổ thăm viếng này");
   }
@@ -152,7 +152,7 @@ async function validateTeamMembers(
   const [members, visitTeam] = await Promise.all([
     prisma.member.findMany({
       where: { id: { in: uniqueIds } },
-      select: { id: true, code: true, visitTeamId: true },
+      select: { id: true, code: true, visitStaffTeamId: true },
     }),
     prisma.visitTeam.findUnique({
       where: { id: visitTeamId },
@@ -166,14 +166,20 @@ async function validateTeamMembers(
 
   const leaderMemberId = visitTeam?.leaderMemberId ?? null;
 
-  for (const member of members) {
-    const belongsToTeam =
-      member.visitTeamId === visitTeamId ||
-      (leaderMemberId !== null && member.id === leaderMemberId);
+  if (representativeMemberId) {
+    if (!leaderMemberId || representativeMemberId !== leaderMemberId) {
+      throw new Error("Nhân sự đại diện phải là trưởng tổ");
+    }
+  }
 
-    if (!belongsToTeam) {
+  for (const member of members) {
+    if (member.id === leaderMemberId) {
+      continue;
+    }
+
+    if (member.visitStaffTeamId !== visitTeamId) {
       throw new Error(
-        `Nhân sự ${member.code} không thuộc tổ thăm viếng đã chọn`
+        `Nhân sự ${member.code} không thuộc nhân sự tổ thăm viếng đã chọn`
       );
     }
   }
@@ -317,7 +323,7 @@ export async function getVisitRequestFormContext(): Promise<VisitRequestFormCont
 
   const isAdmin = user.role === "admin";
   const lockedVisitTeamId = !isAdmin
-    ? user.member?.visitTeamId ?? null
+    ? user.member?.visitStaffTeamId ?? null
     : null;
 
   let visitTeams: VisitRequestTeamOption[] = [];
@@ -347,8 +353,8 @@ export async function getVisitRequestFormContext(): Promise<VisitRequestFormCont
 }
 
 export type VisitTeamStaffResult = {
-  members: VisitRequestStaffOption[];
-  leaderMemberId: string | null;
+  leader: VisitRequestStaffOption | null;
+  staffMembers: VisitRequestStaffOption[];
 };
 
 export async function getVisitTeamStaffMembers(
@@ -361,27 +367,30 @@ export async function getVisitTeamStaffMembers(
     select: { leaderMemberId: true },
   });
 
-  const members = await prisma.member.findMany({
-    where: { visitTeamId },
+  const staffRows = await prisma.member.findMany({
+    where: { visitStaffTeamId: visitTeamId },
     select: { id: true, code: true, fullName: true },
     orderBy: { fullName: "asc" },
   });
 
   const leaderMemberId = team?.leaderMemberId ?? null;
-  if (
-    leaderMemberId &&
-    !members.some((member) => member.id === leaderMemberId)
-  ) {
-    const leader = await prisma.member.findUnique({
-      where: { id: leaderMemberId },
-      select: { id: true, code: true, fullName: true },
-    });
-    if (leader) {
-      members.unshift(leader);
-    }
+  let leader: VisitRequestStaffOption | null = null;
+
+  if (leaderMemberId) {
+    leader =
+      staffRows.find((member) => member.id === leaderMemberId) ??
+      (await prisma.member.findUnique({
+        where: { id: leaderMemberId },
+        select: { id: true, code: true, fullName: true },
+      })) ??
+      null;
   }
 
-  return { members, leaderMemberId };
+  const staffMembers = leaderMemberId
+    ? staffRows.filter((member) => member.id !== leaderMemberId)
+    : staffRows;
+
+  return { leader, staffMembers };
 }
 
 export async function getDefaultVisitTeamForHousehold(

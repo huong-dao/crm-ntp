@@ -163,13 +163,15 @@ export function ImportVisitTeamsDialog() {
             Import tổ thăm viếng từ Excel
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            File cần 3 cột như file mẫu: <strong>Mã tổ thăm viếng</strong>,{" "}
-            <strong>Mã tín hữu</strong> (trưởng tổ, tùy chọn),{" "}
-            <strong>Khu vực phụ trách</strong>. Tổ đã có sẽ được cập nhật.
+            File cần 4 cột như file mẫu: <strong>Mã tổ thăm viếng</strong>,{" "}
+            <strong>Mã tín hữu</strong> (nhân sự thuộc tổ),{" "}
+            <strong>Tổ trưởng</strong> (chỉ điền ở dòng trưởng tổ),{" "}
+            <strong>Khu vực phụ trách</strong>. Nhiều dòng cùng mã tổ được
+            phép. Tổ đã có sẽ được cập nhật.
           </p>
           <p className="mt-2 text-sm text-amber-800">
-            Cần import thành viên trước để có mã tín hữu trưởng tổ trong hệ
-            thống.
+            Cần import thành viên trước. Mỗi dòng gán một nhân sự vào tổ; cột
+            Tổ trưởng chỉ điền ở dòng trưởng tổ.
           </p>
 
           <div className="mt-4 space-y-4">

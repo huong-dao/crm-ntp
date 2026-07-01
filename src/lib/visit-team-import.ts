@@ -11,10 +11,13 @@ const HEADER_ALIASES: Record<string, string> = {
   "ma to": "teamCode",
   teamcode: "teamCode",
   code: "teamCode",
-  "mã tín hữu": "leaderMemberCode",
-  "ma tin huu": "leaderMemberCode",
+  "mã tín hữu": "staffMemberCode",
+  "ma tin huu": "staffMemberCode",
+  staffmembercode: "staffMemberCode",
+  membercode: "staffMemberCode",
+  "tổ trưởng": "leaderMemberCode",
+  "to truong": "leaderMemberCode",
   leadermembercode: "leaderMemberCode",
-  membercode: "leaderMemberCode",
   "khu vực phụ trách": "area",
   "khu vuc phu trach": "area",
   area: "area",
@@ -25,11 +28,13 @@ const HEADER_ALIASES: Record<string, string> = {
 export const VISIT_TEAM_IMPORT_HEADERS = [
   "Mã tổ thăm viếng",
   "Mã tín hữu",
+  "Tổ trưởng",
   "Khu vực phụ trách",
 ];
 
 export const VISIT_TEAM_IMPORT_SAMPLE: string[][] = [
-  ["TV01", "TV00001", "Phường A — Khu 1"],
+  ["TV01", "TV00001", "TV00001", "Phường A — Khu 1"],
+  ["TV01", "TV00002", "", "Phường A — Khu 1"],
 ];
 
 function mapHeaders(headers: string[]): string[] {
@@ -41,6 +46,7 @@ function mapHeaders(headers: string[]): string[] {
 export type ParsedVisitTeamImportRow = {
   rowNumber: number;
   teamCode?: string;
+  staffMemberCode?: string;
   leaderMemberCode?: string;
   area?: string;
 };
@@ -55,6 +61,7 @@ function rowToData(
     const value = cells[index]?.trim() ?? "";
     if (!value) return;
     if (header === "teamCode") data.teamCode = value;
+    if (header === "staffMemberCode") data.staffMemberCode = value;
     if (header === "leaderMemberCode") data.leaderMemberCode = value;
     if (header === "area") data.area = value;
   });
@@ -82,6 +89,14 @@ export function parseVisitTeamImportHeaders(
     };
   }
 
+  if (!headers.includes("staffMemberCode")) {
+    return {
+      ok: false,
+      error:
+        'File cần cột "Mã tín hữu" (nhân sự thuộc tổ). Tải file mẫu để tham khảo.',
+    };
+  }
+
   return { ok: true, headers };
 }
 
@@ -100,6 +115,7 @@ export function validateVisitTeamImportRow(
       ok: true;
       data: {
         teamCode: string;
+        staffMemberCode: string;
         leaderMemberCode: string | null;
         area: string;
       };
@@ -112,6 +128,11 @@ export function validateVisitTeamImportRow(
     return { ok: false, error: "Thiếu mã tổ thăm viếng" };
   }
 
+  const staffMemberCode = row.staffMemberCode?.trim();
+  if (!staffMemberCode) {
+    return { ok: false, error: "Thiếu mã tín hữu (nhân sự thuộc tổ)" };
+  }
+
   const area = row.area?.trim();
   if (!area) {
     return { ok: false, error: "Thiếu khu vực phụ trách" };
@@ -121,6 +142,7 @@ export function validateVisitTeamImportRow(
     ok: true,
     data: {
       teamCode,
+      staffMemberCode,
       leaderMemberCode: row.leaderMemberCode?.trim() || null,
       area,
     },
@@ -129,15 +151,36 @@ export function validateVisitTeamImportRow(
 
 export type VisitTeamImportDataRow = SpreadsheetDataRow;
 
+export type VisitTeamStaffExportRecord = {
+  teamCode: string;
+  staffMemberCode: string;
+  leaderMemberCode: string | null;
+  area: string;
+};
+
+export function visitTeamStaffToExportRow(
+  record: VisitTeamStaffExportRecord
+): string[] {
+  return [
+    record.teamCode,
+    record.staffMemberCode,
+    record.leaderMemberCode ?? "",
+    record.area,
+  ];
+}
+
+/** @deprecated Use visitTeamStaffToExportRow for multi-row export */
 export type VisitTeamExportRecord = {
   code: string;
   area: string;
   leaderMember: { code: string } | null;
 };
 
+/** @deprecated Use visitTeamStaffToExportRow for multi-row export */
 export function visitTeamToExportRow(record: VisitTeamExportRecord): string[] {
   return [
     record.code,
+    record.leaderMember?.code ?? "",
     record.leaderMember?.code ?? "",
     record.area,
   ];

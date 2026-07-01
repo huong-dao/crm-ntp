@@ -64,6 +64,9 @@ export function VisitRequestForm({
     isEdit ? request.representativeMemberId ?? "" : ""
   );
   const [additionalStaffIds, setAdditionalStaffIds] = useState<string[]>([]);
+  const [teamLeader, setTeamLeader] = useState<VisitRequestStaffOption | null>(
+    null
+  );
   const [teamStaff, setTeamStaff] = useState<VisitRequestStaffOption[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
   const [error, setError] = useState("");
@@ -75,6 +78,7 @@ export function VisitRequestForm({
   useEffect(() => {
     if (!visitTeamId) {
       setTeamStaff([]);
+      setTeamLeader(null);
       setRepresentativeMemberId("");
       setAdditionalStaffIds([]);
       return;
@@ -84,23 +88,24 @@ export function VisitRequestForm({
     setStaffLoading(true);
 
     getVisitTeamStaffMembers(visitTeamId)
-      .then(({ members, leaderMemberId }) => {
+      .then(({ leader, staffMembers }) => {
         if (cancelled) return;
-        setTeamStaff(members);
+        setTeamLeader(leader);
+        setTeamStaff(staffMembers);
 
         const isSameTeamAsSaved =
           isEdit && request && visitTeamId === request.visitTeamId;
 
         if (isSameTeamAsSaved) {
-          const additional = matchStaffMemberIds(request.staffCodes, members);
+          const additional = matchStaffMemberIds(
+            request.staffCodes,
+            staffMembers
+          );
           setAdditionalStaffIds(additional);
           if (request.representativeMemberId) {
             setRepresentativeMemberId(request.representativeMemberId);
-          } else if (
-            leaderMemberId &&
-            members.some((member) => member.id === leaderMemberId)
-          ) {
-            setRepresentativeMemberId(leaderMemberId);
+          } else if (leader) {
+            setRepresentativeMemberId(leader.id);
           } else {
             setRepresentativeMemberId("");
           }
@@ -108,14 +113,7 @@ export function VisitRequestForm({
         }
 
         setAdditionalStaffIds([]);
-        if (
-          leaderMemberId &&
-          members.some((member) => member.id === leaderMemberId)
-        ) {
-          setRepresentativeMemberId(leaderMemberId);
-        } else {
-          setRepresentativeMemberId("");
-        }
+        setRepresentativeMemberId(leader?.id ?? "");
       })
       .catch(() => {
         if (!cancelled) setTeamStaff([]);
@@ -189,6 +187,20 @@ export function VisitRequestForm({
     [context.visitTeams]
   );
 
+  const leaderOptions = useMemo(
+    () =>
+      teamLeader
+        ? [
+            {
+              value: teamLeader.id,
+              label: `${teamLeader.code} — ${teamLeader.fullName}`,
+              searchText: `${teamLeader.code} ${teamLeader.fullName}`,
+            },
+          ]
+        : [],
+    [teamLeader]
+  );
+
   const staffOptions = useMemo(
     () =>
       teamStaff.map((member) => ({
@@ -199,17 +211,10 @@ export function VisitRequestForm({
     [teamStaff]
   );
 
-  const additionalOptions = useMemo(
-    () =>
-      staffOptions.filter(
-        (option) => option.value !== representativeMemberId
-      ),
-    [staffOptions, representativeMemberId]
-  );
+  const additionalOptions = staffOptions;
 
   function handleRepresentativeChange(value: string) {
     setRepresentativeMemberId(value);
-    setAdditionalStaffIds((prev) => prev.filter((id) => id !== value));
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -349,23 +354,24 @@ export function VisitRequestForm({
           <Label htmlFor="representativeMemberId">Nhân sự thăm viếng</Label>
           <SearchableSelect
             id="representativeMemberId"
-            options={staffOptions}
+            options={leaderOptions}
             value={representativeMemberId}
             onChange={handleRepresentativeChange}
-            disabled={!visitTeamId || staffLoading}
+            disabled={!visitTeamId || staffLoading || !teamLeader}
             placeholder={
               staffLoading
                 ? "Đang tải nhân sự..."
                 : !visitTeamId
                   ? "Chọn tổ trước"
-                  : "— Chọn 1 nhân sự đại diện —"
+                  : !teamLeader
+                    ? "Tổ chưa có trưởng tổ"
+                    : "— Trưởng tổ —"
             }
             searchPlaceholder="Tìm theo tên hoặc mã..."
-            emptyMessage="Tổ chưa có thành viên"
+            emptyMessage="Tổ chưa có trưởng tổ"
           />
           <p className="text-xs text-gray-500">
-            Mặc định chọn trưởng tổ khi đổi tổ; bạn có thể chọn nhân sự khác
-            thuộc tổ đã chọn.
+            Mặc định chọn trưởng tổ của tổ đã chọn.
           </p>
         </div>
 
@@ -380,6 +386,7 @@ export function VisitRequestForm({
             disabled={!visitTeamId || staffLoading}
             placeholder="Thêm nhân sự khác trong tổ..."
             searchPlaceholder="Tìm theo tên hoặc mã..."
+            emptyMessage="Không còn nhân sự khác trong tổ"
           />
         </div>
 

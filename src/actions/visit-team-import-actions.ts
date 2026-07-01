@@ -65,7 +65,17 @@ async function processVisitTeamImportRow(
     return { row: rowNumber, success: false, error: validated.error };
   }
 
-  const { teamCode, leaderMemberCode, area } = validated.data;
+  const { teamCode, staffMemberCode, leaderMemberCode, area } = validated.data;
+
+  const staffMemberId =
+    ctx.memberCodeToId.get(staffMemberCode.toLowerCase()) ?? null;
+  if (!staffMemberId) {
+    return {
+      row: rowNumber,
+      success: false,
+      error: `Mã tín hữu "${staffMemberCode}" không tồn tại`,
+    };
+  }
 
   let leaderMemberId: string | null = null;
   if (leaderMemberCode) {
@@ -75,7 +85,7 @@ async function processVisitTeamImportRow(
       return {
         row: rowNumber,
         success: false,
-        error: `Mã tín hữu "${leaderMemberCode}" không tồn tại`,
+        error: `Mã tổ trưởng "${leaderMemberCode}" không tồn tại`,
       };
     }
   }
@@ -83,14 +93,16 @@ async function processVisitTeamImportRow(
   try {
     const existingId = ctx.teamCodeToId.get(teamCode.toLowerCase());
 
+    let teamId: string;
     if (existingId) {
       await prisma.visitTeam.update({
         where: { id: existingId },
-        data: { area, leaderMemberId },
+        data: {
+          area,
+          ...(leaderMemberId ? { leaderMemberId } : {}),
+        },
       });
-      if (leaderMemberId) {
-        await syncLeaderToTeam(existingId, leaderMemberId);
-      }
+      teamId = existingId;
     } else {
       const created = await prisma.visitTeam.create({
         data: {
@@ -99,10 +111,17 @@ async function processVisitTeamImportRow(
           leaderMemberId,
         },
       });
-      ctx.teamCodeToId.set(teamCode.toLowerCase(), created.id);
-      if (leaderMemberId) {
-        await syncLeaderToTeam(created.id, leaderMemberId);
-      }
+      teamId = created.id;
+      ctx.teamCodeToId.set(teamCode.toLowerCase(), teamId);
+    }
+
+    await prisma.member.update({
+      where: { id: staffMemberId },
+      data: { visitStaffTeamId: teamId },
+    });
+
+    if (leaderMemberId) {
+      await syncLeaderToTeam(teamId, leaderMemberId);
     }
 
     return { row: rowNumber, success: true, code: teamCode };

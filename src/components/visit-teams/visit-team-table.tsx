@@ -59,7 +59,7 @@ export function VisitTeamTable({
                 Số hộ
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
-                Số thành viên
+                Số nhân sự
               </th>
               <th className="px-4 py-3 text-right font-medium text-gray-600">
                 Actions
@@ -127,7 +127,7 @@ export function VisitTeamTable({
               </MobileDataRow>
               <MobileDataRow label="Khu vực">{team.area}</MobileDataRow>
               <MobileDataRow label="Số hộ">{team.householdCount}</MobileDataRow>
-              <MobileDataRow label="Số thành viên">
+              <MobileDataRow label="Số nhân sự">
                 {team.memberCount}
               </MobileDataRow>
             </div>

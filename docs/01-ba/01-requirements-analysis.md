@@ -20,7 +20,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 
 | Trường | Kiểu | Bắt buộc | Ghi chú |
 |--------|------|----------|---------|
-| Mã tổ thăm viếng | string | Không | FK → visit_teams |
+| Tổ phụ trách thăm viếng | string | Không | FK → visit_teams (`visit_team_id`) |
 | Mã hộ | string | Có | FK → households |
 | Mã tín hữu | string | Có | Unique, auto-generate |
 | Tình trạng | enum | Có | active / inactive / transferred / deceased |
@@ -55,7 +55,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 **Quy tắc nghiệp vụ:**
 - Mỗi tín hữu có mã duy nhất, không trùng
 - Một hộ có nhiều thành viên, chỉ 1 chủ hộ
-- Mã tổ thăm viếng liên kết với tổ phụ trách khu vực
+- Tổ phụ trách thăm viếng (`visit_team_id`) = tổ có trách nhiệm thăm viếng tín hữu đó
 - Khi thêm thành viên mà chưa có hộ nào (hoặc chọn **Tạo hộ mới**): hệ thống tự sinh mã hộ và gán thành viên đó làm chủ hộ
 - Thành viên thuộc hộ có sẵn: chọn mã hộ trong danh sách
 - **Import Excel** (chỉ trên `/members` và `/visit-teams`): xem mục Import/Export bên dưới
@@ -112,14 +112,16 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 | Trường | Kiểu | Bắt buộc | Ghi chú |
 |--------|------|----------|---------|
 | Mã tổ thăm viếng | string | Có | Unique, auto-generate |
-| Mã tín hữu (trưởng tổ) | string | Không | FK → members |
+| Mã tín hữu | string | Có | Nhân sự thuộc tổ → gán `visit_staff_team_id` |
+| Tổ trưởng | string | Không | Mã tín hữu trưởng tổ (để trống nếu không phải trưởng tổ) |
 | Khu vực phụ trách | string | Có | Mô tả khu vực |
 
 **Quy tắc nghiệp vụ:**
 - Mỗi tổ có mã riêng
 - Một khu vực chỉ do một tổ phụ trách
 - Trưởng tổ là tín hữu (member), không phải user đăng nhập
-- **Import Excel** (nút trên `/visit-teams`): file `.xlsx` với cột **Mã tổ thăm viếng** | **Mã tín hữu** (trưởng tổ) | **Khu vực phụ trách** — **chạy sau khi đã import thành viên**
+- `members.visit_team_id` = tổ **phụ trách thăm viếng** tín hữu (người được thăm); `members.visit_staff_team_id` = tổ mà tín hữu là **nhân sự đi thăm viếng**
+- **Import Excel** (nút trên `/visit-teams`): nhiều dòng cùng mã tổ — cột **Mã tổ thăm viếng** | **Mã tín hữu** | **Tổ trưởng** | **Khu vực phụ trách** — **chạy sau khi đã import thành viên**
 - **Export Excel** trên `/visit-teams` — cột khớp file mẫu import
 
 ---
@@ -142,7 +144,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 **Quy tắc nghiệp vụ:**
 - Đơn thăm viếng gắn với một hộ
 - Tổ thăm viếng được gán tự động theo khu vực hoặc chọn thủ công
-- Nhân sự thăm viếng là string chứa nhiều mã tín hữu (không FK cứng)
+- Nhân sự đại diện = trưởng tổ; nhân sự bổ sung = các thành viên có `visit_staff_team_id` trùng tổ (trừ trưởng tổ)
 - Khi hoàn thành: cập nhật tình trạng + ngày thăm thực tế
 - **Export Excel** trên `/visit-requests` — xuất đầy đủ các trường: mã đơn, lịch, ngày thực tế, tình trạng, mã hộ, mã tổ, đại diện, nhân sự, nội dung
 

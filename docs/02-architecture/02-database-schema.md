@@ -117,7 +117,8 @@ model VisitTeam {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  members         Member[]
+  assignedMembers Member[] @relation("MemberAssignedVisitTeam")
+  staffMembers    Member[] @relation("MemberVisitStaffTeam")
   visitRequests   VisitRequest[]
 
   @@map("visit_teams")
@@ -200,7 +201,8 @@ model Member {
   visitDepartment   String?       @map("visit_department")
 
   // Thăm viếng
-  visitTeamId       String?       @map("visit_team_id")
+  visitTeamId       String?       @map("visit_team_id")        // Tổ phụ trách thăm viếng tín hữu
+  visitStaffTeamId  String?       @map("visit_staff_team_id")  // Tổ nhân sự thăm viếng
 
   notes             String?
 
@@ -208,12 +210,14 @@ model Member {
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
   household         Household?    @relation(fields: [householdId], references: [id])
-  visitTeam         VisitTeam?    @relation(fields: [visitTeamId], references: [id])
+  visitTeam         VisitTeam?    @relation("MemberAssignedVisitTeam", fields: [visitTeamId], references: [id])
+  visitStaffTeam    VisitTeam?    @relation("MemberVisitStaffTeam", fields: [visitStaffTeamId], references: [id])
   ageDepartment     Department?   @relation("MemberAgeDepartment", fields: [ageDepartmentId], references: [id], onDelete: SetNull)
   actualDepartment  Department?   @relation("MemberActualDepartment", fields: [actualDepartmentId], references: [id], onDelete: SetNull)
 
   @@index([householdId])
   @@index([visitTeamId])
+  @@index([visitStaffTeamId])
   @@index([ageDepartmentId])
   @@index([actualDepartmentId])
   @@index([status])

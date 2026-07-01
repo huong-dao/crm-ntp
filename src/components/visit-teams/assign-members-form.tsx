@@ -48,7 +48,7 @@ export function AssignMembersForm({
   if (memberOptions.length === 0) {
     return (
       <p className="text-sm text-gray-600">
-        Tất cả thành viên đã được gán vào tổ này hoặc không còn thành viên khả dụng.
+        Tất cả nhân sự đã được gán vào tổ này hoặc không còn tín hữu khả dụng.
       </p>
     );
   }
@@ -57,7 +57,7 @@ export function AssignMembersForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="memberIds">
-          Chọn thành viên (giữ Ctrl để chọn nhiều)
+          Chọn nhân sự (giữ Ctrl để chọn nhiều)
         </Label>
         <select
           id="memberIds"
@@ -82,7 +82,7 @@ export function AssignMembersForm({
       )}
 
       <Button type="submit" disabled={loading} icon={loading ? undefined : SaveIcon}>
-        {loading ? "Đang gán..." : "Gán thành viên vào tổ"}
+        {loading ? "Đang gán..." : "Gán nhân sự vào tổ"}
       </Button>
     </form>
   );

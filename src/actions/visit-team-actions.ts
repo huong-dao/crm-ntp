@@ -9,7 +9,7 @@ import { buildExcelBase64 } from "@/lib/member-excel";
 import { prisma } from "@/lib/prisma";
 import {
   VISIT_TEAM_IMPORT_HEADERS,
-  visitTeamToExportRow,
+  visitTeamStaffToExportRow,
 } from "@/lib/visit-team-import";
 import {
   visitTeamCreateSchema,
@@ -133,7 +133,7 @@ export async function getVisitTeams(
         code: true,
         area: true,
         leaderMemberId: true,
-        _count: { select: { members: true } },
+        _count: { select: { staffMembers: true } },
       },
     }),
     prisma.visitTeam.count({ where }),
@@ -167,7 +167,7 @@ export async function getVisitTeams(
     leaderName: row.leaderMemberId
       ? leaderById.get(row.leaderMemberId) ?? null
       : null,
-    memberCount: row._count.members,
+    memberCount: row._count.staffMembers,
     householdCount: householdCountMap.get(row.id)?.size ?? 0,
   }));
 
@@ -192,7 +192,7 @@ export async function getVisitTeamById(
       code: true,
       area: true,
       leaderMemberId: true,
-      members: {
+      staffMembers: {
         orderBy: { fullName: "asc" },
         select: {
           id: true,
@@ -203,7 +203,7 @@ export async function getVisitTeamById(
           household: { select: { code: true } },
         },
       },
-      _count: { select: { members: true, visitRequests: true } },
+      _count: { select: { staffMembers: true, visitRequests: true } },
     },
   });
 
@@ -220,7 +220,7 @@ export async function getVisitTeamById(
 
   let leaderName: string | null = null;
   if (team.leaderMemberId) {
-    const leader = team.members.find((m) => m.id === team.leaderMemberId);
+    const leader = team.staffMembers.find((m) => m.id === team.leaderMemberId);
     if (leader) {
       leaderName = leader.fullName;
     } else {
@@ -232,7 +232,7 @@ export async function getVisitTeamById(
     }
   }
 
-  const members: VisitTeamMemberItem[] = team.members.map((member) => ({
+  const members: VisitTeamMemberItem[] = team.staffMembers.map((member) => ({
     id: member.id,
     code: member.code,
     fullName: member.fullName,
@@ -248,7 +248,7 @@ export async function getVisitTeamById(
     area: team.area,
     leaderMemberId: team.leaderMemberId,
     leaderName,
-    memberCount: team._count.members,
+    memberCount: team._count.staffMembers,
     householdCount: householdIds.size,
     visitRequestCount: team._count.visitRequests,
     members,
@@ -262,7 +262,7 @@ export async function getAssignableMemberOptions(
 
   return prisma.member.findMany({
     where: {
-      OR: [{ visitTeamId: null }, { visitTeamId: { not: teamId } }],
+      OR: [{ visitStaffTeamId: null }, { visitStaffTeamId: { not: teamId } }],
     },
     select: { id: true, code: true, fullName: true },
     orderBy: { fullName: "asc" },
@@ -278,7 +278,7 @@ export async function syncLeaderToTeam(
 
   await prisma.member.update({
     where: { id: leaderMemberId },
-    data: { visitTeamId: teamId },
+    data: { visitStaffTeamId: teamId },
   });
 }
 
@@ -313,7 +313,7 @@ export async function assignMembersToVisitTeam(
 
     await prisma.member.updateMany({
       where: { id: { in: uniqueIds } },
-      data: { visitTeamId: teamId },
+      data: { visitStaffTeamId: teamId },
     });
 
     revalidatePath("/visit-teams");
@@ -334,23 +334,23 @@ export async function removeMemberFromVisitTeam(
 
     const member = await prisma.member.findUnique({
       where: { id: memberId },
-      select: { id: true, visitTeamId: true },
+      select: { id: true, visitStaffTeamId: true },
     });
 
     if (!member) {
       return { success: false, error: "Thành viên không tồn tại" };
     }
 
-    if (!member.visitTeamId) {
-      return { success: false, error: "Thành viên chưa được gán tổ" };
+    if (!member.visitStaffTeamId) {
+      return { success: false, error: "Thành viên chưa được gán vào nhân sự tổ" };
     }
 
-    const teamId = member.visitTeamId;
+    const teamId = member.visitStaffTeamId;
 
     await prisma.$transaction(async (tx) => {
       await tx.member.update({
         where: { id: memberId },
-        data: { visitTeamId: null },
+        data: { visitStaffTeamId: null },
       });
 
       await tx.visitTeam.updateMany({
@@ -483,7 +483,13 @@ export async function deleteVisitTeam(id: string): Promise<ActionResult> {
     const team = await prisma.visitTeam.findUnique({
       where: { id },
       include: {
-        _count: { select: { members: true, visitRequests: true } },
+        _count: {
+          select: {
+            staffMembers: true,
+            assignedMembers: true,
+            visitRequests: true,
+          },
+        },
       },
     });
 
@@ -491,10 +497,17 @@ export async function deleteVisitTeam(id: string): Promise<ActionResult> {
       return { success: false, error: "Tổ thăm viếng không tồn tại" };
     }
 
-    if (team._count.members > 0) {
+    if (team._count.staffMembers > 0) {
       return {
         success: false,
-        error: "Không thể xóa tổ còn thành viên",
+        error: "Không thể xóa tổ còn nhân sự thăm viếng",
+      };
+    }
+
+    if (team._count.assignedMembers > 0) {
+      return {
+        success: false,
+        error: "Không thể xóa tổ còn tín hữu được phụ trách",
       };
     }
 
@@ -534,11 +547,25 @@ export async function exportVisitTeams(
       where,
       orderBy: { code: "asc" },
       select: {
+        id: true,
         code: true,
         area: true,
         leaderMemberId: true,
       },
     });
+
+    const teamIds = teams.map((team) => team.id);
+    const staffRows =
+      teamIds.length > 0
+        ? await prisma.member.findMany({
+            where: { visitStaffTeamId: { in: teamIds } },
+            select: {
+              code: true,
+              visitStaffTeamId: true,
+            },
+            orderBy: [{ visitStaffTeamId: "asc" }, { code: "asc" }],
+          })
+        : [];
 
     const leaderIds = teams
       .map((team) => team.leaderMemberId)
@@ -556,17 +583,25 @@ export async function exportVisitTeams(
       leaders.map((leader) => [leader.id, leader.code])
     );
 
-    const rows = teams.map((team) =>
-      visitTeamToExportRow({
-        code: team.code,
-        area: team.area,
-        leaderMember:
-          team.leaderMemberId &&
-          leaderCodeById.has(team.leaderMemberId)
-            ? { code: leaderCodeById.get(team.leaderMemberId)! }
-            : null,
-      })
+    const areaByTeamId = new Map(teams.map((team) => [team.id, team.area]));
+    const codeByTeamId = new Map(teams.map((team) => [team.id, team.code]));
+    const leaderIdByTeamId = new Map(
+      teams.map((team) => [team.id, team.leaderMemberId])
     );
+
+    const rows = staffRows.map((staff) => {
+      const teamId = staff.visitStaffTeamId!;
+      const leaderId = leaderIdByTeamId.get(teamId) ?? null;
+      return visitTeamStaffToExportRow({
+        teamCode: codeByTeamId.get(teamId) ?? "",
+        staffMemberCode: staff.code,
+        leaderMemberCode:
+          leaderId && leaderCodeById.get(leaderId) === staff.code
+            ? staff.code
+            : null,
+        area: areaByTeamId.get(teamId) ?? "",
+      });
+    });
 
     const date = new Date().toISOString().slice(0, 10);
     const base64 = buildExcelBase64(

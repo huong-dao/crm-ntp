@@ -36,7 +36,7 @@ export default async function VisitTeamDetailPage({
             Tổ thăm viếng: {team.code}
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Khu vực phụ trách và thành viên trong tổ
+            Khu vực phụ trách và nhân sự đi thăm viếng
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -72,9 +72,9 @@ export default async function VisitTeamDetailPage({
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Số hộ / thành viên</p>
+          <p className="text-sm text-gray-500">Số hộ / nhân sự</p>
           <p className="mt-1 text-lg font-semibold text-gray-900">
-            {team.householdCount} hộ · {team.memberCount} thành viên
+            {team.householdCount} hộ · {team.memberCount} nhân sự
           </p>
         </div>
       </div>
@@ -82,7 +82,7 @@ export default async function VisitTeamDetailPage({
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <h2 className="text-base font-semibold text-gray-900">
-            Thành viên trong tổ
+            Nhân sự thăm viếng
           </h2>
           <div className="mt-4">
             <VisitTeamMembersTable members={team.members} />
@@ -90,7 +90,7 @@ export default async function VisitTeamDetailPage({
         </div>
         <div>
           <h2 className="text-base font-semibold text-gray-900">
-            Gán thành viên
+            Gán nhân sự
           </h2>
           <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
             <AssignMembersForm

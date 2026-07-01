@@ -96,7 +96,7 @@ export function MemberFilters({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="member-visit-team">Tổ thăm viếng</Label>
+          <Label htmlFor="member-visit-team">Tổ phụ trách thăm viếng</Label>
           <select
             id="member-visit-team"
             name="visitTeamId"

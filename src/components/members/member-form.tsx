@@ -522,7 +522,7 @@ export function MemberForm({
       </Section>
 
       <Section title="Thăm viếng">
-        <Field label="Mã tổ thăm viếng">
+        <Field label="Tổ phụ trách thăm viếng">
           <select
             name="visitTeamId"
             className={selectClass}

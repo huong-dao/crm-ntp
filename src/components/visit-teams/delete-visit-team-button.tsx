@@ -59,7 +59,7 @@ export function DeleteVisitTeamButton({
         <h2 className="text-lg font-semibold text-gray-900">Xác nhận xóa tổ</h2>
         <p className="mt-2 text-sm text-gray-600">
           Bạn có chắc muốn xóa tổ <strong>{teamCode}</strong>? Chỉ xóa được khi
-          tổ không còn thành viên hoặc đơn thăm viếng.
+          tổ không còn nhân sự, tín hữu được phụ trách hoặc đơn thăm viếng.
         </p>
         {error && (
           <p className="mt-3 text-sm text-red-600" role="alert">{error}</p>

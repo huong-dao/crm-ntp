@@ -62,7 +62,7 @@ export function VisitTeamMembersTable({
   if (members.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <p className="text-gray-600">Tổ chưa có thành viên được gán.</p>
+        <p className="text-gray-600">Tổ chưa có nhân sự thăm viếng.</p>
       </div>
     );
   }

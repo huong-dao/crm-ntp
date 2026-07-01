@@ -139,7 +139,7 @@ export function MemberDetailView({
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Tổ thăm viếng</p>
+          <p className="text-sm text-gray-500">Tổ phụ trách thăm viếng</p>
           <p className="mt-1 text-lg font-semibold text-gray-900">
             {member.visitTeam ? (
               <Link
@@ -262,7 +262,7 @@ export function MemberDetailView({
 
         <DetailSection title="Thăm viếng">
           <DetailField
-            label="Mã tổ thăm viếng"
+            label="Tổ phụ trách thăm viếng"
             value={
               member.visitTeam ? (
                 <Link
