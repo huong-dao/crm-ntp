@@ -321,8 +321,7 @@ function emptyToNull(value?: string): string | null {
 }
 
 export function validateImportRow(
-  row: ParsedImportRow,
-  visitTeamCodes: Set<string>
+  row: ParsedImportRow
 ): { ok: true; data: ImportRowValid } | { ok: false; error: string } {
   let firstName = row.firstName?.trim() ?? "";
   let lastName = row.lastName?.trim() ?? "";
@@ -348,9 +347,6 @@ export function validateImportRow(
   const memberCode = row.code?.trim();
 
   const visitTeamCode = row.visitTeamCode?.trim();
-  if (visitTeamCode && !visitTeamCodes.has(visitTeamCode.toLowerCase())) {
-    return { ok: false, error: `Mã tổ "${visitTeamCode}" không tồn tại` };
-  }
 
   const status = parseImportStatus(row.status) ?? "active";
   const isHead = parseYesNo(row.isHead);

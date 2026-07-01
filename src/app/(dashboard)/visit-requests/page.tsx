@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getVisitRequests, getVisitRequestFilterOptions } from "@/actions/visit-request-actions";
+import { ExportVisitRequestsButton } from "@/components/visit-requests/export-visit-requests-button";
 import { VisitRequestFilters } from "@/components/visit-requests/visit-request-filters";
 import { VisitRequestTable } from "@/components/visit-requests/visit-request-table";
 import { Button } from "@/components/ui/button";
@@ -79,9 +81,14 @@ export default async function VisitRequestsPage({
             Theo dõi lịch và tình trạng thăm viếng các hộ gia đình
           </p>
         </div>
-        <Button asChild icon={AddIcon}>
-          <Link href="/visit-requests/new">Tạo đơn</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Suspense fallback={null}>
+            <ExportVisitRequestsButton />
+          </Suspense>
+          <Button asChild icon={AddIcon}>
+            <Link href="/visit-requests/new">Tạo đơn</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mt-6">

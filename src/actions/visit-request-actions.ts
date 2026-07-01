@@ -6,8 +6,13 @@ import type { ActionResult } from "@/actions/user-actions";
 import { auth } from "@/lib/auth";
 import { generateVisitRequestCode } from "@/lib/generate-code";
 import { DEFAULT_PAGE_SIZE } from "@/lib/member-list";
+import { buildExcelBase64 } from "@/lib/member-excel";
 import { prisma } from "@/lib/prisma";
 import type { VisitRequestFiltersInput } from "@/lib/visit-request-list";
+import {
+  VISIT_REQUEST_EXPORT_HEADERS,
+  visitRequestToExportRow,
+} from "@/lib/visit-request-export";
 import {
   formatDateForInput,
   parseScheduledDateInput,
@@ -712,3 +717,83 @@ export async function updateVisitStatus(
 }
 
 export { formatDateForInput };
+
+export async function exportVisitRequests(
+  filters: Omit<VisitRequestFiltersInput, "page" | "pageSize"> = {}
+): Promise<ActionResult<{ base64: string; fileName: string }>> {
+  try {
+    await requireAuth();
+
+    const search = filters.search?.trim();
+    const statuses = filters.status;
+    const visitTeamId = filters.visitTeamId?.trim();
+    const dateFrom = filters.dateFrom?.trim();
+    const dateTo = filters.dateTo?.trim();
+
+    const where: Prisma.VisitRequestWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { code: { contains: search } },
+        { staffCodes: { contains: search } },
+        { household: { code: { contains: search } } },
+        { visitTeam: { code: { contains: search } } },
+      ];
+    }
+
+    if (statuses && statuses.length > 0) {
+      where.status = { in: statuses };
+    }
+
+    if (visitTeamId) {
+      where.visitTeamId = visitTeamId;
+    }
+
+    if (dateFrom || dateTo) {
+      const scheduledDate: Prisma.DateTimeFilter = {};
+
+      if (dateFrom) {
+        scheduledDate.gte = parseScheduledDateInput(dateFrom);
+      }
+
+      if (dateTo) {
+        const end = parseScheduledDateInput(dateTo);
+        end.setHours(23, 59, 59, 999);
+        scheduledDate.lte = end;
+      }
+
+      where.scheduledDate = scheduledDate;
+    }
+
+    const requests = await prisma.visitRequest.findMany({
+      where,
+      orderBy: [{ scheduledDate: "desc" }, { code: "desc" }],
+      select: {
+        code: true,
+        scheduledDate: true,
+        actualDate: true,
+        status: true,
+        content: true,
+        staffCodes: true,
+        household: { select: { code: true } },
+        visitTeam: { select: { code: true } },
+        representativeMember: { select: { code: true } },
+      },
+    });
+
+    const rows = requests.map(visitRequestToExportRow);
+    const date = new Date().toISOString().slice(0, 10);
+    const base64 = buildExcelBase64(
+      VISIT_REQUEST_EXPORT_HEADERS,
+      rows,
+      "Đơn thăm viếng"
+    );
+
+    return {
+      success: true,
+      data: { base64, fileName: `don-tham-vieng-${date}.xlsx` },
+    };
+  } catch {
+    return { success: false, error: "Không thể xuất file Excel" };
+  }
+}

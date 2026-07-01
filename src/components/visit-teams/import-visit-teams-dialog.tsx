@@ -3,26 +3,21 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getVisitTeamImportTemplate,
   importVisitTeamBatch,
   type ImportVisitTeamsResult,
 } from "@/actions/visit-team-import-actions";
-import { Button } from "@/components/ui/button";
-import { CancelIcon, ImportIcon, SaveIcon, TemplateIcon } from "@/lib/button-icons";
-import { Label } from "@/components/ui/label";
 import {
   ImportProgressModal,
   type ImportProgressState,
 } from "@/components/import-progress-modal";
-import { downloadBase64File } from "@/lib/download-base64";
+import { Button } from "@/components/ui/button";
+import { CancelIcon, ImportIcon, SaveIcon } from "@/lib/button-icons";
+import { Label } from "@/components/ui/label";
 import {
   extractVisitTeamImportRows,
   parseVisitTeamImportHeaders,
 } from "@/lib/visit-team-import";
 import { parseSpreadsheetFile } from "@/lib/spreadsheet-client";
-
-const EXCEL_MIME =
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".csv"];
 const BATCH_SIZE = 25;
@@ -37,26 +32,9 @@ export function ImportVisitTeamsDialog() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [templateLoading, setTemplateLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ImportVisitTeamsResult | null>(null);
   const [progress, setProgress] = useState<ImportProgressState | null>(null);
-
-  async function downloadTemplate() {
-    setTemplateLoading(true);
-    setError("");
-    const templateResult = await getVisitTeamImportTemplate();
-    setTemplateLoading(false);
-    if (!templateResult.success) {
-      setError(templateResult.error);
-      return;
-    }
-    downloadBase64File(
-      templateResult.data.base64,
-      templateResult.data.fileName,
-      EXCEL_MIME
-    );
-  }
 
   async function handleImport() {
     const file = fileRef.current?.files?.[0];
@@ -185,23 +163,16 @@ export function ImportVisitTeamsDialog() {
             Import tổ thăm viếng từ Excel
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            File cần 3 cột: <strong>Mã tổ thăm viếng</strong>,{" "}
+            File cần 3 cột như file mẫu: <strong>Mã tổ thăm viếng</strong>,{" "}
             <strong>Mã tín hữu</strong> (trưởng tổ, tùy chọn),{" "}
             <strong>Khu vực phụ trách</strong>. Tổ đã có sẽ được cập nhật.
           </p>
+          <p className="mt-2 text-sm text-amber-800">
+            Cần import thành viên trước để có mã tín hữu trưởng tổ trong hệ
+            thống.
+          </p>
 
           <div className="mt-4 space-y-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon={templateLoading ? undefined : TemplateIcon}
-              onClick={downloadTemplate}
-              disabled={templateLoading || importing}
-            >
-              {templateLoading ? "Đang tạo file mẫu..." : "Tải file mẫu Excel"}
-            </Button>
-
             <div className="space-y-2">
               <Label htmlFor="import-visit-team-file">Chọn file Excel</Label>
               <input

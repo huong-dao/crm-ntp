@@ -6,6 +6,11 @@ import type { ActionResult } from "@/actions/user-actions";
 import { auth } from "@/lib/auth";
 import { generateHouseholdCode } from "@/lib/generate-code";
 import { DEFAULT_PAGE_SIZE } from "@/lib/member-list";
+import { buildExcelBase64 } from "@/lib/member-excel";
+import {
+  HOUSEHOLD_EXPORT_HEADERS,
+  householdToExportRow,
+} from "@/lib/household-export";
 import { prisma } from "@/lib/prisma";
 import {
   householdFormSchema,
@@ -391,5 +396,64 @@ export async function deleteHousehold(id: string): Promise<ActionResult> {
     return { success: true, data: undefined };
   } catch {
     return { success: false, error: "Không thể xóa hộ gia đình" };
+  }
+}
+
+export async function exportHouseholds(
+  filters: HouseholdFilters = {}
+): Promise<ActionResult<{ base64: string; fileName: string }>> {
+  try {
+    await requireAuth();
+
+    const search = filters.search?.trim();
+    const where: Prisma.HouseholdWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { code: { contains: search } },
+        {
+          members: {
+            some: {
+              OR: [
+                { fullName: { contains: search } },
+                { code: { contains: search } },
+              ],
+            },
+          },
+        },
+      ];
+    }
+
+    const households = await prisma.household.findMany({
+      where,
+      orderBy: { code: "asc" },
+      select: {
+        code: true,
+        _count: { select: { members: true } },
+        members: {
+          where: { isHead: true },
+          select: { code: true, fullName: true },
+          take: 1,
+        },
+      },
+    });
+
+    const rows = households.map((household) =>
+      householdToExportRow({
+        code: household.code,
+        headMember: household.members[0] ?? null,
+        memberCount: household._count.members,
+      })
+    );
+
+    const date = new Date().toISOString().slice(0, 10);
+    const base64 = buildExcelBase64(HOUSEHOLD_EXPORT_HEADERS, rows, "Hộ gia đình");
+
+    return {
+      success: true,
+      data: { base64, fileName: `ho-gia-dinh-${date}.xlsx` },
+    };
+  } catch {
+    return { success: false, error: "Không thể xuất file Excel" };
   }
 }

@@ -93,6 +93,7 @@
 **Acceptance Criteria:**
 - [ ] Nút Export Excel trên trang danh sách
 - [ ] Export theo filter hiện tại
+- [ ] Cột khớp file mẫu import (đầy đủ dữ liệu)
 
 ### US-07b: Import thành viên và xem log
 **As a** user  
@@ -106,18 +107,18 @@
 - [ ] Nút **Import lại dòng lỗi** trên chi tiết log
 - [ ] Tải Excel chỉ các dòng lỗi để sửa ngoài hệ thống
 - [ ] Cột **Quan hệ** và **Chủ hộ** lưu độc lập (không xóa quan hệ khi là chủ hộ)
+- [ ] Nút **Tải file mẫu** trên header trang (không nằm trong popup import)
+- [ ] Tự tạo hộ / tổ / ban ngành nếu chưa có khi import thành viên
 
-### US-09b: Import hộ gia đình từ Excel
+### US-08b: Export hộ gia đình
 **As a** user  
-**I want to** import danh sách hộ từ file Excel  
-**So that** tôi gán chủ hộ hàng loạt mà không nhập tay từng hộ
+**I want to** xuất danh sách hộ ra Excel  
+**So that** tôi có bản sao đầy đủ dữ liệu hộ
 
 **Acceptance Criteria:**
-- [ ] Nút Import Excel trên `/households`
-- [ ] File mẫu 2 cột: **Mã hộ** | **Chủ hộ** (mã tín hữu, tùy chọn)
-- [ ] Import được hộ chỉ với Mã hộ (Chủ hộ để trống)
-- [ ] Tạo hộ mới hoặc cập nhật chủ hộ theo từng dòng
-- [ ] Hiển thị kết quả OK/lỗi theo dòng
+- [ ] Nút Export Excel trên `/households`
+- [ ] Cột: Mã hộ, Mã tín hữu chủ hộ, Tên chủ hộ, Số thành viên
+- [ ] Export theo bộ lọc tìm kiếm hiện tại
 
 ---
 
@@ -175,6 +176,17 @@
 - [ ] File mẫu 3 cột: **Mã tổ thăm viếng** | **Mã tín hữu** | **Khu vực phụ trách**
 - [ ] Tạo/cập nhật tổ theo từng dòng
 - [ ] Hiển thị kết quả OK/lỗi theo dòng
+- [ ] Nút **Tải file mẫu** trên header trang (không nằm trong popup import)
+- [ ] Import sau khi đã import thành viên (trưởng tổ phải tồn tại nếu có mã tín hữu)
+
+### US-11c: Export tổ thăm viếng
+**As a** user  
+**I want to** xuất danh sách tổ ra Excel  
+**So that** tôi có bản sao đầy đủ
+
+**Acceptance Criteria:**
+- [ ] Nút Export Excel trên `/visit-teams`
+- [ ] Cột khớp file mẫu import
 
 ---
 
@@ -189,6 +201,16 @@
 - [ ] Table: Mã đơn, Lịch, Tình trạng, Mã hộ, Tổ, Nhân sự
 - [ ] Filter theo tình trạng, tổ, ngày
 - [ ] Màu sắc theo tình trạng (pending= vàng, completed=xanh)
+
+### US-12b: Export đơn thăm viếng
+**As a** user  
+**I want to** xuất danh sách đơn thăm viếng ra Excel  
+**So that** tôi có bản sao đầy đủ dữ liệu
+
+**Acceptance Criteria:**
+- [ ] Nút Export Excel trên `/visit-requests`
+- [ ] Export theo filter hiện tại
+- [ ] Đầy đủ: mã đơn, lịch, ngày thực tế, tình trạng, mã hộ, mã tổ, đại diện, nhân sự, nội dung
 
 ### US-13: Tạo đơn thăm viếng
 **As a** user  

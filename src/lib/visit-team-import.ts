@@ -128,3 +128,17 @@ export function validateVisitTeamImportRow(
 }
 
 export type VisitTeamImportDataRow = SpreadsheetDataRow;
+
+export type VisitTeamExportRecord = {
+  code: string;
+  area: string;
+  leaderMember: { code: string } | null;
+};
+
+export function visitTeamToExportRow(record: VisitTeamExportRecord): string[] {
+  return [
+    record.code,
+    record.leaderMember?.code ?? "",
+    record.area,
+  ];
+}

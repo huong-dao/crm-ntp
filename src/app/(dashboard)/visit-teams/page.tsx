@@ -1,5 +1,9 @@
+import { Suspense } from "react";
 import { getVisitTeams } from "@/actions/visit-team-actions";
+import { getVisitTeamImportTemplate } from "@/actions/visit-team-import-actions";
+import { ExportVisitTeamsButton } from "@/components/visit-teams/export-visit-teams-button";
 import { ImportVisitTeamsDialog } from "@/components/visit-teams/import-visit-teams-dialog";
+import { DownloadImportTemplateButton } from "@/components/shared/download-import-template-button";
 import { VisitTeamTable } from "@/components/visit-teams/visit-team-table";
 import { Button } from "@/components/ui/button";
 import { AddIcon, CancelIcon, SearchIcon } from "@/lib/button-icons";
@@ -41,6 +45,10 @@ export default async function VisitTeamsPage({
           <h1 className="text-2xl font-bold text-gray-900">Danh sách Tổ thăm viếng</h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Suspense fallback={null}>
+            <ExportVisitTeamsButton />
+          </Suspense>
+          <DownloadImportTemplateButton fetchTemplate={getVisitTeamImportTemplate} />
           <ImportVisitTeamsDialog />
           <Button asChild icon={AddIcon}>
             <Link href="/visit-teams/new">Thêm tổ</Link>

@@ -58,7 +58,9 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Mã tổ thăm viếng liên kết với tổ phụ trách khu vực
 - Khi thêm thành viên mà chưa có hộ nào (hoặc chọn **Tạo hộ mới**): hệ thống tự sinh mã hộ và gán thành viên đó làm chủ hộ
 - Thành viên thuộc hộ có sẵn: chọn mã hộ trong danh sách
-- **Import Excel:** mỗi lần import ghi log (`MemberImportLog`); từng dòng OK/lỗi lưu trong `MemberImportLogRow`; cho phép import lại dòng lỗi; hiển thị modal tiến độ với thanh progress và cảnh báo không đóng trang khi đang import
+- **Import Excel** (chỉ trên `/members` và `/visit-teams`): xem mục Import/Export bên dưới
+- Import thành viên có thể **tự tạo** hộ gia đình, tổ thăm viếng, ban ngành nếu chưa tồn tại
+- **Thứ tự import:** luôn import **thành viên trước**, sau đó import **tổ thăm viếng** (tổ cần mã tín hữu trưởng tổ)
 - **Quan hệ** và **Chủ hộ** (`isHead`) là hai trường độc lập — có thể vừa là chủ hộ vừa có giá trị quan hệ (form, import, sửa đều giữ nguyên)
 
 ---
@@ -79,7 +81,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Tên ban ngành không trùng
 - Min ≤ Max khi cả hai có giá trị
 - Không xóa ban ngành đang được gán cho thành viên
-- Import thành viên: cột ban ngành khớp theo **tên** với danh mục (không khớp → để trống)
+- Import thành viên: cột ban ngành khớp theo **tên** với danh mục; **tên chưa có → tự tạo ban ngành mới**
 
 ---
 
@@ -98,7 +100,8 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Mã hộ tự sinh khi tạo hộ mới (từ màn hình Hộ gia đình hoặc khi thêm thành viên với tùy chọn **Tạo hộ mới**) (từ màn hình Hộ gia đình hoặc khi thêm thành viên với tùy chọn **Tạo hộ mới**)
 - Số thành viên tự cập nhật khi thêm/xóa member trong hộ
 - Chủ hộ phải là member có `is_head_of_household = true`
-- **Import Excel** (nút trên `/households`): file `.xlsx` với cột **Mã hộ** (bắt buộc) | **Chủ hộ** (mã tín hữu, tùy chọn); có thể import hộ trước không chủ hộ, gán sau khi import thành viên
+- Hộ được tạo khi import thành viên (theo cột Mã hộ) hoặc từ màn hình Hộ gia đình / form thành viên
+- **Export Excel** trên `/households` — xuất đầy đủ: Mã hộ, Mã tín hữu chủ hộ, Tên chủ hộ, Số thành viên
 
 ---
 
@@ -116,7 +119,8 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Mỗi tổ có mã riêng
 - Một khu vực chỉ do một tổ phụ trách
 - Trưởng tổ là tín hữu (member), không phải user đăng nhập
-- **Import Excel** (nút trên `/visit-teams`): file `.xlsx` với cột **Mã tổ thăm viếng** | **Mã tín hữu** (trưởng tổ) | **Khu vực phụ trách**; mỗi dòng tạo/cập nhật tổ thăm viếng
+- **Import Excel** (nút trên `/visit-teams`): file `.xlsx` với cột **Mã tổ thăm viếng** | **Mã tín hữu** (trưởng tổ) | **Khu vực phụ trách** — **chạy sau khi đã import thành viên**
+- **Export Excel** trên `/visit-teams` — cột khớp file mẫu import
 
 ---
 
@@ -140,6 +144,7 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - Tổ thăm viếng được gán tự động theo khu vực hoặc chọn thủ công
 - Nhân sự thăm viếng là string chứa nhiều mã tín hữu (không FK cứng)
 - Khi hoàn thành: cập nhật tình trạng + ngày thăm thực tế
+- **Export Excel** trên `/visit-requests` — xuất đầy đủ các trường: mã đơn, lịch, ngày thực tế, tình trạng, mã hộ, mã tổ, đại diện, nhân sự, nội dung
 
 ---
 
@@ -221,10 +226,10 @@ Hội Thánh Tin Lành Nguyễn Tri Phương cần một hệ thống quản lý
 - ✅ Admin tạo user
 - ✅ Dashboard cơ bản
 - ✅ Search & Filter
-- ✅ Export CSV
+- ✅ Export Excel (thành viên, hộ, tổ, đơn thăm viếng)
+- ✅ Import Excel (chỉ thành viên + tổ thăm viếng)
 
 ### Phase 2 (sau go-live)
-- Import Excel
 - Thông báo / nhắc lịch thăm viếng
 - Lịch sử thay đổi (audit log)
 - Báo cáo thống kê nâng cao

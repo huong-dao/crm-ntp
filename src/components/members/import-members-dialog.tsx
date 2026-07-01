@@ -5,15 +5,13 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   cancelMemberImportLog,
-  getMemberImportTemplate,
   importMemberBatch,
   startMemberImport,
   type ImportMembersResult,
 } from "@/actions/member-import-actions";
 import { Button } from "@/components/ui/button";
-import { CancelIcon, ImportIcon, SaveIcon, TemplateIcon } from "@/lib/button-icons";
+import { CancelIcon, ImportIcon, SaveIcon } from "@/lib/button-icons";
 import { Label } from "@/components/ui/label";
-import { downloadBase64File } from "@/lib/download-base64";
 import {
   extractImportDataRows,
   parseImportHeaders,
@@ -23,9 +21,6 @@ import {
   ImportProgressModal,
   type ImportProgressState,
 } from "@/components/import-progress-modal";
-
-const EXCEL_MIME =
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".csv"];
 const BATCH_SIZE = 25;
@@ -40,29 +35,9 @@ export function ImportMembersDialog() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [templateLoading, setTemplateLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ImportMembersResult | null>(null);
   const [progress, setProgress] = useState<ImportProgressState | null>(null);
-
-  async function downloadTemplate() {
-    setTemplateLoading(true);
-    setError("");
-
-    const templateResult = await getMemberImportTemplate();
-    setTemplateLoading(false);
-
-    if (!templateResult.success) {
-      setError(templateResult.error);
-      return;
-    }
-
-    downloadBase64File(
-      templateResult.data.base64,
-      templateResult.data.fileName,
-      EXCEL_MIME
-    );
-  }
 
   async function handleImport() {
     const file = fileRef.current?.files?.[0];
@@ -226,26 +201,20 @@ export function ImportMembersDialog() {
             Import thành viên từ Excel
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Dùng file Excel (.xlsx) với đầy đủ cột như file mẫu. Bắt buộc:{" "}
+            Dùng file Excel (.xlsx) với đầy đủ cột như file mẫu (tải từ nút{" "}
+            <strong>Tải file mẫu</strong> trên trang). Bắt buộc:{" "}
             <strong>Họ và lót</strong>, <strong>Tên</strong>, <strong>Mã hộ</strong>.
-            Hộ chưa có sẽ được <strong>tự tạo</strong> theo mã hộ trong file.
-            Mã tín hữu đã có sẽ được <strong>cập nhật</strong>, chưa có thì tạo mới
-            (tự sinh mã nếu để trống). Ban ngành theo tuổi được{" "}
-            <strong>tự gán</strong> từ năm sinh và khoảng tuổi ban ngành.
+            Hộ, tổ thăm viếng hoặc ban ngành chưa có sẽ được{" "}
+            <strong>tự tạo</strong>. Mã tín hữu đã có sẽ được{" "}
+            <strong>cập nhật</strong>, chưa có thì tạo mới (tự sinh mã nếu để trống).
+            Ban ngành theo tuổi được <strong>tự gán</strong> từ năm sinh khi có thể.
+          </p>
+          <p className="mt-2 text-sm text-amber-800">
+            Nên import thành viên trước khi import tổ thăm viếng (tổ cần mã tín
+            hữu trưởng tổ).
           </p>
 
           <div className="mt-4 space-y-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon={templateLoading ? undefined : TemplateIcon}
-              onClick={downloadTemplate}
-              disabled={templateLoading || importing}
-            >
-              {templateLoading ? "Đang tạo file mẫu..." : "Tải file mẫu Excel"}
-            </Button>
-
             <div className="space-y-2">
               <Label htmlFor="import-excel-file">Chọn file Excel</Label>
               <input

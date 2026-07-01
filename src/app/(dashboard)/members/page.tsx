@@ -10,6 +10,8 @@ import {
 } from "@/components/members/member-filters";
 import { ExportMembersButton } from "@/components/members/export-members-button";
 import { ImportMembersDialog } from "@/components/members/import-members-dialog";
+import { DownloadImportTemplateButton } from "@/components/shared/download-import-template-button";
+import { getMemberImportTemplate } from "@/actions/member-import-actions";
 import { MemberTable } from "@/components/members/member-table";
 import { auth } from "@/lib/auth";
 import {
@@ -100,6 +102,7 @@ export default async function MembersPage({
           <Suspense fallback={null}>
             <ExportMembersButton />
           </Suspense>
+          <DownloadImportTemplateButton fetchTemplate={getMemberImportTemplate} />
           <ImportMembersDialog />
           <AddMemberLink />
         </div>

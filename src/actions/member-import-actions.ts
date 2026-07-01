@@ -104,6 +104,40 @@ async function ensureHouseholdByCode(
   return created.id;
 }
 
+async function ensureVisitTeamByCode(
+  code: string,
+  teamCodeToId: Map<string, string>
+): Promise<{ id: string; created: boolean }> {
+  const key = code.toLowerCase();
+  const existing = teamCodeToId.get(key);
+  if (existing) return { id: existing, created: false };
+
+  const created = await prisma.visitTeam.create({
+    data: {
+      code: code.trim(),
+      area: "Chưa cập nhật khu vực",
+    },
+  });
+  teamCodeToId.set(key, created.id);
+  return { id: created.id, created: true };
+}
+
+async function ensureDepartmentByName(
+  name: string,
+  departmentNameToId: Map<string, string>
+): Promise<{ id: string; created: boolean }> {
+  const trimmed = name.trim();
+  const key = trimmed.toLowerCase();
+  const existing = departmentNameToId.get(key);
+  if (existing) return { id: existing, created: false };
+
+  const created = await prisma.department.create({
+    data: { name: trimmed },
+  });
+  departmentNameToId.set(key, created.id);
+  return { id: created.id, created: true };
+}
+
 async function buildImportFormInput(
   row: ImportRowValid,
   householdId: string,
@@ -116,12 +150,15 @@ async function buildImportFormInput(
     ageDepartmentId = resolveDepartmentIdByAge(row.birthYear, departments);
   }
   if (!ageDepartmentId && row.ageDepartment) {
-    ageDepartmentId =
-      departmentNameToId.get(row.ageDepartment.trim().toLowerCase()) ?? null;
+    const ensured = await ensureDepartmentByName(
+      row.ageDepartment,
+      departmentNameToId
+    );
+    ageDepartmentId = ensured.id;
   }
 
   const actualDepartmentId = row.actualDepartment
-    ? departmentNameToId.get(row.actualDepartment.trim().toLowerCase()) ?? null
+    ? (await ensureDepartmentByName(row.actualDepartment, departmentNameToId)).id
     : null;
 
   const formInput: MemberFormInput = {
@@ -272,7 +309,6 @@ type ProcessRowInput = {
   headers: string[];
   householdCodeToId: Map<string, string>;
   teamCodeToId: Map<string, string>;
-  visitTeamCodes: Set<string>;
   memberCodeToId: Map<string, string>;
   departments: DepartmentAgeRange[];
   departmentNameToId: Map<string, string>;
@@ -286,6 +322,8 @@ async function processImportRow(
   memberId?: string;
   error?: string;
   householdsCreated: number;
+  visitTeamsCreated: number;
+  departmentsCreated: number;
 }> {
   const {
     rowNumber,
@@ -293,23 +331,30 @@ async function processImportRow(
     headers,
     householdCodeToId,
     teamCodeToId,
-    visitTeamCodes,
     memberCodeToId,
     departments,
     departmentNameToId,
   } = input;
 
   const importRow = rowToImportData(headers, cells, rowNumber);
-  const validated = validateImportRow(importRow, visitTeamCodes);
+  const validated = validateImportRow(importRow);
 
   if (!validated.ok) {
-    return { success: false, error: validated.error, householdsCreated: 0 };
+    return {
+      success: false,
+      error: validated.error,
+      householdsCreated: 0,
+      visitTeamsCreated: 0,
+      departmentsCreated: 0,
+    };
   }
 
   const row = validated.data;
   const householdKey = row.householdCode.toLowerCase();
   const hadHousehold = householdCodeToId.has(householdKey);
   let householdsCreated = 0;
+  let visitTeamsCreated = 0;
+  let departmentsCreated = 0;
 
   let householdId: string;
   try {
@@ -322,6 +367,8 @@ async function processImportRow(
       success: false,
       error: `Không thể tạo hộ "${row.householdCode}"`,
       householdsCreated: 0,
+      visitTeamsCreated: 0,
+      departmentsCreated: 0,
     };
   }
 
@@ -329,9 +376,37 @@ async function processImportRow(
     householdsCreated = 1;
   }
 
-  const visitTeamId = row.visitTeamCode
-    ? teamCodeToId.get(row.visitTeamCode.toLowerCase()) ?? null
-    : null;
+  let visitTeamId: string | null = null;
+  if (row.visitTeamCode) {
+    try {
+      const ensured = await ensureVisitTeamByCode(row.visitTeamCode, teamCodeToId);
+      visitTeamId = ensured.id;
+      if (ensured.created) visitTeamsCreated = 1;
+    } catch {
+      return {
+        success: false,
+        error: `Không thể tạo tổ "${row.visitTeamCode}"`,
+        householdsCreated,
+        visitTeamsCreated: 0,
+        departmentsCreated: 0,
+      };
+    }
+  }
+
+  if (row.ageDepartment) {
+    const before = departmentNameToId.has(row.ageDepartment.trim().toLowerCase());
+    if (!before) {
+      await ensureDepartmentByName(row.ageDepartment, departmentNameToId);
+      departmentsCreated++;
+    }
+  }
+  if (row.actualDepartment) {
+    const key = row.actualDepartment.trim().toLowerCase();
+    if (!departmentNameToId.has(key)) {
+      await ensureDepartmentByName(row.actualDepartment, departmentNameToId);
+      departmentsCreated++;
+    }
+  }
 
   const upsertResult = await upsertMemberFromImport(
     row,
@@ -347,6 +422,8 @@ async function processImportRow(
       success: false,
       error: upsertResult.error,
       householdsCreated,
+      visitTeamsCreated,
+      departmentsCreated,
     };
   }
 
@@ -355,6 +432,8 @@ async function processImportRow(
     code: upsertResult.data.code,
     memberId: upsertResult.data.id,
     householdsCreated,
+    visitTeamsCreated,
+    departmentsCreated,
   };
 }
 
@@ -372,7 +451,6 @@ async function loadImportContext() {
   const teamCodeToId = new Map(
     teams.map((t) => [t.code.toLowerCase(), t.id])
   );
-  const visitTeamCodes = new Set(teams.map((t) => t.code.toLowerCase()));
 
   const existingMembers = await prisma.member.findMany({
     select: { id: true, code: true },
@@ -392,7 +470,6 @@ async function loadImportContext() {
   return {
     householdCodeToId,
     teamCodeToId,
-    visitTeamCodes,
     memberCodeToId,
     departments,
     departmentNameToId,
@@ -404,11 +481,13 @@ async function processBatchRows(
   headers: string[],
   rows: ImportDataRow[],
   ctx: Awaited<ReturnType<typeof loadImportContext>>
-): Promise<{ results: ImportRowResult[]; successCount: number; errorCount: number; householdsCreated: number }> {
+): Promise<{ results: ImportRowResult[]; successCount: number; errorCount: number; householdsCreated: number; visitTeamsCreated: number; departmentsCreated: number }> {
   const results: ImportRowResult[] = [];
   let successCount = 0;
   let errorCount = 0;
   let householdsCreated = 0;
+  let visitTeamsCreated = 0;
+  let departmentsCreated = 0;
 
   for (const { rowNumber, cells } of rows) {
     const outcome = await processImportRow({
@@ -419,6 +498,8 @@ async function processBatchRows(
     });
 
     householdsCreated += outcome.householdsCreated;
+    visitTeamsCreated += outcome.visitTeamsCreated;
+    departmentsCreated += outcome.departmentsCreated;
 
     if (outcome.success) {
       successCount++;
@@ -448,7 +529,7 @@ async function processBatchRows(
     }
   }
 
-  return { results, successCount, errorCount, householdsCreated };
+  return { results, successCount, errorCount, householdsCreated, visitTeamsCreated, departmentsCreated };
 }
 
 export async function startMemberImport(input: {
@@ -530,12 +611,24 @@ export async function importMemberBatch(
       if (batch.householdsCreated > 0) {
         revalidatePath("/households");
       }
+      if (batch.visitTeamsCreated > 0) {
+        revalidatePath("/visit-teams");
+      }
+      if (batch.departmentsCreated > 0) {
+        revalidatePath("/departments");
+      }
       revalidatePath("/members/imports");
       revalidatePath(`/members/imports/${logId}`);
     } else if (batch.successCount > 0) {
       revalidatePath("/members");
       if (batch.householdsCreated > 0) {
         revalidatePath("/households");
+      }
+      if (batch.visitTeamsCreated > 0) {
+        revalidatePath("/visit-teams");
+      }
+      if (batch.departmentsCreated > 0) {
+        revalidatePath("/departments");
       }
     }
 
@@ -772,6 +865,8 @@ export async function retryFailedImportRows(
     let newSuccess = 0;
     let newFailed = 0;
     let householdsCreated = 0;
+    let visitTeamsCreated = 0;
+    let departmentsCreated = 0;
 
     for (const logRow of log.rows) {
       const cells = logRow.rowData as string[];
@@ -783,6 +878,8 @@ export async function retryFailedImportRows(
       });
 
       householdsCreated += outcome.householdsCreated;
+      visitTeamsCreated += outcome.visitTeamsCreated;
+      departmentsCreated += outcome.departmentsCreated;
 
       if (outcome.success) {
         newSuccess++;
@@ -830,6 +927,12 @@ export async function retryFailedImportRows(
       revalidatePath("/members");
       if (householdsCreated > 0) {
         revalidatePath("/households");
+      }
+      if (visitTeamsCreated > 0) {
+        revalidatePath("/visit-teams");
+      }
+      if (departmentsCreated > 0) {
+        revalidatePath("/departments");
       }
     }
     revalidatePath("/members/imports");

@@ -1,5 +1,6 @@
+import { Suspense } from "react";
 import { getHouseholds } from "@/actions/household-actions";
-import { ImportHouseholdsDialog } from "@/components/households/import-households-dialog";
+import { ExportHouseholdsButton } from "@/components/households/export-households-button";
 import { HouseholdTable } from "@/components/households/household-table";
 import { Button } from "@/components/ui/button";
 import { AddIcon, CancelIcon, SearchIcon } from "@/lib/button-icons";
@@ -41,7 +42,9 @@ export default async function HouseholdsPage({
           <h1 className="text-2xl font-bold text-gray-900">Danh sách Hộ gia đình</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ImportHouseholdsDialog />
+          <Suspense fallback={null}>
+            <ExportHouseholdsButton />
+          </Suspense>
           <Button asChild icon={AddIcon}>
             <Link href="/households/new">Thêm hộ</Link>
           </Button>

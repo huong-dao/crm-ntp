@@ -5,7 +5,12 @@ import type { MemberStatus, Prisma } from "@prisma/client";
 import type { ActionResult } from "@/actions/user-actions";
 import { auth } from "@/lib/auth";
 import { DEFAULT_PAGE_SIZE } from "@/lib/member-list";
+import { buildExcelBase64 } from "@/lib/member-excel";
 import { prisma } from "@/lib/prisma";
+import {
+  VISIT_TEAM_IMPORT_HEADERS,
+  visitTeamToExportRow,
+} from "@/lib/visit-team-import";
 import {
   visitTeamCreateSchema,
   visitTeamUpdateSchema,
@@ -506,5 +511,75 @@ export async function deleteVisitTeam(id: string): Promise<ActionResult> {
     return { success: true, data: undefined };
   } catch {
     return { success: false, error: "Không thể xóa tổ thăm viếng" };
+  }
+}
+
+export async function exportVisitTeams(
+  filters: VisitTeamFilters = {}
+): Promise<ActionResult<{ base64: string; fileName: string }>> {
+  try {
+    await requireAuth();
+
+    const search = filters.search?.trim();
+    const where: Prisma.VisitTeamWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { code: { contains: search } },
+        { area: { contains: search } },
+      ];
+    }
+
+    const teams = await prisma.visitTeam.findMany({
+      where,
+      orderBy: { code: "asc" },
+      select: {
+        code: true,
+        area: true,
+        leaderMemberId: true,
+      },
+    });
+
+    const leaderIds = teams
+      .map((team) => team.leaderMemberId)
+      .filter((id): id is string => id != null);
+
+    const leaders =
+      leaderIds.length > 0
+        ? await prisma.member.findMany({
+            where: { id: { in: leaderIds } },
+            select: { id: true, code: true },
+          })
+        : [];
+
+    const leaderCodeById = new Map(
+      leaders.map((leader) => [leader.id, leader.code])
+    );
+
+    const rows = teams.map((team) =>
+      visitTeamToExportRow({
+        code: team.code,
+        area: team.area,
+        leaderMember:
+          team.leaderMemberId &&
+          leaderCodeById.has(team.leaderMemberId)
+            ? { code: leaderCodeById.get(team.leaderMemberId)! }
+            : null,
+      })
+    );
+
+    const date = new Date().toISOString().slice(0, 10);
+    const base64 = buildExcelBase64(
+      VISIT_TEAM_IMPORT_HEADERS,
+      rows,
+      "Tổ thăm viếng"
+    );
+
+    return {
+      success: true,
+      data: { base64, fileName: `to-tham-vieng-${date}.xlsx` },
+    };
+  } catch {
+    return { success: false, error: "Không thể xuất file Excel" };
   }
 }
