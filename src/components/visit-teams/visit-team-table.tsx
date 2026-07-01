@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { VisitTeamListItem } from "@/actions/visit-team-actions";
 import { Button } from "@/components/ui/button";
-import { EditIcon, NextIcon, PrevIcon, ViewIcon } from "@/lib/button-icons";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { EditIcon, ViewIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 
 function buildPageUrl(search: string | undefined, page: number): string {
@@ -134,43 +135,16 @@ export function VisitTeamTable({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-gray-600">
-        <p>
-          Hiển thị {start}–{end} / {total} tổ
-        </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild icon={PrevIcon} disabled={page <= 1}>
-            <Link
-              href={page <= 1 ? "#" : buildPageUrl(search, page - 1)}
-              className={page <= 1 ? "pointer-events-none opacity-50" : ""}
-            >
-              Trước
-            </Link>
-          </Button>
-          <span>
-            Trang {page} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            icon={NextIcon}
-            iconPosition="end"
-            disabled={page >= totalPages}
-          >
-            <Link
-              href={
-                page >= totalPages ? "#" : buildPageUrl(search, page + 1)
-              }
-              className={
-                page >= totalPages ? "pointer-events-none opacity-50" : ""
-              }
-            >
-              Sau
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        getPageHref={(p) => buildPageUrl(search, p)}
+        summary={
+          <>
+            Hiển thị {start}–{end} / {total} tổ
+          </>
+        }
+      />
     </div>
   );
 }

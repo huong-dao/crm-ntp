@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { MemberListItem } from "@/actions/member-actions";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { Button } from "@/components/ui/button";
-import { EditIcon, NextIcon, PrevIcon } from "@/lib/button-icons";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { EditIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 import { cn } from "@/lib/utils";
 import {
@@ -262,57 +263,18 @@ export function MemberTable({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-gray-600">
-        <p>
-          Hiển thị {start}–{end} / {total} thành viên
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            icon={PrevIcon}
-            disabled={page <= 1}
-          >
-            <Link
-              href={
-                page <= 1
-                  ? "#"
-                  : buildPageUrl(baseParams, { page: String(page - 1) })
-              }
-              aria-disabled={page <= 1}
-              className={page <= 1 ? "pointer-events-none opacity-50" : ""}
-            >
-              Trước
-            </Link>
-          </Button>
-          <span>
-            Trang {page} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            icon={NextIcon}
-            iconPosition="end"
-            disabled={page >= totalPages}
-          >
-            <Link
-              href={
-                page >= totalPages
-                  ? "#"
-                  : buildPageUrl(baseParams, { page: String(page + 1) })
-              }
-              aria-disabled={page >= totalPages}
-              className={
-                page >= totalPages ? "pointer-events-none opacity-50" : ""
-              }
-            >
-              Sau
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        getPageHref={(p) =>
+          buildPageUrl(baseParams, { page: p > 1 ? String(p) : undefined })
+        }
+        summary={
+          <>
+            Hiển thị {start}–{end} / {total} thành viên
+          </>
+        }
+      />
     </div>
   );
 }

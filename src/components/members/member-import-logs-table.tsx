@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { MemberImportLogListItem } from "@/actions/member-import-actions";
 import { Button } from "@/components/ui/button";
-import { NextIcon, PrevIcon, ViewIcon } from "@/lib/button-icons";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { ViewIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 
 function formatDate(iso: string) {
@@ -27,9 +28,6 @@ export function MemberImportLogsTable({
       </div>
     );
   }
-
-  const prevPage = page > 1 ? page - 1 : null;
-  const nextPage = page < totalPages ? page + 1 : null;
 
   return (
     <div className="space-y-4">
@@ -86,23 +84,11 @@ export function MemberImportLogsTable({
         ))}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          {prevPage ? (
-            <Button variant="outline" size="sm" asChild icon={PrevIcon}>
-              <Link href={`/members/imports?page=${prevPage}`}>Trước</Link>
-            </Button>
-          ) : null}
-          <span className="text-sm text-gray-600">
-            Trang {page} / {totalPages}
-          </span>
-          {nextPage ? (
-            <Button variant="outline" size="sm" asChild icon={NextIcon} iconPosition="end">
-              <Link href={`/members/imports?page=${nextPage}`}>Sau</Link>
-            </Button>
-          ) : null}
-        </div>
-      )}
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        getPageHref={(p) => `/members/imports?page=${p}`}
+      />
     </div>
   );
 }
