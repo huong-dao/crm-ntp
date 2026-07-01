@@ -23,6 +23,15 @@ export type RecentVisitRequest = {
   staffCodes: string | null;
 };
 
+export type VisitTeamSuccessStat = {
+  id: string;
+  code: string;
+  area: string;
+  totalHouseholds: number;
+  completedVisitCount: number;
+  visitedHouseholdCount: number;
+};
+
 async function requireAuth() {
   const session = await auth();
   if (!session?.user) {
@@ -100,5 +109,66 @@ export async function getRecentVisitRequests(
     visitTeamCode: row.visitTeam.code,
     visitTeamId: row.visitTeamId,
     staffCodes: row.staffCodes,
+  }));
+}
+
+function buildTeamHouseholdCountMap(
+  members: { visitTeamId: string | null; householdId: string | null }[]
+) {
+  const map = new Map<string, Set<string>>();
+
+  for (const member of members) {
+    if (!member.visitTeamId || !member.householdId) continue;
+    const set = map.get(member.visitTeamId) ?? new Set<string>();
+    set.add(member.householdId);
+    map.set(member.visitTeamId, set);
+  }
+
+  return map;
+}
+
+export async function getVisitTeamSuccessStats(): Promise<
+  VisitTeamSuccessStat[]
+> {
+  await requireAuth();
+
+  const [teams, teamMembers, completedVisits] = await prisma.$transaction([
+    prisma.visitTeam.findMany({
+      select: { id: true, code: true, area: true },
+      orderBy: { code: "asc" },
+    }),
+    prisma.member.findMany({
+      where: { visitTeamId: { not: null }, householdId: { not: null } },
+      select: { visitTeamId: true, householdId: true },
+    }),
+    prisma.visitRequest.findMany({
+      where: { status: "completed" },
+      select: { visitTeamId: true, householdId: true },
+    }),
+  ]);
+
+  const householdCountMap = buildTeamHouseholdCountMap(teamMembers);
+
+  const completedCountMap = new Map<string, number>();
+  const visitedHouseholdMap = new Map<string, Set<string>>();
+
+  for (const visit of completedVisits) {
+    completedCountMap.set(
+      visit.visitTeamId,
+      (completedCountMap.get(visit.visitTeamId) ?? 0) + 1
+    );
+
+    const visited = visitedHouseholdMap.get(visit.visitTeamId) ?? new Set<string>();
+    visited.add(visit.householdId);
+    visitedHouseholdMap.set(visit.visitTeamId, visited);
+  }
+
+  return teams.map((team) => ({
+    id: team.id,
+    code: team.code,
+    area: team.area,
+    totalHouseholds: householdCountMap.get(team.id)?.size ?? 0,
+    completedVisitCount: completedCountMap.get(team.id) ?? 0,
+    visitedHouseholdCount: visitedHouseholdMap.get(team.id)?.size ?? 0,
   }));
 }

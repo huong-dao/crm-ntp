@@ -1,7 +1,24 @@
+import { Suspense } from "react";
 import LoginForm from "@/components/auth/login-form";
 import Image from "next/image";
+import { sanitizeCallbackUrl } from "@/lib/app-url";
 
-export default function LoginPage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function pickCallbackUrl(params: SearchParams): string {
+  const raw = params.callbackUrl;
+  const value = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined;
+  return sanitizeCallbackUrl(value);
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const callbackUrl = pickCallbackUrl(params);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#1e3a5f] px-4">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
@@ -15,7 +32,9 @@ export default function LoginPage() {
         <p className="mt-2 text-center text-sm text-gray-500">
           Đăng nhập hệ thống quản lý
         </p>
-        <LoginForm />
+        <Suspense fallback={null}>
+          <LoginForm callbackUrl={callbackUrl} />
+        </Suspense>
       </div>
     </div>
   );

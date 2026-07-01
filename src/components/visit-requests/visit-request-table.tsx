@@ -121,7 +121,7 @@ export function VisitRequestTable({
                 <td className="px-4 py-3 text-right">
                   <Button variant="outline" size="sm" asChild icon={EditIcon}>
                     <Link href={`/visit-requests/${request.id}`}>
-                      Cập nhật
+                      Chi tiết
                     </Link>
                   </Button>
                 </td>
@@ -137,7 +137,7 @@ export function VisitRequestTable({
             key={request.id}
             actions={
               <Button variant="outline" size="sm" asChild icon={EditIcon}>
-                <Link href={`/visit-requests/${request.id}`}>Cập nhật</Link>
+                <Link href={`/visit-requests/${request.id}`}>Chi tiết</Link>
               </Button>
             }
           >

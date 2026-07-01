@@ -10,7 +10,7 @@
 **Acceptance Criteria:**
 - [ ] Form login có username + password
 - [ ] Hiển thị lỗi khi sai thông tin
-- [ ] Redirect đến dashboard sau login thành công
+- [ ] Redirect đến dashboard sau login thành công (hoặc `callbackUrl` nếu có — ví dụ quét QR đơn thăm viếng)
 - [ ] Session lưu 24 giờ
 
 ### US-02: Đăng xuất
@@ -248,4 +248,5 @@
 - [ ] Tổng số hộ gia đình
 - [ ] Số đơn thăm viếng pending tuần này
 - [ ] Số tổ thăm viếng
+- [ ] Bảng **Tỷ lệ thăm viếng theo tổ**: đơn hoàn thành / tổng hộ, hộ đã thăm / tổng hộ (theo hộ phụ trách của tổ)
 - [ ] Biểu đồ thành viên theo ban ngành (optional)

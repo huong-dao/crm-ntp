@@ -7,11 +7,17 @@ import { Button } from "@/components/ui/button";
 import { LoginIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sanitizeCallbackUrl } from "@/lib/app-url";
 
-export default function LoginForm() {
+export default function LoginForm({
+  callbackUrl,
+}: {
+  callbackUrl?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const redirectTo = sanitizeCallbackUrl(callbackUrl);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -35,7 +41,7 @@ export default function LoginForm() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(redirectTo);
     router.refresh();
   }
 

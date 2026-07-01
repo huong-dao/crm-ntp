@@ -12,8 +12,12 @@ import {
 
 export function VisitRequestPrintView({
   request,
+  qrDataUrl,
+  editUrl,
 }: {
   request: VisitRequestPrintData;
+  qrDataUrl: string;
+  editUrl: string;
 }) {
   useEffect(() => {
     document.body.classList.add("print-visit-request");
@@ -48,14 +52,34 @@ export function VisitRequestPrintView({
         </div>
 
         <div className="border border-gray-300 p-8 print:border-0 print:p-0">
-          <div className="text-center">
-            <h2 className="text-xl font-bold uppercase tracking-wide">
-              Đơn thăm viếng
-            </h2>
-            <p className="mt-2 text-lg font-semibold text-[#1e3a5f]">
-              {request.code}
-            </p>
+          <div className="flex items-start gap-6">
+            <div className="shrink-0 text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrDataUrl}
+                alt={`QR mở trang sửa đơn ${request.code}`}
+                width={96}
+                height={96}
+                className="h-24 w-24"
+              />
+              <p className="mt-1 max-w-[6.5rem] text-[10px] leading-tight text-gray-500 print:text-gray-600">
+                Quét để sửa đơn
+              </p>
+            </div>
+
+            <div className="min-w-0 flex-1 text-center">
+              <h2 className="text-xl font-bold uppercase tracking-wide">
+                Đơn thăm viếng
+              </h2>
+              <p className="mt-2 text-lg font-semibold text-[#1e3a5f]">
+                {request.code}
+              </p>
+            </div>
           </div>
+
+          <p className="mt-2 hidden text-center text-[10px] text-gray-400 print:block">
+            {editUrl}
+          </p>
 
           <table className="mt-8 w-full border-collapse text-sm">
             <tbody>

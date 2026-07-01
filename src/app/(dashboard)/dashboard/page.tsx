@@ -2,8 +2,10 @@ import Link from "next/link";
 import {
   getDashboardStats,
   getRecentVisitRequests,
+  getVisitTeamSuccessStats,
 } from "@/actions/dashboard-actions";
 import { DashboardRecentVisitsTable } from "@/components/dashboard/dashboard-recent-visits-table";
+import { DashboardTeamVisitStatsTable } from "@/components/dashboard/dashboard-team-visit-stats-table";
 import { Button } from "@/components/ui/button";
 import { ViewIcon } from "@/lib/button-icons";
 
@@ -31,9 +33,10 @@ const statCards = [
 ] as const;
 
 export default async function DashboardPage() {
-  const [stats, recentVisits] = await Promise.all([
+  const [stats, recentVisits, teamVisitStats] = await Promise.all([
     getDashboardStats(),
     getRecentVisitRequests(5),
+    getVisitTeamSuccessStats(),
   ]);
 
   return (
@@ -58,6 +61,21 @@ export default async function DashboardPage() {
             </p>
           </Link>
         ))}
+      </div>
+
+      <div className="mt-8">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">
+            Tỷ lệ thăm viếng theo tổ
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Số đơn hoàn thành và số hộ đã thăm so với tổng hộ phụ trách của
+            từng tổ
+          </p>
+        </div>
+        <div className="mt-4">
+          <DashboardTeamVisitStatsTable stats={teamVisitStats} />
+        </div>
       </div>
 
       <div className="mt-8">
