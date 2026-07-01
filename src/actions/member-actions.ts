@@ -48,7 +48,7 @@ export type MemberFilterOptions = {
 };
 
 export type MemberFormOptions = {
-  households: { id: string; code: string }[];
+  households: { id: string; code: string; headName: string | null }[];
   visitTeams: { id: string; code: string; area: string }[];
   departments: { id: string; name: string; minAge: number | null; maxAge: number | null }[];
 };
@@ -254,9 +254,18 @@ export async function getMemberFilterOptions(): Promise<MemberFilterOptions> {
 export async function getMemberFormOptions(): Promise<MemberFormOptions> {
   await requireAuth();
 
-  const [households, visitTeams, departments] = await Promise.all([
+  const [householdRows, visitTeams, departments] = await Promise.all([
     prisma.household.findMany({
-      select: { id: true, code: true },
+      select: {
+        id: true,
+        code: true,
+        headMemberId: true,
+        members: {
+          where: { isHead: true },
+          select: { fullName: true },
+          take: 1,
+        },
+      },
       orderBy: { code: "asc" },
     }),
     prisma.visitTeam.findMany({
@@ -268,6 +277,30 @@ export async function getMemberFormOptions(): Promise<MemberFormOptions> {
       orderBy: { name: "asc" },
     }),
   ]);
+
+  const missingHeadIds = householdRows
+    .filter((row) => !row.members[0] && row.headMemberId)
+    .map((row) => row.headMemberId!);
+
+  const headById = new Map<string, string>();
+  if (missingHeadIds.length > 0) {
+    const heads = await prisma.member.findMany({
+      where: { id: { in: missingHeadIds } },
+      select: { id: true, fullName: true },
+    });
+    for (const head of heads) {
+      headById.set(head.id, head.fullName);
+    }
+  }
+
+  const households = householdRows.map((row) => ({
+    id: row.id,
+    code: row.code,
+    headName:
+      row.members[0]?.fullName ??
+      (row.headMemberId ? headById.get(row.headMemberId) : null) ??
+      null,
+  }));
 
   return { households, visitTeams, departments };
 }

@@ -97,6 +97,16 @@ function addressFromMember(member?: MemberFormDefaults): AddressState {
   };
 }
 
+function formatHouseholdOptionLabel(household: {
+  code: string;
+  headName: string | null;
+}): string {
+  if (household.headName) {
+    return `${household.code} — ${household.headName}`;
+  }
+  return household.code;
+}
+
 export function MemberForm({
   mode,
   options,
@@ -163,6 +173,30 @@ export function MemberForm({
       })),
     [options.departments]
   );
+
+  const householdOptions = useMemo(() => {
+    const items = options.households.map((household) => {
+      const label = formatHouseholdOptionLabel(household);
+      return {
+        value: household.id,
+        label,
+        searchText: `${household.code} ${household.headName ?? ""}`,
+      };
+    });
+
+    if (!isEdit) {
+      return [
+        {
+          value: CREATE_NEW_HOUSEHOLD,
+          label: "+ Tạo hộ mới",
+          searchText: "tao ho moi tao hộ mới",
+        },
+        ...items,
+      ];
+    }
+
+    return items;
+  }, [options.households, isEdit]);
 
   const cancelHref = isEdit ? `/members/${member.id}` : "/members";
 
@@ -394,25 +428,17 @@ export function MemberForm({
           </>
         ) : (
           <Field label="Mã hộ *">
-            <select
+            <SearchableSelect
+              id="householdId"
               name="householdId"
-              className={selectClass}
-              required
+              options={householdOptions}
               value={householdId}
-              onChange={(e) => handleHouseholdChange(e.target.value)}
-            >
-              <option value="" disabled>
-                — Chọn mã hộ —
-              </option>
-              {!isEdit && (
-                <option value={CREATE_NEW_HOUSEHOLD}>+ Tạo hộ mới</option>
-              )}
-              {options.households.map((household) => (
-                <option key={household.id} value={household.id}>
-                  {household.code}
-                </option>
-              ))}
-            </select>
+              onChange={handleHouseholdChange}
+              placeholder="— Chọn mã hộ —"
+              searchPlaceholder="Tìm theo mã hộ hoặc tên chủ hộ..."
+              emptyMessage="Không tìm thấy hộ"
+              required
+            />
           </Field>
         )}
         <Field label="Quan hệ">
