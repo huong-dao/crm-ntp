@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   GENDER_LABELS,
   STATUS_LABELS,
+  formatActualDepartmentName,
   statusBadgeClass,
 } from "@/lib/member-list";
 
@@ -248,9 +249,11 @@ export function MemberDetailView({
                   href={`/departments/${member.actualDepartment.id}`}
                   className="text-[#1e3a5f] hover:underline"
                 >
-                  {member.actualDepartment.name}
+                  {formatActualDepartmentName(member.actualDepartment.name)}
                 </Link>
-              ) : null
+              ) : (
+                formatActualDepartmentName(null)
+              )
             }
           />
           <DetailField label="Ban chấp sự" value={member.boardServiceYear} />

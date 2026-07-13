@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,36 +11,50 @@ import {
 import { Button } from "@/components/ui/button";
 import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 import { Label } from "@/components/ui/label";
-
-const selectClass =
-  "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export function HouseholdForm({
   mode,
   headOptions,
   household,
+  defaultHeadMemberId,
 }: {
   mode: "create" | "edit";
   headOptions: HeadMemberOption[];
   household?: { id: string; code: string; headMemberId: string | null };
+  defaultHeadMemberId?: string;
 }) {
   const router = useRouter();
   const isEdit = mode === "edit" && household;
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [headMemberId, setHeadMemberId] = useState(
+    household?.headMemberId ?? defaultHeadMemberId ?? ""
+  );
+
+  const headSelectOptions = useMemo(
+    () =>
+      headOptions.map((member) => ({
+        value: member.id,
+        label: `${member.code} — ${member.fullName}`,
+        searchText: `${member.code} ${member.fullName}`,
+      })),
+    [headOptions]
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const form = new FormData(e.currentTarget);
-    const headValue = form.get("headMemberId") as string;
-    const headMemberId = headValue === "" ? null : headValue;
-
+    const headValue = headMemberId.trim();
     const result = isEdit
-      ? await updateHousehold(household.id, { headMemberId })
-      : await createHousehold({ headMemberId });
+      ? await updateHousehold(household.id, {
+          headMemberId: headValue || null,
+        })
+      : await createHousehold({
+          headMemberId: headValue || null,
+        });
 
     setLoading(false);
 
@@ -74,20 +88,19 @@ export function HouseholdForm({
           </p>
         )}
         <div className="space-y-2">
-          <Label htmlFor="headMemberId">Chủ hộ (tùy chọn)</Label>
-          <select
+          <Label htmlFor="headMemberId">
+            {isEdit ? "Đổi chủ hộ *" : "Chủ hộ (tùy chọn)"}
+          </Label>
+          <SearchableSelect
             id="headMemberId"
-            name="headMemberId"
-            className={selectClass}
-            defaultValue={household?.headMemberId ?? ""}
-          >
-            <option value="">— Chưa chọn —</option>
-            {headOptions.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.code} — {member.fullName}
-              </option>
-            ))}
-          </select>
+            options={headSelectOptions}
+            value={headMemberId}
+            onChange={setHeadMemberId}
+            placeholder="— Chọn chủ hộ —"
+            searchPlaceholder="Tìm theo mã hoặc tên..."
+            emptyMessage="Không tìm thấy thành viên"
+            required={Boolean(isEdit)}
+          />
           <p className="text-xs text-gray-500">
             {isEdit
               ? "Chọn thành viên trong hộ hoặc thành viên chưa có hộ."
@@ -105,7 +118,7 @@ export function HouseholdForm({
           {loading
             ? "Đang lưu..."
             : isEdit
-              ? "Lưu thay đổi"
+              ? "Đổi chủ hộ"
               : "Tạo hộ gia đình"}
         </Button>
         <Button type="button" variant="outline" asChild icon={CancelIcon}>

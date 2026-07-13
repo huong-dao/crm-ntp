@@ -1,13 +1,26 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { Prisma, VisitRequestStatus } from "@prisma/client";
+import type { Prisma, VisitRequestStatus, VisitRequestType } from "@prisma/client";
 import type { ActionResult } from "@/actions/user-actions";
 import { auth } from "@/lib/auth";
 import { generateVisitRequestCode } from "@/lib/generate-code";
 import { DEFAULT_PAGE_SIZE } from "@/lib/member-list";
 import { buildExcelBase64 } from "@/lib/member-excel";
 import { prisma } from "@/lib/prisma";
+import {
+  assertVisitTeamWriteAccess,
+  buildHouseholdTeamScopeWhere,
+  buildVisitRequestTeamScopeWhere,
+  canCreateVisitRequest,
+  getAuthUserRecord,
+  isAdmin,
+  requireAuthUser,
+} from "@/lib/user-scope";
+import {
+  getVisitRequestHistories,
+  logVisitRequestHistory,
+} from "@/lib/visit-request-history";
 import type { VisitRequestFiltersInput } from "@/lib/visit-request-list";
 import {
   VISIT_REQUEST_EXPORT_HEADERS,
@@ -30,11 +43,15 @@ export type VisitRequestListItem = {
   scheduledDate: Date;
   actualDate: Date | null;
   status: VisitRequestStatus;
+  visitType: VisitRequestType;
   householdCode: string;
   householdId: string;
+  householdHeadName: string | null;
   visitTeamCode: string;
   visitTeamId: string;
   staffCodes: string | null;
+  staffNames: string[];
+  representativeMemberName: string | null;
 };
 
 export type VisitRequestsResult = {
@@ -66,6 +83,7 @@ export type VisitRequestStaffOption = {
 export type VisitRequestFormContext = {
   isAdmin: boolean;
   lockedVisitTeamId: string | null;
+  canCreate: boolean;
   households: VisitRequestHouseholdOption[];
   visitTeams: VisitRequestTeamOption[];
 };
@@ -76,7 +94,9 @@ export type VisitRequestDetail = {
   scheduledDate: Date;
   actualDate: Date | null;
   status: VisitRequestStatus;
+  visitType: VisitRequestType;
   content: string | null;
+  statusNote: string | null;
   staffCodes: string | null;
   representativeMemberId: string | null;
   representativeMemberCode: string | null;
@@ -91,6 +111,24 @@ export type VisitRequestDetail = {
   updatedAt: Date;
 };
 
+export type VisitRequestHouseholdMember = {
+  id: string;
+  code: string;
+  fullName: string;
+  relationship: string | null;
+  birthYear: number | null;
+  status: string;
+  notes: string | null;
+};
+
+export type VisitRequestHistoryItem = {
+  id: string;
+  action: string;
+  note: string | null;
+  createdAt: Date;
+  username: string | null;
+};
+
 export type VisitRequestPrintData = VisitRequestDetail & {
   staffNames: string[];
 };
@@ -103,31 +141,35 @@ async function requireAuth() {
   return session.user;
 }
 
-async function getAuthUserRecord() {
-  const session = await requireAuth();
-  return prisma.user.findUnique({
-    where: { id: session.id },
-    select: {
-      id: true,
-      role: true,
-      memberId: true,
-      member: { select: { visitStaffTeamId: true } },
-    },
-  });
+async function assertTeamAccess(visitTeamId: string) {
+  return assertVisitTeamWriteAccess(visitTeamId);
 }
 
-async function assertTeamAccess(visitTeamId: string) {
-  const user = await getAuthUserRecord();
-  if (!user) throw new Error("Unauthorized");
+async function resolveStaffNames(
+  representativeName: string | null,
+  staffCodes: string | null
+): Promise<string[]> {
+  const additionalCodes = staffCodes
+    ? staffCodes.split(/[,;]/).map((code) => code.trim()).filter(Boolean)
+    : [];
 
-  if (user.role === "admin") return user;
-
-  const lockedTeamId = user.member?.visitStaffTeamId ?? null;
-  if (!lockedTeamId || lockedTeamId !== visitTeamId) {
-    throw new Error("Không có quyền thao tác tổ thăm viếng này");
+  let additionalStaffNames: string[] = [];
+  if (additionalCodes.length > 0) {
+    const members = await prisma.member.findMany({
+      where: { code: { in: additionalCodes } },
+      select: { code: true, fullName: true },
+    });
+    const nameByCode = new Map(
+      members.map((member) => [member.code.toLowerCase(), member.fullName])
+    );
+    additionalStaffNames = additionalCodes.map(
+      (code) => nameByCode.get(code.toLowerCase()) ?? code
+    );
   }
 
-  return user;
+  return [representativeName, ...additionalStaffNames].filter(
+    (name): name is string => Boolean(name)
+  );
 }
 
 async function validateTeamMembers(
@@ -197,21 +239,36 @@ async function validateTeamMembers(
 
 export async function getVisitRequestFilterOptions(): Promise<{
   visitTeams: VisitRequestTeamOption[];
+  isAdmin: boolean;
+  lockedVisitTeamId: string | null;
 }> {
-  await requireAuth();
+  const user = await requireAuthUser();
+
+  if (isAdmin(user)) {
+    const visitTeams = await prisma.visitTeam.findMany({
+      select: { id: true, code: true, area: true },
+      orderBy: { code: "asc" },
+    });
+    return { visitTeams, isAdmin: true, lockedVisitTeamId: null };
+  }
+
+  const teamId = user.visitStaffTeamId;
+  if (!teamId) {
+    return { visitTeams: [], isAdmin: false, lockedVisitTeamId: null };
+  }
 
   const visitTeams = await prisma.visitTeam.findMany({
+    where: { id: teamId },
     select: { id: true, code: true, area: true },
-    orderBy: { code: "asc" },
   });
 
-  return { visitTeams };
+  return { visitTeams, isAdmin: false, lockedVisitTeamId: teamId };
 }
 
 export async function getVisitRequests(
   filters: VisitRequestFiltersInput = {}
 ): Promise<VisitRequestsResult> {
-  await requireAuth();
+  const user = await requireAuthUser();
 
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(
@@ -225,6 +282,10 @@ export async function getVisitRequests(
   const dateTo = filters.dateTo?.trim();
 
   const where: Prisma.VisitRequestWhereInput = {};
+  const teamScope = buildVisitRequestTeamScopeWhere(user);
+  if (teamScope) {
+    where.visitTeamId = teamScope.visitTeamId;
+  }
 
   if (search) {
     where.OR = [
@@ -232,6 +293,13 @@ export async function getVisitRequests(
       { staffCodes: { contains: search } },
       { household: { code: { contains: search } } },
       { visitTeam: { code: { contains: search } } },
+      {
+        household: {
+          members: {
+            some: { isHead: true, fullName: { contains: search } },
+          },
+        },
+      },
     ];
   }
 
@@ -271,28 +339,48 @@ export async function getVisitRequests(
         scheduledDate: true,
         actualDate: true,
         status: true,
+        visitType: true,
         staffCodes: true,
         householdId: true,
         visitTeamId: true,
-        household: { select: { code: true } },
+        household: {
+          select: {
+            code: true,
+            members: {
+              where: { isHead: true },
+              select: { fullName: true },
+              take: 1,
+            },
+          },
+        },
         visitTeam: { select: { code: true } },
+        representativeMember: { select: { fullName: true } },
       },
     }),
     prisma.visitRequest.count({ where }),
   ]);
 
-  const requests: VisitRequestListItem[] = rows.map((row) => ({
-    id: row.id,
-    code: row.code,
-    scheduledDate: row.scheduledDate,
-    actualDate: row.actualDate,
-    status: row.status,
-    householdCode: row.household.code,
-    householdId: row.householdId,
-    visitTeamCode: row.visitTeam.code,
-    visitTeamId: row.visitTeamId,
-    staffCodes: row.staffCodes,
-  }));
+  const requests: VisitRequestListItem[] = await Promise.all(
+    rows.map(async (row) => ({
+      id: row.id,
+      code: row.code,
+      scheduledDate: row.scheduledDate,
+      actualDate: row.actualDate,
+      status: row.status,
+      visitType: row.visitType,
+      householdCode: row.household.code,
+      householdId: row.householdId,
+      householdHeadName: row.household.members[0]?.fullName ?? null,
+      visitTeamCode: row.visitTeam.code,
+      visitTeamId: row.visitTeamId,
+      staffCodes: row.staffCodes,
+      staffNames: await resolveStaffNames(
+        row.representativeMember?.fullName ?? null,
+        row.staffCodes
+      ),
+      representativeMemberName: row.representativeMember?.fullName ?? null,
+    }))
+  );
 
   return {
     requests,
@@ -307,7 +395,14 @@ export async function getVisitRequestFormContext(): Promise<VisitRequestFormCont
   const user = await getAuthUserRecord();
   if (!user) throw new Error("Unauthorized");
 
+  const householdWhere: Prisma.HouseholdWhereInput = {};
+  const teamScope = buildHouseholdTeamScopeWhere(user);
+  if (teamScope) {
+    Object.assign(householdWhere, teamScope);
+  }
+
   const households = await prisma.household.findMany({
+    where: householdWhere,
     select: {
       id: true,
       code: true,
@@ -321,14 +416,12 @@ export async function getVisitRequestFormContext(): Promise<VisitRequestFormCont
     take: 1000,
   });
 
-  const isAdmin = user.role === "admin";
-  const lockedVisitTeamId = !isAdmin
-    ? user.member?.visitStaffTeamId ?? null
-    : null;
+  const admin = isAdmin(user);
+  const lockedVisitTeamId = !admin ? user.visitStaffTeamId : null;
 
   let visitTeams: VisitRequestTeamOption[] = [];
 
-  if (isAdmin) {
+  if (admin) {
     visitTeams = await prisma.visitTeam.findMany({
       select: { id: true, code: true, area: true },
       orderBy: { code: "asc" },
@@ -341,8 +434,9 @@ export async function getVisitRequestFormContext(): Promise<VisitRequestFormCont
   }
 
   return {
-    isAdmin,
+    isAdmin: admin,
     lockedVisitTeamId,
+    canCreate: canCreateVisitRequest(user),
     households: households.map((household) => ({
       id: household.id,
       code: household.code,
@@ -423,6 +517,7 @@ export async function createVisitRequest(
     const {
       householdId,
       visitTeamId,
+      visitType,
       scheduledDate,
       actualDate,
       content,
@@ -430,7 +525,7 @@ export async function createVisitRequest(
       additionalStaffMemberIds,
     } = parsed.data;
 
-    await assertTeamAccess(visitTeamId);
+    const user = await assertTeamAccess(visitTeamId);
 
     const household = await prisma.household.findUnique({
       where: { id: householdId },
@@ -471,20 +566,33 @@ export async function createVisitRequest(
       : null;
     const trimmedContent = content?.trim();
 
-    const request = await prisma.visitRequest.create({
-      data: {
-        code,
-        householdId,
-        visitTeamId,
-        scheduledDate: scheduled,
-        actualDate: actual,
-        status: "scheduled",
-        representativeMemberId: staffData.representativeMemberId,
-        staffCodes: staffData.staffCodes,
-        content:
-          trimmedContent && trimmedContent.length > 0 ? trimmedContent : null,
-      },
-      select: { id: true, code: true },
+    const request = await prisma.$transaction(async (tx) => {
+      const created = await tx.visitRequest.create({
+        data: {
+          code,
+          householdId,
+          visitTeamId,
+          visitType,
+          scheduledDate: scheduled,
+          actualDate: actual,
+          status: "scheduled",
+          representativeMemberId: staffData.representativeMemberId,
+          staffCodes: staffData.staffCodes,
+          createdById: user.id,
+          content:
+            trimmedContent && trimmedContent.length > 0 ? trimmedContent : null,
+        },
+        select: { id: true, code: true },
+      });
+
+      await logVisitRequestHistory(tx, {
+        visitRequestId: created.id,
+        userId: user.id,
+        action: "created",
+        note: trimmedContent || null,
+      });
+
+      return created;
     });
 
     revalidatePath("/visit-requests");
@@ -505,7 +613,9 @@ async function loadVisitRequestDetail(
     scheduledDate: Date;
     actualDate: Date | null;
     status: VisitRequestStatus;
+    visitType: VisitRequestType;
     content: string | null;
+    statusNote: string | null;
     staffCodes: string | null;
     representativeMemberId: string | null;
     householdId: string;
@@ -523,7 +633,9 @@ async function loadVisitRequestDetail(
     scheduledDate: request.scheduledDate,
     actualDate: request.actualDate,
     status: request.status,
+    visitType: request.visitType,
     content: request.content,
+    statusNote: request.statusNote,
     staffCodes: request.staffCodes,
     representativeMemberId: request.representativeMemberId,
     representativeMemberCode: request.representativeMember?.code ?? null,
@@ -545,7 +657,9 @@ const visitRequestSelect = {
   scheduledDate: true,
   actualDate: true,
   status: true,
+  visitType: true,
   content: true,
+  statusNote: true,
   staffCodes: true,
   representativeMemberId: true,
   householdId: true,
@@ -569,7 +683,7 @@ const visitRequestSelect = {
 export async function getVisitRequestById(
   id: string
 ): Promise<VisitRequestDetail | null> {
-  await requireAuth();
+  const user = await requireAuthUser();
 
   const request = await prisma.visitRequest.findUnique({
     where: { id },
@@ -578,7 +692,49 @@ export async function getVisitRequestById(
 
   if (!request) return null;
 
+  const teamScope = buildVisitRequestTeamScopeWhere(user);
+  if (teamScope && request.visitTeamId !== teamScope.visitTeamId) {
+    return null;
+  }
+
   return loadVisitRequestDetail(request);
+}
+
+export async function getVisitRequestHouseholdMembers(
+  householdId: string
+): Promise<VisitRequestHouseholdMember[]> {
+  await requireAuth();
+
+  const members = await prisma.member.findMany({
+    where: { householdId },
+    orderBy: [{ isHead: "desc" }, { fullName: "asc" }],
+    select: {
+      id: true,
+      code: true,
+      fullName: true,
+      relationship: true,
+      birthYear: true,
+      status: true,
+      notes: true,
+    },
+  });
+
+  return members;
+}
+
+export async function getVisitRequestHistoryItems(
+  visitRequestId: string
+): Promise<VisitRequestHistoryItem[]> {
+  await requireAuth();
+
+  const rows = await getVisitRequestHistories(visitRequestId);
+  return rows.map((row) => ({
+    id: row.id,
+    action: row.action,
+    note: row.note,
+    createdAt: row.createdAt,
+    username: row.user?.username ?? null,
+  }));
 }
 
 export async function getVisitRequestForPrint(
@@ -646,6 +802,7 @@ export async function updateVisitRequest(
     const {
       householdId,
       visitTeamId,
+      visitType,
       scheduledDate,
       actualDate,
       content,
@@ -654,7 +811,7 @@ export async function updateVisitRequest(
       additionalStaffMemberIds,
     } = parsed.data;
 
-    await assertTeamAccess(visitTeamId);
+    const user = await assertTeamAccess(visitTeamId);
 
     let staffData: {
       representativeMemberId: string | null;
@@ -685,20 +842,32 @@ export async function updateVisitRequest(
 
     const trimmedContent = content?.trim();
 
-    const request = await prisma.visitRequest.update({
-      where: { id },
-      data: {
-        householdId,
-        visitTeamId,
-        scheduledDate: scheduled,
-        actualDate: actual,
-        status,
-        representativeMemberId: staffData.representativeMemberId,
-        staffCodes: staffData.staffCodes,
-        content:
-          trimmedContent && trimmedContent.length > 0 ? trimmedContent : null,
-      },
-      select: { id: true, code: true },
+    const request = await prisma.$transaction(async (tx) => {
+      const updated = await tx.visitRequest.update({
+        where: { id },
+        data: {
+          householdId,
+          visitTeamId,
+          visitType,
+          scheduledDate: scheduled,
+          actualDate: actual,
+          status,
+          representativeMemberId: staffData.representativeMemberId,
+          staffCodes: staffData.staffCodes,
+          content:
+            trimmedContent && trimmedContent.length > 0 ? trimmedContent : null,
+        },
+        select: { id: true, code: true },
+      });
+
+      await logVisitRequestHistory(tx, {
+        visitRequestId: id,
+        userId: user.id,
+        action: "updated",
+        note: trimmedContent || null,
+      });
+
+      return updated;
     });
 
     revalidatePath("/visit-requests");
@@ -719,7 +888,6 @@ export async function updateVisitStatus(
   input: VisitRequestStatusInput
 ): Promise<ActionResult<{ id: string; status: VisitRequestStatus }>> {
   try {
-    await requireAuth();
     const parsed = visitRequestStatusSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -734,9 +902,9 @@ export async function updateVisitStatus(
       return { success: false, error: "Đơn thăm viếng không tồn tại" };
     }
 
-    await assertTeamAccess(existing.visitTeamId);
+    const user = await assertTeamAccess(existing.visitTeamId);
 
-    const { status } = parsed.data;
+    const { status, statusNote } = parsed.data;
     let actualDate: Date | null = existing.actualDate;
 
     if (status === "completed") {
@@ -747,10 +915,32 @@ export async function updateVisitStatus(
       actualDate = existing.actualDate;
     }
 
-    const request = await prisma.visitRequest.update({
-      where: { id },
-      data: { status, actualDate },
-      select: { id: true, status: true },
+    const trimmedNote = statusNote?.trim() || null;
+
+    const request = await prisma.$transaction(async (tx) => {
+      const updated = await tx.visitRequest.update({
+        where: { id },
+        data: {
+          status,
+          actualDate,
+          statusNote: trimmedNote,
+        },
+        select: { id: true, status: true },
+      });
+
+      await logVisitRequestHistory(tx, {
+        visitRequestId: id,
+        userId: user.id,
+        action:
+          status === "completed"
+            ? "completed"
+            : status === "cancelled"
+              ? "cancelled"
+              : "status_changed",
+        note: trimmedNote,
+      });
+
+      return updated;
     });
 
     revalidatePath("/visit-requests");

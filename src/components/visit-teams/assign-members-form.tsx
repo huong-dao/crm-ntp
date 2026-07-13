@@ -1,17 +1,15 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import {
   assignMembersToVisitTeam,
   type LeaderMemberOption,
 } from "@/actions/visit-team-actions";
 import { Button } from "@/components/ui/button";
+import { MultiSearchableSelect } from "@/components/ui/multi-searchable-select";
 import { SaveIcon } from "@/lib/button-icons";
 import { Label } from "@/components/ui/label";
-
-const selectClass =
-  "flex min-h-[120px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]";
 
 export function AssignMembersForm({
   teamId,
@@ -21,18 +19,32 @@ export function AssignMembersForm({
   memberOptions: LeaderMemberOption[];
 }) {
   const router = useRouter();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const options = useMemo(
+    () =>
+      memberOptions.map((member) => ({
+        value: member.id,
+        label: `${member.code} — ${member.fullName}`,
+        searchText: `${member.code} ${member.fullName}`,
+      })),
+    [memberOptions]
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+
+    if (selectedIds.length === 0) {
+      setError("Chọn ít nhất một thành viên");
+      return;
+    }
+
     setLoading(true);
 
-    const form = new FormData(e.currentTarget);
-    const selected = form.getAll("memberIds") as string[];
-
-    const result = await assignMembersToVisitTeam(teamId, selected);
+    const result = await assignMembersToVisitTeam(teamId, selectedIds);
 
     setLoading(false);
 
@@ -41,7 +53,7 @@ export function AssignMembersForm({
       return;
     }
 
-    e.currentTarget.reset();
+    setSelectedIds([]);
     router.refresh();
   }
 
@@ -56,22 +68,16 @@ export function AssignMembersForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="memberIds">
-          Chọn nhân sự (giữ Ctrl để chọn nhiều)
-        </Label>
-        <select
+        <Label htmlFor="memberIds">Chọn nhân sự</Label>
+        <MultiSearchableSelect
           id="memberIds"
           name="memberIds"
-          multiple
-          required
-          className={selectClass}
-        >
-          {memberOptions.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.code} — {member.fullName}
-            </option>
-          ))}
-        </select>
+          options={options}
+          values={selectedIds}
+          onChange={setSelectedIds}
+          placeholder="Chọn nhân sự..."
+          searchPlaceholder="Tìm theo tên hoặc mã..."
+        />
         <p className="text-xs text-gray-500">
           Thành viên đang ở tổ khác sẽ được chuyển sang tổ này.
         </p>

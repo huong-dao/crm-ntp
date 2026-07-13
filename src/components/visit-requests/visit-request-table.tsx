@@ -9,6 +9,7 @@ import {
   buildVisitRequestListUrl,
   formatVisitRequestDate,
   VISIT_REQUEST_STATUS_LABELS,
+  VISIT_REQUEST_TYPE_LABELS,
   visitRequestStatusBadgeClass,
   type VisitRequestFilterValues,
 } from "@/lib/visit-request-list";
@@ -59,6 +60,12 @@ export function VisitRequestTable({
                 Tình trạng
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Chủ hộ
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Loại hình
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
                 Mã hộ
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
@@ -101,6 +108,12 @@ export function VisitRequestTable({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-900">
+                  {request.householdHeadName ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {VISIT_REQUEST_TYPE_LABELS[request.visitType]}
+                </td>
+                <td className="px-4 py-3 text-gray-900">
                   <Link
                     href={`/households/${request.householdId}`}
                     className="hover:text-[#1e3a5f] hover:underline"
@@ -116,8 +129,10 @@ export function VisitRequestTable({
                     {request.visitTeamCode}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-gray-600 max-w-[160px] truncate">
-                  {request.staffCodes ?? "—"}
+                <td className="px-4 py-3 text-gray-600 max-w-[180px] truncate">
+                  {request.staffNames.length > 0
+                    ? request.staffNames.join(", ")
+                    : "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Button variant="outline" size="sm" asChild icon={EditIcon}>

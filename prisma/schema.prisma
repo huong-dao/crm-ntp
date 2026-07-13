@@ -32,6 +32,13 @@ enum VisitRequestStatus {
   cancelled
 }
 
+enum VisitRequestType {
+  at_home
+  at_church
+  phone
+  other
+}
+
 enum MemberImportRowStatus {
   success
   failed
@@ -48,6 +55,8 @@ model User {
   createdBy String?  @map("created_by")
 
   member Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  createdVisitRequests VisitRequest[] @relation("VisitRequestCreatedBy")
+  visitRequestHistories VisitRequestHistory[]
 
   @@map("users")
 }
@@ -162,24 +171,46 @@ model VisitRequest {
   scheduledDate          DateTime           @map("scheduled_date")
   actualDate             DateTime?          @map("actual_date")
   status                 VisitRequestStatus @default(scheduled)
+  visitType              VisitRequestType   @default(at_home) @map("visit_type")
   content                String?            @db.Text
+  statusNote             String?            @map("status_note") @db.Text
   staffCodes             String?            @map("staff_codes")
   representativeMemberId String?            @map("representative_member_id")
   householdId            String             @map("household_id")
   visitTeamId            String             @map("visit_team_id")
+  createdById            String?            @map("created_by_id")
   createdAt              DateTime           @default(now()) @map("created_at")
   updatedAt              DateTime           @updatedAt @map("updated_at")
 
   household            Household  @relation(fields: [householdId], references: [id])
   visitTeam            VisitTeam  @relation(fields: [visitTeamId], references: [id])
   representativeMember Member?    @relation("VisitRequestRepresentative", fields: [representativeMemberId], references: [id], onDelete: SetNull)
+  createdBy            User?      @relation("VisitRequestCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  histories            VisitRequestHistory[]
 
   @@index([householdId])
   @@index([visitTeamId])
   @@index([status])
   @@index([scheduledDate])
   @@index([representativeMemberId])
+  @@index([createdById])
   @@map("visit_requests")
+}
+
+model VisitRequestHistory {
+  id              String   @id @default(cuid())
+  visitRequestId  String   @map("visit_request_id")
+  userId          String?  @map("user_id")
+  action          String
+  note            String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  visitRequest VisitRequest @relation(fields: [visitRequestId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([visitRequestId])
+  @@index([createdAt])
+  @@map("visit_request_histories")
 }
 
 model MemberImportLog {

@@ -40,6 +40,15 @@ function parseFilters(params: SearchParams): MemberFiltersInput {
 
   const parsedPage = pageRaw ? parseInt(pageRaw, 10) : 1;
 
+  const birthYearFromRaw = pickParam(params, "birthYearFrom");
+  const birthYearToRaw = pickParam(params, "birthYearTo");
+  const parsedBirthYearFrom = birthYearFromRaw
+    ? parseInt(birthYearFromRaw, 10)
+    : undefined;
+  const parsedBirthYearTo = birthYearToRaw
+    ? parseInt(birthYearToRaw, 10)
+    : undefined;
+
   return {
     search: pickParam(params, "search"),
     status:
@@ -50,6 +59,12 @@ function parseFilters(params: SearchParams): MemberFiltersInput {
     ageDepartment: pickParam(params, "ageDepartment"),
     actualDepartment:
       pickParam(params, "actualDepartment") ?? pickParam(params, "department"),
+    birthYearFrom: Number.isFinite(parsedBirthYearFrom)
+      ? parsedBirthYearFrom
+      : undefined,
+    birthYearTo: Number.isFinite(parsedBirthYearTo)
+      ? parsedBirthYearTo
+      : undefined,
     page: Number.isFinite(parsedPage) ? parsedPage : 1,
     pageSize: DEFAULT_PAGE_SIZE,
     sortBy:
@@ -89,6 +104,8 @@ export default async function MembersPage({
     visitTeamId: filters.visitTeamId,
     ageDepartment: filters.ageDepartment,
     actualDepartment: filters.actualDepartment,
+    birthYearFrom: filters.birthYearFrom,
+    birthYearTo: filters.birthYearTo,
   };
 
   return (

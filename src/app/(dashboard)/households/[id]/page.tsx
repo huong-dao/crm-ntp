@@ -18,6 +18,8 @@ export default async function HouseholdDetailPage({
     notFound();
   }
 
+  const canSplit = household.members.length > 1;
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -34,9 +36,14 @@ export default async function HouseholdDetailPage({
             <Link href="/households">Danh sách hộ</Link>
           </Button>
           <Button variant="outline" asChild icon={EditIcon}>
-            <Link href={`/households/${household.id}/edit`}>Sửa hộ</Link>
+            <Link href={`/households/${household.id}/edit`}>Đổi chủ hộ</Link>
           </Button>
-          {household.memberCount === 0 && (
+          {canSplit && (
+            <Button variant="outline" asChild>
+              <Link href={`/households/${household.id}/split`}>Tách hộ</Link>
+            </Button>
+          )}
+          {household.members.length === 0 && (
             <DeleteHouseholdButton
               householdId={household.id}
               householdCode={household.code}
@@ -64,9 +71,9 @@ export default async function HouseholdDetailPage({
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Số thành viên</p>
+          <p className="text-sm text-gray-500">Thành viên hoạt động</p>
           <p className="mt-1 text-lg font-semibold text-gray-900">
-            {household.memberCount}
+            {household.activeMemberCount}
           </p>
         </div>
       </div>

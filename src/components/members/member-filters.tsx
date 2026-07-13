@@ -18,7 +18,13 @@ const selectClass =
 
 type FilterValues = Pick<
   MemberFiltersInput,
-  "search" | "status" | "visitTeamId" | "ageDepartment" | "actualDepartment"
+  | "search"
+  | "status"
+  | "visitTeamId"
+  | "ageDepartment"
+  | "actualDepartment"
+  | "birthYearFrom"
+  | "birthYearTo"
 >;
 
 export function MemberFilters({
@@ -57,6 +63,8 @@ export function MemberFilters({
       visitTeamId: (form.get("visitTeamId") as string) || undefined,
       ageDepartment: (form.get("ageDepartment") as string) || undefined,
       actualDepartment: (form.get("actualDepartment") as string) || undefined,
+      birthYearFrom: (form.get("birthYearFrom") as string) || undefined,
+      birthYearTo: (form.get("birthYearTo") as string) || undefined,
     });
   }
 
@@ -69,7 +77,7 @@ export function MemberFilters({
       onSubmit={handleSubmit}
       className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
         <div className="space-y-2 sm:col-span-2 xl:col-span-1">
           <Label htmlFor="member-search">Tìm kiếm</Label>
           <Input
@@ -142,6 +150,30 @@ export function MemberFilters({
               </option>
             ))}
           </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="member-birth-year-from">Năm sinh từ</Label>
+          <Input
+            id="member-birth-year-from"
+            name="birthYearFrom"
+            type="number"
+            min={1900}
+            max={new Date().getFullYear()}
+            placeholder="vd: 1980"
+            defaultValue={values.birthYearFrom ?? ""}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="member-birth-year-to">Năm sinh đến</Label>
+          <Input
+            id="member-birth-year-to"
+            name="birthYearTo"
+            type="number"
+            min={1900}
+            max={new Date().getFullYear()}
+            placeholder="vd: 2000"
+            defaultValue={values.birthYearTo ?? ""}
+          />
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">

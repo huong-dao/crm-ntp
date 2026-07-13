@@ -15,10 +15,19 @@ import {
 } from "@/lib/member-list";
 import { buildExcelBase64, memberToImportExportRow } from "@/lib/member-excel";
 import { MEMBER_IMPORT_TEMPLATE_HEADERS } from "@/lib/csv";
-import { ageFromBirthYear } from "@/lib/department-age";
+import {
+  ageFromBirthYear,
+  resolveDepartmentIdByAge,
+  type DepartmentAgeRange,
+} from "@/lib/department-age";
 import { buildOldFullAddress, buildNewFullAddress } from "@/lib/member-format";
 import { applyHeadOfHousehold, buildMemberWriteData } from "@/lib/member-write";
 import { prisma } from "@/lib/prisma";
+import {
+  buildVisitTeamScopeWhere,
+  isAdmin,
+  requireAuthUser,
+} from "@/lib/user-scope";
 import {
   memberFormSchema,
   type MemberFormInput,
@@ -31,7 +40,12 @@ export type MemberListItem = {
   status: MemberStatus;
   mobile1: string | null;
   actualDepartmentName: string | null;
+  householdId: string | null;
   householdCode: string | null;
+  birthYear: number | null;
+  gender: "male" | "female" | null;
+  oldWard: string | null;
+  oldDistrict: string | null;
 };
 
 export type MembersResult = {
@@ -154,7 +168,10 @@ async function requireAdmin() {
   return session.user;
 }
 
-function buildWhere(filters: MemberFiltersInput): Prisma.MemberWhereInput {
+function buildWhere(
+  filters: MemberFiltersInput,
+  teamScope?: { visitTeamId: string }
+): Prisma.MemberWhereInput {
   const where: Prisma.MemberWhereInput = {};
 
   const search = filters.search?.trim();
@@ -170,7 +187,9 @@ function buildWhere(filters: MemberFiltersInput): Prisma.MemberWhereInput {
     where.status = filters.status;
   }
 
-  if (filters.visitTeamId) {
+  if (teamScope) {
+    where.visitTeamId = teamScope.visitTeamId;
+  } else if (filters.visitTeamId) {
     where.visitTeamId = filters.visitTeamId;
   }
 
@@ -182,19 +201,42 @@ function buildWhere(filters: MemberFiltersInput): Prisma.MemberWhereInput {
     where.actualDepartmentId = filters.actualDepartment;
   }
 
+  if (filters.birthYearFrom != null || filters.birthYearTo != null) {
+    where.birthYear = {
+      ...(filters.birthYearFrom != null ? { gte: filters.birthYearFrom } : {}),
+      ...(filters.birthYearTo != null ? { lte: filters.birthYearTo } : {}),
+    };
+  }
+
   return where;
+}
+
+async function loadDepartmentAgeRanges(): Promise<DepartmentAgeRange[]> {
+  return prisma.department.findMany({
+    select: { id: true, name: true, minAge: true, maxAge: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+async function resolveAgeDepartmentId(
+  birthYear: number | null | undefined,
+  departments: DepartmentAgeRange[]
+): Promise<string | null> {
+  if (birthYear == null) return null;
+  return resolveDepartmentIdByAge(birthYear, departments);
 }
 
 export async function getMembers(
   filters: MemberFiltersInput = {}
 ): Promise<MembersResult> {
-  await requireAuth();
+  const user = await requireAuthUser();
 
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? DEFAULT_PAGE_SIZE));
   const sortBy = filters.sortBy ?? "fullName";
   const sortOrder = filters.sortOrder ?? "asc";
-  const where = buildWhere(filters);
+  const teamScope = isAdmin(user) ? undefined : buildVisitTeamScopeWhere(user);
+  const where = buildWhere(filters, teamScope);
 
   const [rows, total] = await prisma.$transaction([
     prisma.member.findMany({
@@ -208,8 +250,12 @@ export async function getMembers(
         fullName: true,
         status: true,
         mobile1: true,
+        birthYear: true,
+        gender: true,
+        oldWard: true,
+        oldDistrict: true,
         actualDepartment: { select: { name: true } },
-        household: { select: { code: true } },
+        household: { select: { id: true, code: true } },
       },
     }),
     prisma.member.count({ where }),
@@ -222,7 +268,12 @@ export async function getMembers(
     status: row.status,
     mobile1: row.mobile1,
     actualDepartmentName: row.actualDepartment?.name ?? null,
+    householdId: row.household?.id ?? null,
     householdCode: row.household?.code ?? null,
+    birthYear: row.birthYear,
+    gender: row.gender,
+    oldWard: row.oldWard,
+    oldDistrict: row.oldDistrict,
   }));
 
   return {
@@ -466,10 +517,16 @@ export async function createMember(
     }
 
     const code = await generateMemberCode();
+    const departments = await loadDepartmentAgeRanges();
+    const autoAgeDepartmentId = await resolveAgeDepartmentId(
+      data.birthYear,
+      departments
+    );
     const built = buildMemberWriteData(
       {
         ...data,
         householdId: data.createNewHousehold ? null : data.householdId,
+        ageDepartmentId: autoAgeDepartmentId ?? data.ageDepartmentId ?? null,
       },
       code
     );
@@ -568,7 +625,15 @@ export async function updateMember(
       }
     }
 
-    const built = buildMemberWriteData(data);
+    const departments = await loadDepartmentAgeRanges();
+    const autoAgeDepartmentId = await resolveAgeDepartmentId(
+      data.birthYear,
+      departments
+    );
+    const built = buildMemberWriteData({
+      ...data,
+      ageDepartmentId: autoAgeDepartmentId ?? data.ageDepartmentId ?? null,
+    });
     if (!built.ok) {
       return { success: false, error: built.error };
     }
@@ -662,11 +727,12 @@ export async function exportMembers(
   filters: MemberFiltersInput = {}
 ): Promise<ActionResult<{ base64: string; fileName: string }>> {
   try {
-    await requireAuth();
+    const user = await requireAuthUser();
 
     const sortBy = filters.sortBy ?? "fullName";
     const sortOrder = filters.sortOrder ?? "asc";
-    const where = buildWhere(filters);
+    const teamScope = isAdmin(user) ? undefined : buildVisitTeamScopeWhere(user);
+    const where = buildWhere(filters, teamScope);
 
     const members = await prisma.member.findMany({
       where,

@@ -12,6 +12,7 @@ import {
   type VisitRequestFormContext,
   type VisitRequestStaffOption,
 } from "@/actions/visit-request-actions";
+import { VisitRequestHouseholdMembers } from "@/components/visit-requests/visit-request-household-members";
 import { Button } from "@/components/ui/button";
 import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,8 @@ import { matchStaffMemberIds } from "@/lib/visit-request-list";
 import {
   VISIT_REQUEST_STATUSES,
   VISIT_REQUEST_STATUS_LABELS,
+  VISIT_REQUEST_TYPES,
+  VISIT_REQUEST_TYPE_LABELS,
 } from "@/lib/visit-request-list";
 import { formatDateForInput } from "@/lib/validations/visit-request";
 
@@ -58,6 +61,9 @@ export function VisitRequestForm({
     ? request.visitTeamId
     : context.lockedVisitTeamId ?? "";
 
+  const [visitType, setVisitType] = useState(
+    isEdit ? request.visitType : "at_home"
+  );
   const [householdId, setHouseholdId] = useState(initialHouseholdId);
   const [visitTeamId, setVisitTeamId] = useState(initialTeamId);
   const [representativeMemberId, setRepresentativeMemberId] = useState(
@@ -226,6 +232,7 @@ export function VisitRequestForm({
     const payload = {
       householdId,
       visitTeamId,
+      visitType,
       scheduledDate: form.get("scheduledDate") as string,
       actualDate: (form.get("actualDate") as string) || null,
       representativeMemberId: representativeMemberId || null,
@@ -297,6 +304,29 @@ export function VisitRequestForm({
             placeholder="— Chọn hộ —"
             searchPlaceholder="Tìm theo mã hộ hoặc chủ hộ..."
           />
+        </div>
+
+        <VisitRequestHouseholdMembers householdId={householdId} />
+
+        <div className="space-y-2">
+          <Label htmlFor="visitType">Loại hình thăm viếng *</Label>
+          <select
+            id="visitType"
+            name="visitType"
+            className={selectClass}
+            value={visitType}
+            onChange={(e) =>
+              setVisitType(
+                e.target.value as (typeof VISIT_REQUEST_TYPES)[number]
+              )
+            }
+          >
+            {VISIT_REQUEST_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {VISIT_REQUEST_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="space-y-2">

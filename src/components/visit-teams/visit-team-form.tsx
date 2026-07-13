@@ -28,6 +28,7 @@ export function VisitTeamForm({
     code: string;
     area: string;
     leaderMemberId: string | null;
+    leaderName?: string | null;
   };
 }) {
   const router = useRouter();
@@ -102,6 +103,12 @@ export function VisitTeamForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="leaderMemberId">Trưởng tổ (tùy chọn)</Label>
+          {isEdit && team.leaderName && (
+            <p className="text-sm text-gray-600">
+              Trưởng tổ hiện tại:{" "}
+              <span className="font-medium text-gray-900">{team.leaderName}</span>
+            </p>
+          )}
           <select
             id="leaderMemberId"
             name="leaderMemberId"

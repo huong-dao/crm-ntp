@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { VisitRequestType } from "@prisma/client";
 
 const dateField = z
   .string()
@@ -13,6 +14,7 @@ export const visitRequestFormSchema = z
   .object({
     householdId: z.string().min(1, "Chọn hộ gia đình cần thăm viếng"),
     visitTeamId: z.string().min(1, "Chọn tổ thăm viếng"),
+    visitType: z.enum(["at_home", "at_church", "phone", "other"]).default("at_home"),
     scheduledDate: z
       .string()
       .min(1, "Chọn lịch thăm viếng")
@@ -79,6 +81,11 @@ export const visitRequestStatusSchema = z
   .object({
     status: z.enum(["scheduled", "completed", "cancelled"]),
     actualDate: z.string().optional().nullable(),
+    statusNote: z
+      .string()
+      .max(2000, "Ghi chú tối đa 2000 ký tự")
+      .optional()
+      .nullable(),
   })
   .superRefine((data, ctx) => {
     if (data.status === "completed") {
@@ -91,9 +98,22 @@ export const visitRequestStatusSchema = z
         });
       }
     }
+
+    if (data.status === "cancelled") {
+      const note = data.statusNote?.trim();
+      if (!note) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Ghi chú bắt buộc khi hủy lịch",
+          path: ["statusNote"],
+        });
+      }
+    }
   });
 
 export type VisitRequestStatusInput = z.infer<typeof visitRequestStatusSchema>;
+
+export type VisitRequestTypeInput = VisitRequestType;
 
 export function parseStaffCodeList(value: string): string[] {
   return value

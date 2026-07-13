@@ -11,7 +11,12 @@ import {
   HOUSEHOLD_EXPORT_HEADERS,
   householdToExportRow,
 } from "@/lib/household-export";
+import { buildOldFullAddress } from "@/lib/member-format";
 import { prisma } from "@/lib/prisma";
+import {
+  buildHouseholdTeamScopeWhere,
+  requireAuthUser,
+} from "@/lib/user-scope";
 import {
   householdFormSchema,
   type HouseholdFormInput,
@@ -25,6 +30,11 @@ export type HouseholdMemberItem = {
   mobile1: string | null;
   isHead: boolean;
   relationship: string | null;
+  birthYear: number | null;
+  gender: "male" | "female" | null;
+  oldFullAddress: string | null;
+  ageDepartmentName: string | null;
+  actualDepartmentName: string | null;
 };
 
 export type HouseholdDetail = {
@@ -32,7 +42,7 @@ export type HouseholdDetail = {
   code: string;
   headName: string | null;
   headMemberId: string | null;
-  memberCount: number;
+  activeMemberCount: number;
   members: HouseholdMemberItem[];
 };
 
@@ -40,7 +50,12 @@ export type HouseholdListItem = {
   id: string;
   code: string;
   headName: string | null;
+  headPhone: string | null;
+  headOldAddress: string | null;
+  visitTeamCode: string | null;
+  visitTeamId: string | null;
   memberCount: number;
+  activeMemberCount: number;
 };
 
 export type HouseholdsResult = {
@@ -117,16 +132,32 @@ export async function applyHouseholdHead(
 }
 
 export async function getHeadMemberOptions(
-  householdId?: string
+  householdId?: string,
+  search?: string
 ): Promise<HeadMemberOption[]> {
   await requireAuth();
 
+  const searchTrim = search?.trim();
+  const where: Prisma.MemberWhereInput = {
+    AND: [
+      householdId
+        ? { OR: [{ householdId: null }, { householdId }] }
+        : { householdId: null },
+      ...(searchTrim
+        ? [
+            {
+              OR: [
+                { fullName: { contains: searchTrim } },
+                { code: { contains: searchTrim } },
+              ],
+            },
+          ]
+        : []),
+    ],
+  };
+
   const members = await prisma.member.findMany({
-    where: householdId
-      ? {
-          OR: [{ householdId: null }, { householdId }],
-        }
-      : { householdId: null },
+    where,
     select: { id: true, code: true, fullName: true },
     orderBy: { fullName: "asc" },
     take: 500,
@@ -135,10 +166,35 @@ export async function getHeadMemberOptions(
   return members;
 }
 
+function resolveHeadMember<
+  T extends {
+    id: string;
+    fullName: string;
+    mobile1: string | null;
+    oldFullAddress: string | null;
+    houseNumber: string | null;
+    street: string | null;
+    oldWard: string | null;
+    oldDistrict: string | null;
+    oldProvince: string | null;
+    isHead: boolean;
+    visitTeam: { id: string; code: string } | null;
+  },
+>(
+  headMemberId: string | null,
+  members: T[]
+): T | undefined {
+  if (headMemberId) {
+    const byId = members.find((member) => member.id === headMemberId);
+    if (byId) return byId;
+  }
+  return members.find((member) => member.isHead);
+}
+
 export async function getHouseholds(
   filters: HouseholdFilters = {}
 ): Promise<HouseholdsResult> {
-  await requireAuth();
+  const user = await requireAuthUser();
 
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(
@@ -159,9 +215,14 @@ export async function getHouseholds(
     ];
   }
 
+  const teamScope = buildHouseholdTeamScopeWhere(user);
+  const scopedWhere: Prisma.HouseholdWhereInput = teamScope
+    ? { AND: [where, teamScope] }
+    : where;
+
   const [rows, total] = await prisma.$transaction([
     prisma.household.findMany({
-      where,
+      where: scopedWhere,
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { code: "asc" },
@@ -170,40 +231,48 @@ export async function getHouseholds(
         code: true,
         headMemberId: true,
         members: {
-          where: { isHead: true },
-          select: { fullName: true },
-          take: 1,
+          select: {
+            id: true,
+            fullName: true,
+            mobile1: true,
+            oldFullAddress: true,
+            houseNumber: true,
+            street: true,
+            oldWard: true,
+            oldDistrict: true,
+            oldProvince: true,
+            isHead: true,
+            status: true,
+            visitTeam: { select: { id: true, code: true } },
+          },
         },
         _count: { select: { members: true } },
       },
     }),
-    prisma.household.count({ where }),
+    prisma.household.count({ where: scopedWhere }),
   ]);
 
-  const missingHeadIds = rows
-    .filter((row) => !row.members[0] && row.headMemberId)
-    .map((row) => row.headMemberId!);
+  const households: HouseholdListItem[] = rows.map((row) => {
+    const head = resolveHeadMember(row.headMemberId, row.members);
+    const activeMemberCount = row.members.filter(
+      (member) => member.status === "active"
+    ).length;
 
-  const headById = new Map<string, string>();
-  if (missingHeadIds.length > 0) {
-    const heads = await prisma.member.findMany({
-      where: { id: { in: missingHeadIds } },
-      select: { id: true, fullName: true },
-    });
-    for (const head of heads) {
-      headById.set(head.id, head.fullName);
-    }
-  }
-
-  const households: HouseholdListItem[] = rows.map((row) => ({
-    id: row.id,
-    code: row.code,
-    headName:
-      row.members[0]?.fullName ??
-      (row.headMemberId ? headById.get(row.headMemberId) : null) ??
-      null,
-    memberCount: row._count.members,
-  }));
+    return {
+      id: row.id,
+      code: row.code,
+      headName: head?.fullName ?? null,
+      headPhone: head?.mobile1 ?? null,
+      headOldAddress:
+        head?.oldFullAddress ||
+        (head ? buildOldFullAddress(head) : null) ||
+        null,
+      visitTeamCode: head?.visitTeam?.code ?? null,
+      visitTeamId: head?.visitTeam?.id ?? null,
+      memberCount: row._count.members,
+      activeMemberCount,
+    };
+  });
 
   return {
     households,
@@ -235,6 +304,16 @@ export async function getHouseholdById(
           mobile1: true,
           isHead: true,
           relationship: true,
+          birthYear: true,
+          gender: true,
+          oldFullAddress: true,
+          houseNumber: true,
+          street: true,
+          oldWard: true,
+          oldDistrict: true,
+          oldProvince: true,
+          ageDepartment: { select: { name: true } },
+          actualDepartment: { select: { name: true } },
         },
       },
     },
@@ -243,16 +322,35 @@ export async function getHouseholdById(
   if (!household) return null;
 
   const headMember =
-    household.members.find((m) => m.id === household.headMemberId) ??
-    household.members.find((m) => m.isHead);
+    household.members.find((member) => member.id === household.headMemberId) ??
+    household.members.find((member) => member.isHead);
+  const activeMemberCount = household.members.filter(
+    (member) => member.status === "active"
+  ).length;
+
+  const members: HouseholdMemberItem[] = household.members.map((member) => ({
+    id: member.id,
+    code: member.code,
+    fullName: member.fullName,
+    status: member.status,
+    mobile1: member.mobile1,
+    isHead: member.isHead,
+    relationship: member.relationship,
+    birthYear: member.birthYear,
+    gender: member.gender,
+    oldFullAddress:
+      member.oldFullAddress || buildOldFullAddress(member) || null,
+    ageDepartmentName: member.ageDepartment?.name ?? null,
+    actualDepartmentName: member.actualDepartment?.name ?? null,
+  }));
 
   return {
     id: household.id,
     code: household.code,
     headName: headMember?.fullName ?? null,
     headMemberId: household.headMemberId,
-    memberCount: household.members.length,
-    members: household.members,
+    activeMemberCount,
+    members,
   };
 }
 
@@ -336,24 +434,26 @@ export async function updateHousehold(
 
     const { headMemberId } = parsed.data;
 
-    if (headMemberId) {
-      const member = await prisma.member.findUnique({
-        where: { id: headMemberId },
-        select: { householdId: true },
-      });
-      if (!member) {
-        return { success: false, error: "Thành viên không tồn tại" };
-      }
-      if (member.householdId && member.householdId !== id) {
-        return {
-          success: false,
-          error: "Thành viên đã thuộc hộ khác",
-        };
-      }
+    if (!headMemberId) {
+      return { success: false, error: "Chủ hộ là bắt buộc" };
+    }
+
+    const member = await prisma.member.findUnique({
+      where: { id: headMemberId },
+      select: { householdId: true },
+    });
+    if (!member) {
+      return { success: false, error: "Thành viên không tồn tại" };
+    }
+    if (member.householdId && member.householdId !== id) {
+      return {
+        success: false,
+        error: "Thành viên đã thuộc hộ khác",
+      };
     }
 
     const household = await prisma.$transaction(async (tx) => {
-      await applyHouseholdHead(tx, id, headMemberId ?? null);
+      await applyHouseholdHead(tx, id, headMemberId);
       return tx.household.findUniqueOrThrow({
         where: { id },
         select: { id: true, code: true },
@@ -366,6 +466,96 @@ export async function updateHousehold(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Không thể cập nhật hộ gia đình";
+    return { success: false, error: message };
+  }
+}
+
+export async function splitHousehold(
+  memberIds: string[],
+  newHeadMemberId: string
+): Promise<ActionResult<{ id: string; code: string }>> {
+  try {
+    await requireAuth();
+
+    if (memberIds.length === 0) {
+      return { success: false, error: "Chọn ít nhất một thành viên" };
+    }
+
+    if (!memberIds.includes(newHeadMemberId)) {
+      return {
+        success: false,
+        error: "Chủ hộ mới phải nằm trong danh sách tách",
+      };
+    }
+
+    const members = await prisma.member.findMany({
+      where: { id: { in: memberIds } },
+      select: { id: true, householdId: true },
+    });
+
+    if (members.length !== memberIds.length) {
+      return { success: false, error: "Một số thành viên không tồn tại" };
+    }
+
+    const householdIds = [
+      ...new Set(members.map((member) => member.householdId).filter(Boolean)),
+    ];
+    if (householdIds.length !== 1) {
+      return { success: false, error: "Các thành viên phải cùng một hộ" };
+    }
+
+    const sourceHouseholdId = householdIds[0]!;
+
+    const sourceCount = await prisma.member.count({
+      where: { householdId: sourceHouseholdId },
+    });
+    if (memberIds.length >= sourceCount) {
+      return {
+        success: false,
+        error: "Phải để lại ít nhất một thành viên trong hộ cũ",
+      };
+    }
+
+    const code = await generateHouseholdCode();
+
+    const household = await prisma.$transaction(async (tx) => {
+      const created = await tx.household.create({
+        data: { code },
+      });
+
+      await tx.member.updateMany({
+        where: { id: { in: memberIds } },
+        data: { householdId: created.id, isHead: false },
+      });
+
+      await applyHouseholdHead(tx, created.id, newHeadMemberId);
+
+      const sourceHousehold = await tx.household.findUnique({
+        where: { id: sourceHouseholdId },
+        select: { headMemberId: true },
+      });
+      if (
+        sourceHousehold?.headMemberId &&
+        memberIds.includes(sourceHousehold.headMemberId)
+      ) {
+        await tx.household.update({
+          where: { id: sourceHouseholdId },
+          data: { headMemberId: null },
+        });
+      }
+
+      return created;
+    });
+
+    revalidatePath("/households");
+    revalidatePath(`/households/${sourceHouseholdId}`);
+    revalidatePath(`/households/${household.id}`);
+    revalidatePath("/members");
+
+    return { success: true, data: { id: household.id, code: household.code } };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Không thể tách hộ";
     return { success: false, error: message };
   }
 }
@@ -403,7 +593,7 @@ export async function exportHouseholds(
   filters: HouseholdFilters = {}
 ): Promise<ActionResult<{ base64: string; fileName: string }>> {
   try {
-    await requireAuth();
+    const user = await requireAuthUser();
 
     const search = filters.search?.trim();
     const where: Prisma.HouseholdWhereInput = {};
@@ -424,8 +614,13 @@ export async function exportHouseholds(
       ];
     }
 
+    const teamScope = buildHouseholdTeamScopeWhere(user);
+    const scopedWhere: Prisma.HouseholdWhereInput = teamScope
+      ? { AND: [where, teamScope] }
+      : where;
+
     const households = await prisma.household.findMany({
-      where,
+      where: scopedWhere,
       orderBy: { code: "asc" },
       select: {
         code: true,

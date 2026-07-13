@@ -56,7 +56,19 @@ export function HouseholdTable({
                 Chủ hộ
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
-                Số thành viên
+                Điện thoại chủ hộ
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Địa chỉ cũ chủ hộ
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Tổ thăm viếng
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                TV hoạt động
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Tổng TV
               </th>
               <th className="px-4 py-3 text-right font-medium text-gray-600">
                 Actions
@@ -77,6 +89,27 @@ export function HouseholdTable({
                 </td>
                 <td className="px-4 py-3 text-gray-900">
                   {household.headName ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {household.headPhone ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {household.headOldAddress ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {household.visitTeamId && household.visitTeamCode ? (
+                    <Link
+                      href={`/visit-teams/${household.visitTeamId}`}
+                      className="hover:text-[#1e3a5f] hover:underline"
+                    >
+                      {household.visitTeamCode}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {household.activeMemberCount}
                 </td>
                 <td className="px-4 py-3 text-gray-600">
                   {household.memberCount}
@@ -112,7 +145,19 @@ export function HouseholdTable({
               <MobileDataRow label="Chủ hộ">
                 {household.headName ?? "—"}
               </MobileDataRow>
-              <MobileDataRow label="Số thành viên">
+              <MobileDataRow label="Điện thoại">
+                {household.headPhone ?? "—"}
+              </MobileDataRow>
+              <MobileDataRow label="Địa chỉ cũ">
+                {household.headOldAddress ?? "—"}
+              </MobileDataRow>
+              <MobileDataRow label="Tổ thăm viếng">
+                {household.visitTeamCode ?? "—"}
+              </MobileDataRow>
+              <MobileDataRow label="TV hoạt động">
+                {household.activeMemberCount}
+              </MobileDataRow>
+              <MobileDataRow label="Tổng TV">
                 {household.memberCount}
               </MobileDataRow>
             </div>

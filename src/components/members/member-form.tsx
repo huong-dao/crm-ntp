@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatAgeRange } from "@/lib/validations/department";
+import { resolveDepartmentIdByAge } from "@/lib/department-age";
 import {
   buildNewFullAddress,
   buildOldFullAddress,
@@ -23,6 +24,9 @@ import {
   MEMBER_STATUSES,
   STATUS_LABELS,
 } from "@/lib/member-list";
+import {
+  RELATIONSHIP_OPTIONS,
+} from "@/lib/relationship-options";
 import { parseMemberFormData, CREATE_NEW_HOUSEHOLD, type MemberFormInput } from "@/lib/validations/member";
 import { AddressFields } from "@/components/administrative-units/address-fields";
 import { CancelIcon, SaveIcon } from "@/lib/button-icons";
@@ -108,6 +112,20 @@ function formatHouseholdOptionLabel(household: {
   return household.code;
 }
 
+function relationshipInitialState(relationship?: string | null) {
+  const value = relationship?.trim() ?? "";
+  if (!value) {
+    return { select: "", custom: "" };
+  }
+  if (
+    (RELATIONSHIP_OPTIONS as readonly string[]).includes(value) &&
+    value !== "Khác"
+  ) {
+    return { select: value, custom: "" };
+  }
+  return { select: "Khác", custom: value };
+}
+
 export function MemberForm({
   mode,
   options,
@@ -148,6 +166,19 @@ export function MemberForm({
   const [actualDepartmentId, setActualDepartmentId] = useState(
     member?.actualDepartmentId ?? ""
   );
+  const initialRelationship = relationshipInitialState(member?.relationship);
+  const [birthYear, setBirthYear] = useState(
+    member?.birthYear != null ? String(member.birthYear) : ""
+  );
+  const [relationshipSelect, setRelationshipSelect] = useState(
+    initialRelationship.select
+  );
+  const [customRelationship, setCustomRelationship] = useState(
+    initialRelationship.custom
+  );
+
+  const relationshipValue =
+    relationshipSelect === "Khác" ? customRelationship : relationshipSelect;
 
   const isCreatingHousehold =
     !isEdit && (createNewHousehold || householdId === CREATE_NEW_HOUSEHOLD);
@@ -201,6 +232,16 @@ export function MemberForm({
     return items;
   }, [options.households, isEdit]);
 
+  const relationshipOptions = useMemo(
+    () =>
+      RELATIONSHIP_OPTIONS.map((option) => ({
+        value: option,
+        label: option,
+        searchText: option,
+      })),
+    []
+  );
+
   const cancelHref = isEdit ? `/members/${member.id}` : "/members";
 
   function updateAddress(field: keyof AddressState, value: string) {
@@ -219,6 +260,17 @@ export function MemberForm({
       return;
     }
     setIsHead(checked);
+  }
+
+  function handleBirthYearChange(value: string) {
+    setBirthYear(value);
+    const year = parseInt(value, 10);
+    if (Number.isFinite(year) && year >= 1900) {
+      const resolved = resolveDepartmentIdByAge(year, options.departments);
+      if (resolved) {
+        setAgeDepartmentId(resolved);
+      }
+    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -240,7 +292,11 @@ export function MemberForm({
       return;
     }
 
-    router.push(`/members/${result.data.id}`);
+    if (raw.status === "transferred") {
+      router.push(`/households/new?memberId=${result.data.id}`);
+    } else {
+      router.push(`/members/${result.data.id}`);
+    }
     router.refresh();
   }
 
@@ -310,7 +366,8 @@ export function MemberForm({
             type="number"
             min={1900}
             max={new Date().getFullYear()}
-            defaultValue={member?.birthYear ?? ""}
+            value={birthYear}
+            onChange={(e) => handleBirthYearChange(e.target.value)}
           />
         </Field>
         <Field label="Nghề nghiệp">
@@ -409,12 +466,25 @@ export function MemberForm({
           </Field>
         )}
         <Field label="Quan hệ">
-          <Input
-            name="relationship"
-            maxLength={100}
-            placeholder="vd: Vợ, Con,..."
-            defaultValue={member?.relationship ?? ""}
+          <SearchableSelect
+            id="relationshipSelect"
+            options={relationshipOptions}
+            value={relationshipSelect}
+            onChange={setRelationshipSelect}
+            placeholder="— Chọn quan hệ —"
+            searchPlaceholder="Tìm quan hệ..."
+            emptyMessage="Không có kết quả"
           />
+          <input type="hidden" name="relationship" value={relationshipValue} />
+          {relationshipSelect === "Khác" && (
+            <Input
+              className="mt-2"
+              value={customRelationship}
+              onChange={(e) => setCustomRelationship(e.target.value)}
+              placeholder="Nhập quan hệ khác..."
+              maxLength={100}
+            />
+          )}
         </Field>
       </Section>
 

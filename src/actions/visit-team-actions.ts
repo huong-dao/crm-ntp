@@ -5,6 +5,11 @@ import type { MemberStatus, Prisma } from "@prisma/client";
 import type { ActionResult } from "@/actions/user-actions";
 import { auth } from "@/lib/auth";
 import { DEFAULT_PAGE_SIZE } from "@/lib/member-list";
+import {
+  assertVisitTeamEditAccess,
+  getAuthUserRecord,
+  isAdmin,
+} from "@/lib/user-scope";
 import { buildExcelBase64 } from "@/lib/member-excel";
 import { prisma } from "@/lib/prisma";
 import {
@@ -53,6 +58,7 @@ export type VisitTeamMemberItem = {
   fullName: string;
   status: MemberStatus;
   mobile1: string | null;
+  householdId: string | null;
   householdCode: string | null;
   isLeader: boolean;
 };
@@ -66,6 +72,7 @@ export type VisitTeamDetail = {
   memberCount: number;
   householdCount: number;
   visitRequestCount: number;
+  canEdit: boolean;
   members: VisitTeamMemberItem[];
 };
 
@@ -75,6 +82,27 @@ async function requireAuth() {
     throw new Error("Unauthorized");
   }
   return session.user;
+}
+
+async function computeCanEditVisitTeam(
+  leaderMemberId: string | null
+): Promise<boolean> {
+  const user = await getAuthUserRecord();
+  if (!user) return false;
+  if (isAdmin(user)) return true;
+  return Boolean(leaderMemberId && user.memberId === leaderMemberId);
+}
+
+export async function canEditVisitTeam(teamId: string): Promise<boolean> {
+  await requireAuth();
+
+  const team = await prisma.visitTeam.findUnique({
+    where: { id: teamId },
+    select: { leaderMemberId: true },
+  });
+
+  if (!team) return false;
+  return computeCanEditVisitTeam(team.leaderMemberId);
 }
 
 function buildHouseholdCountMap(
@@ -200,6 +228,7 @@ export async function getVisitTeamById(
           fullName: true,
           status: true,
           mobile1: true,
+          householdId: true,
           household: { select: { code: true } },
         },
       },
@@ -238,9 +267,12 @@ export async function getVisitTeamById(
     fullName: member.fullName,
     status: member.status,
     mobile1: member.mobile1,
+    householdId: member.householdId,
     householdCode: member.household?.code ?? null,
     isLeader: member.id === team.leaderMemberId,
   }));
+
+  const canEdit = await computeCanEditVisitTeam(team.leaderMemberId);
 
   return {
     id: team.id,
@@ -251,19 +283,35 @@ export async function getVisitTeamById(
     memberCount: team._count.staffMembers,
     householdCount: householdIds.size,
     visitRequestCount: team._count.visitRequests,
+    canEdit,
     members,
   };
 }
 
 export async function getAssignableMemberOptions(
-  teamId: string
+  teamId: string,
+  search?: string
 ): Promise<LeaderMemberOption[]> {
   await requireAuth();
 
+  const searchTerm = search?.trim();
+  const where: Prisma.MemberWhereInput = {
+    OR: [{ visitStaffTeamId: null }, { visitStaffTeamId: { not: teamId } }],
+  };
+
+  if (searchTerm) {
+    where.AND = [
+      {
+        OR: [
+          { code: { contains: searchTerm } },
+          { fullName: { contains: searchTerm } },
+        ],
+      },
+    ];
+  }
+
   return prisma.member.findMany({
-    where: {
-      OR: [{ visitStaffTeamId: null }, { visitStaffTeamId: { not: teamId } }],
-    },
+    where,
     select: { id: true, code: true, fullName: true },
     orderBy: { fullName: "asc" },
     take: 500,
@@ -288,6 +336,7 @@ export async function assignMembersToVisitTeam(
 ): Promise<ActionResult<{ assigned: number }>> {
   try {
     await requireAuth();
+    await assertVisitTeamEditAccess(teamId);
 
     if (memberIds.length === 0) {
       return { success: false, error: "Chọn ít nhất một thành viên" };
@@ -321,8 +370,10 @@ export async function assignMembersToVisitTeam(
     revalidatePath("/members");
 
     return { success: true, data: { assigned: uniqueIds.length } };
-  } catch {
-    return { success: false, error: "Không thể gán thành viên vào tổ" };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Không thể gán thành viên vào tổ";
+    return { success: false, error: message };
   }
 }
 
@@ -346,6 +397,7 @@ export async function removeMemberFromVisitTeam(
     }
 
     const teamId = member.visitStaffTeamId;
+    await assertVisitTeamEditAccess(teamId);
 
     await prisma.$transaction(async (tx) => {
       await tx.member.update({
@@ -364,8 +416,10 @@ export async function removeMemberFromVisitTeam(
     revalidatePath("/members");
 
     return { success: true, data: undefined };
-  } catch {
-    return { success: false, error: "Không thể bỏ gán thành viên" };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Không thể bỏ gán thành viên";
+    return { success: false, error: message };
   }
 }
 
@@ -429,6 +483,7 @@ export async function updateVisitTeam(
 ): Promise<ActionResult<{ id: string; code: string }>> {
   try {
     await requireAuth();
+    await assertVisitTeamEditAccess(id);
     const parsed = visitTeamUpdateSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -471,8 +526,12 @@ export async function updateVisitTeam(
     revalidatePath("/visit-teams");
     revalidatePath(`/visit-teams/${id}`);
     return { success: true, data: team };
-  } catch {
-    return { success: false, error: "Không thể cập nhật tổ thăm viếng" };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Không thể cập nhật tổ thăm viếng";
+    return { success: false, error: message };
   }
 }
 

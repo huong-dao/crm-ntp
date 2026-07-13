@@ -24,6 +24,10 @@ export default async function EditVisitTeamPage({
     notFound();
   }
 
+  if (!team.canEdit) {
+    notFound();
+  }
+
   const canDelete =
     team.memberCount === 0 && team.visitRequestCount === 0;
 
@@ -56,6 +60,7 @@ export default async function EditVisitTeamPage({
           code: team.code,
           area: team.area,
           leaderMemberId: team.leaderMemberId,
+          leaderName: team.leaderName,
         }}
         leaderOptions={leaderOptions}
       />

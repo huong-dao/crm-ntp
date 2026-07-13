@@ -1,8 +1,12 @@
 "use server";
 
-import type { VisitRequestStatus } from "@prisma/client";
+import type { VisitRequestStatus, VisitRequestType } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  buildVisitRequestTeamScopeWhere,
+  getAuthUserRecord,
+} from "@/lib/user-scope";
 
 export type DashboardStats = {
   totalMembers: number;
@@ -16,19 +20,22 @@ export type RecentVisitRequest = {
   code: string;
   scheduledDate: Date;
   status: VisitRequestStatus;
+  visitType: VisitRequestType;
   householdCode: string;
   householdId: string;
+  householdHeadName: string | null;
   visitTeamCode: string;
   visitTeamId: string;
-  staffCodes: string | null;
+  staffNames: string[];
 };
 
 export type VisitTeamSuccessStat = {
   id: string;
   code: string;
   area: string;
+  totalRequests: number;
+  completedRequests: number;
   totalHouseholds: number;
-  completedVisitCount: number;
   visitedHouseholdCount: number;
 };
 
@@ -38,6 +45,33 @@ async function requireAuth() {
     throw new Error("Unauthorized");
   }
   return session.user;
+}
+
+async function resolveStaffNames(
+  representativeName: string | null,
+  staffCodes: string | null
+): Promise<string[]> {
+  const additionalCodes = staffCodes
+    ? staffCodes.split(/[,;]/).map((code) => code.trim()).filter(Boolean)
+    : [];
+
+  let additionalStaffNames: string[] = [];
+  if (additionalCodes.length > 0) {
+    const members = await prisma.member.findMany({
+      where: { code: { in: additionalCodes } },
+      select: { code: true, fullName: true },
+    });
+    const nameByCode = new Map(
+      members.map((member) => [member.code.toLowerCase(), member.fullName])
+    );
+    additionalStaffNames = additionalCodes.map(
+      (code) => nameByCode.get(code.toLowerCase()) ?? code
+    );
+  }
+
+  return [representativeName, ...additionalStaffNames].filter(
+    (name): name is string => Boolean(name)
+  );
 }
 
 function getWeekRange() {
@@ -82,8 +116,16 @@ export async function getRecentVisitRequests(
 ): Promise<RecentVisitRequest[]> {
   await requireAuth();
 
+  const user = await getAuthUserRecord();
+  const teamScope = user ? buildVisitRequestTeamScopeWhere(user) : undefined;
+
+  const where = {
+    status: "scheduled" as const,
+    ...(teamScope ? { visitTeamId: teamScope.visitTeamId } : {}),
+  };
+
   const rows = await prisma.visitRequest.findMany({
-    where: { status: "scheduled" },
+    where,
     orderBy: { scheduledDate: "asc" },
     take: Math.min(20, Math.max(1, limit)),
     select: {
@@ -91,25 +133,43 @@ export async function getRecentVisitRequests(
       code: true,
       scheduledDate: true,
       status: true,
+      visitType: true,
       staffCodes: true,
       householdId: true,
       visitTeamId: true,
-      household: { select: { code: true } },
+      household: {
+        select: {
+          code: true,
+          members: {
+            where: { isHead: true },
+            select: { fullName: true },
+            take: 1,
+          },
+        },
+      },
       visitTeam: { select: { code: true } },
+      representativeMember: { select: { fullName: true } },
     },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    code: row.code,
-    scheduledDate: row.scheduledDate,
-    status: row.status,
-    householdCode: row.household.code,
-    householdId: row.householdId,
-    visitTeamCode: row.visitTeam.code,
-    visitTeamId: row.visitTeamId,
-    staffCodes: row.staffCodes,
-  }));
+  return Promise.all(
+    rows.map(async (row) => ({
+      id: row.id,
+      code: row.code,
+      scheduledDate: row.scheduledDate,
+      status: row.status,
+      visitType: row.visitType,
+      householdCode: row.household.code,
+      householdId: row.householdId,
+      householdHeadName: row.household.members[0]?.fullName ?? null,
+      visitTeamCode: row.visitTeam.code,
+      visitTeamId: row.visitTeamId,
+      staffNames: await resolveStaffNames(
+        row.representativeMember?.fullName ?? null,
+        row.staffCodes
+      ),
+    }))
+  );
 }
 
 function buildTeamHouseholdCountMap(
@@ -132,7 +192,7 @@ export async function getVisitTeamSuccessStats(): Promise<
 > {
   await requireAuth();
 
-  const [teams, teamMembers, completedVisits] = await prisma.$transaction([
+  const [teams, teamMembers, visitRequests] = await prisma.$transaction([
     prisma.visitTeam.findMany({
       select: { id: true, code: true, area: true },
       orderBy: { code: "asc" },
@@ -142,33 +202,42 @@ export async function getVisitTeamSuccessStats(): Promise<
       select: { visitTeamId: true, householdId: true },
     }),
     prisma.visitRequest.findMany({
-      where: { status: "completed" },
-      select: { visitTeamId: true, householdId: true },
+      select: { visitTeamId: true, status: true, householdId: true },
     }),
   ]);
 
   const householdCountMap = buildTeamHouseholdCountMap(teamMembers);
 
-  const completedCountMap = new Map<string, number>();
+  const totalRequestsMap = new Map<string, number>();
+  const completedRequestsMap = new Map<string, number>();
   const visitedHouseholdMap = new Map<string, Set<string>>();
 
-  for (const visit of completedVisits) {
-    completedCountMap.set(
+  for (const visit of visitRequests) {
+    totalRequestsMap.set(
       visit.visitTeamId,
-      (completedCountMap.get(visit.visitTeamId) ?? 0) + 1
+      (totalRequestsMap.get(visit.visitTeamId) ?? 0) + 1
     );
 
-    const visited = visitedHouseholdMap.get(visit.visitTeamId) ?? new Set<string>();
-    visited.add(visit.householdId);
-    visitedHouseholdMap.set(visit.visitTeamId, visited);
+    if (visit.status === "completed") {
+      completedRequestsMap.set(
+        visit.visitTeamId,
+        (completedRequestsMap.get(visit.visitTeamId) ?? 0) + 1
+      );
+
+      const visited =
+        visitedHouseholdMap.get(visit.visitTeamId) ?? new Set<string>();
+      visited.add(visit.householdId);
+      visitedHouseholdMap.set(visit.visitTeamId, visited);
+    }
   }
 
   return teams.map((team) => ({
     id: team.id,
     code: team.code,
     area: team.area,
+    totalRequests: totalRequestsMap.get(team.id) ?? 0,
+    completedRequests: completedRequestsMap.get(team.id) ?? 0,
     totalHouseholds: householdCountMap.get(team.id)?.size ?? 0,
-    completedVisitCount: completedCountMap.get(team.id) ?? 0,
     visitedHouseholdCount: visitedHouseholdMap.get(team.id)?.size ?? 0,
   }));
 }

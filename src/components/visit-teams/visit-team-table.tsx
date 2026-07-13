@@ -82,8 +82,22 @@ export function VisitTeamTable({
                   {team.leaderName ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-gray-600">{team.area}</td>
-                <td className="px-4 py-3 text-gray-600">{team.householdCount}</td>
-                <td className="px-4 py-3 text-gray-600">{team.memberCount}</td>
+                <td className="px-4 py-3 text-gray-600">
+                  <Link
+                    href={`/households?visitTeamId=${team.id}`}
+                    className="hover:text-[#1e3a5f] hover:underline"
+                  >
+                    {team.householdCount}
+                  </Link>
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  <Link
+                    href={`/members?visitTeamId=${team.id}`}
+                    className="hover:text-[#1e3a5f] hover:underline"
+                  >
+                    {team.memberCount}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" size="sm" asChild icon={ViewIcon}>
@@ -126,9 +140,21 @@ export function VisitTeamTable({
                 {team.leaderName ?? "—"}
               </MobileDataRow>
               <MobileDataRow label="Khu vực">{team.area}</MobileDataRow>
-              <MobileDataRow label="Số hộ">{team.householdCount}</MobileDataRow>
+              <MobileDataRow label="Số hộ">
+                <Link
+                  href={`/households?visitTeamId=${team.id}`}
+                  className="hover:text-[#1e3a5f] hover:underline"
+                >
+                  {team.householdCount}
+                </Link>
+              </MobileDataRow>
               <MobileDataRow label="Số nhân sự">
-                {team.memberCount}
+                <Link
+                  href={`/members?visitTeamId=${team.id}`}
+                  className="hover:text-[#1e3a5f] hover:underline"
+                >
+                  {team.memberCount}
+                </Link>
               </MobileDataRow>
             </div>
           </MobileDataCard>

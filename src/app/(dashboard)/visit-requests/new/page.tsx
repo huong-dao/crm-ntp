@@ -22,6 +22,27 @@ export default async function NewVisitRequestPage({
   const householdId = pickParam(params, "householdId");
   const options = await getVisitRequestFormContext();
 
+  if (!options.canCreate) {
+    return (
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Tạo đơn thăm viếng
+            </h1>
+          </div>
+          <Button variant="outline" asChild icon={BackIcon}>
+            <Link href="/visit-requests">Quay lại</Link>
+          </Button>
+        </div>
+        <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Tài khoản chưa được gán nhân sự Ban thăm viếng — không thể tạo đơn.
+          Liên hệ admin để gán tổ thăm viếng.
+        </div>
+      </div>
+    );
+  }
+
   const householdValid =
     householdId &&
     options.households.some((household) => household.id === householdId);

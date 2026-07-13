@@ -33,7 +33,7 @@ export function DashboardTeamVisitStatsTable({
               <th className="px-4 py-3 font-medium">Mã tổ</th>
               <th className="px-4 py-3 font-medium">Khu vực</th>
               <th className="px-4 py-3 font-medium">
-                Đơn hoàn thành / Tổng hộ
+                Đơn hoàn thành / Tổng đơn
               </th>
               <th className="px-4 py-3 font-medium">
                 Hộ đã thăm / Tổng hộ
@@ -56,7 +56,7 @@ export function DashboardTeamVisitStatsTable({
                 </td>
                 <td className="px-4 py-3 text-gray-700">{row.area}</td>
                 <td className="px-4 py-3 text-gray-900">
-                  {formatRate(row.completedVisitCount, row.totalHouseholds)}
+                  {formatRate(row.completedRequests, row.totalRequests)}
                 </td>
                 <td className="px-4 py-3 text-gray-900">
                   {formatRate(row.visitedHouseholdCount, row.totalHouseholds)}
@@ -78,8 +78,8 @@ export function DashboardTeamVisitStatsTable({
             </Link>
             <p className="mt-1 text-sm text-gray-600">{row.area}</p>
             <div className="mt-2">
-              <MobileDataRow label="Đơn hoàn thành / Tổng hộ">
-                {formatRate(row.completedVisitCount, row.totalHouseholds)}
+              <MobileDataRow label="Đơn hoàn thành / Tổng đơn">
+                {formatRate(row.completedRequests, row.totalRequests)}
               </MobileDataRow>
               <MobileDataRow label="Hộ đã thăm / Tổng hộ">
                 {formatRate(row.visitedHouseholdCount, row.totalHouseholds)}

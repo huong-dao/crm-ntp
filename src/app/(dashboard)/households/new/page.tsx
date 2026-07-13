@@ -4,7 +4,22 @@ import { HouseholdForm } from "@/components/households/household-form";
 import { Button } from "@/components/ui/button";
 import { BackIcon } from "@/lib/button-icons";
 
-export default async function NewHouseholdPage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function pickParam(params: SearchParams, key: string): string | undefined {
+  const value = params[key];
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0];
+  return undefined;
+}
+
+export default async function NewHouseholdPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const memberId = pickParam(params, "memberId");
   const headOptions = await getHeadMemberOptions();
 
   return (
@@ -21,7 +36,11 @@ export default async function NewHouseholdPage() {
         </Button>
       </div>
 
-      <HouseholdForm mode="create" headOptions={headOptions} />
+      <HouseholdForm
+        mode="create"
+        headOptions={headOptions}
+        defaultHeadMemberId={memberId}
+      />
     </div>
   );
 }

@@ -1,14 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getVisitRequestById } from "@/actions/visit-request-actions";
+import {
+  getVisitRequestById,
+  getVisitRequestHistoryItems,
+} from "@/actions/visit-request-actions";
+import { VisitRequestHouseholdMembers } from "@/components/visit-requests/visit-request-household-members";
 import { VisitRequestStaffDisplay } from "@/components/visit-requests/visit-request-staff-display";
 import { VisitRequestStatusForm } from "@/components/visit-requests/visit-request-status-form";
 import { Button } from "@/components/ui/button";
-import { AddIcon, BackIcon, EditIcon, PrintIcon } from "@/lib/button-icons";
+import { BackIcon, EditIcon, PrintIcon } from "@/lib/button-icons";
 import { cn } from "@/lib/utils";
 import {
   formatVisitRequestDate,
   VISIT_REQUEST_STATUS_LABELS,
+  VISIT_REQUEST_TYPE_LABELS,
   visitRequestStatusBadgeClass,
 } from "@/lib/visit-request-list";
 
@@ -28,7 +33,10 @@ export default async function VisitRequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const request = await getVisitRequestById(id);
+  const [request, histories] = await Promise.all([
+    getVisitRequestById(id),
+    getVisitRequestHistoryItems(id),
+  ]);
 
   if (!request) {
     notFound();
@@ -92,6 +100,16 @@ export default async function VisitRequestDetailPage({
             </span>
           </p>
         </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Loại hình thăm viếng</p>
+          <p className="mt-1 text-lg font-semibold text-gray-900">
+            {VISIT_REQUEST_TYPE_LABELS[request.visitType]}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <VisitRequestHouseholdMembers householdId={request.householdId} />
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -136,6 +154,15 @@ export default async function VisitRequestDetailPage({
         </div>
       </div>
 
+      {request.statusNote && (
+        <div className="mt-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Ghi chú tình trạng</p>
+          <p className="mt-2 whitespace-pre-wrap text-gray-900">
+            {request.statusNote}
+          </p>
+        </div>
+      )}
+
       {request.content && (
         <div className="mt-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Nội dung / ghi chú</p>
@@ -154,6 +181,7 @@ export default async function VisitRequestDetailPage({
             requestId={request.id}
             currentStatus={request.status}
             currentActualDate={request.actualDate}
+            currentStatusNote={request.statusNote}
           />
         </div>
       </div>
@@ -162,19 +190,38 @@ export default async function VisitRequestDetailPage({
         <h2 className="text-base font-semibold text-gray-900">
           Lịch sử cập nhật
         </h2>
-        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm text-sm text-gray-600 space-y-2">
-          <p>
-            Tạo đơn:{" "}
-            <span className="text-gray-900">
-              {formatDateTime(request.createdAt)}
-            </span>
-          </p>
-          <p>
-            Cập nhật lần cuối:{" "}
-            <span className="text-gray-900">
-              {formatDateTime(request.updatedAt)}
-            </span>
-          </p>
+        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm text-sm text-gray-600 space-y-3">
+          {histories.length === 0 ? (
+            <>
+              <p>
+                Tạo đơn:{" "}
+                <span className="text-gray-900">
+                  {formatDateTime(request.createdAt)}
+                </span>
+              </p>
+              <p>
+                Cập nhật lần cuối:{" "}
+                <span className="text-gray-900">
+                  {formatDateTime(request.updatedAt)}
+                </span>
+              </p>
+            </>
+          ) : (
+            histories.map((item) => (
+              <div key={item.id} className="border-b border-gray-100 pb-2 last:border-0">
+                <p className="text-gray-900">
+                  {formatDateTime(item.createdAt)} —{" "}
+                  <span className="font-medium">{item.action}</span>
+                  {item.username ? ` (${item.username})` : ""}
+                </p>
+                {item.note && (
+                  <p className="mt-1 text-gray-600 whitespace-pre-wrap">
+                    {item.note}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

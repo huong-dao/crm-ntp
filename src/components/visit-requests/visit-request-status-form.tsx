@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { VisitRequestStatus } from "@prisma/client";
 import { updateVisitStatus } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
-import { CancelIcon, SaveIcon } from "@/lib/button-icons";
+import { SaveIcon } from "@/lib/button-icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -28,10 +28,12 @@ export function VisitRequestStatusForm({
   requestId,
   currentStatus,
   currentActualDate,
+  currentStatusNote,
 }: {
   requestId: string;
   currentStatus: VisitRequestStatus;
   currentActualDate: Date | null;
+  currentStatusNote: string | null;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<VisitRequestStatus>(currentStatus);
@@ -39,6 +41,7 @@ export function VisitRequestStatusForm({
   const [loading, setLoading] = useState(false);
 
   const needsActualDate = status === "completed";
+  const needsNote = status === "cancelled" || status === "completed";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -47,10 +50,12 @@ export function VisitRequestStatusForm({
 
     const form = new FormData(e.currentTarget);
     const actualDateValue = (form.get("actualDate") as string) || null;
+    const statusNote = (form.get("statusNote") as string) || null;
 
     const result = await updateVisitStatus(requestId, {
       status,
       actualDate: actualDateValue,
+      statusNote,
     });
 
     setLoading(false);
@@ -99,6 +104,28 @@ export function VisitRequestStatusForm({
             type="date"
             required
             defaultValue={formatDateForInput(currentActualDate)}
+          />
+        </div>
+      )}
+
+      {needsNote && (
+        <div className="space-y-2">
+          <Label htmlFor="statusNote">
+            Ghi chú {status === "cancelled" ? "*" : ""}
+          </Label>
+          <textarea
+            id="statusNote"
+            name="statusNote"
+            rows={3}
+            maxLength={2000}
+            required={status === "cancelled"}
+            defaultValue={currentStatusNote ?? ""}
+            className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]"
+            placeholder={
+              status === "cancelled"
+                ? "Lý do hủy lịch..."
+                : "Ghi chú khi hoàn thành..."
+            }
           />
         </div>
       )}

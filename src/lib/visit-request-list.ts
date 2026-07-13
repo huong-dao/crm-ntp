@@ -1,4 +1,4 @@
-import type { VisitRequestStatus } from "@prisma/client";
+import type { VisitRequestStatus, VisitRequestType } from "@prisma/client";
 
 export type VisitRequestFiltersInput = {
   search?: string;
@@ -15,6 +15,20 @@ export type VisitRequestFilterValues = Pick<
   "search" | "visitTeamId" | "dateFrom" | "dateTo"
 > & {
   status?: VisitRequestStatus[];
+};
+
+export const VISIT_REQUEST_TYPES: VisitRequestType[] = [
+  "at_home",
+  "at_church",
+  "phone",
+  "other",
+];
+
+export const VISIT_REQUEST_TYPE_LABELS: Record<VisitRequestType, string> = {
+  at_home: "Tại nhà",
+  at_church: "Tại nhà thờ",
+  phone: "Qua điện thoại",
+  other: "Khác",
 };
 
 export const VISIT_REQUEST_STATUSES: VisitRequestStatus[] = [

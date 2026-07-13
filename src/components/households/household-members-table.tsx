@@ -3,7 +3,11 @@ import type { HouseholdMemberItem } from "@/actions/household-actions";
 import { Button } from "@/components/ui/button";
 import { EditIcon } from "@/lib/button-icons";
 import { cn } from "@/lib/utils";
-import { STATUS_LABELS } from "@/lib/member-list";
+import {
+  GENDER_LABELS,
+  STATUS_LABELS,
+  formatActualDepartmentName,
+} from "@/lib/member-list";
 
 function statusBadgeClass(status: HouseholdMemberItem["status"]) {
   switch (status) {
@@ -49,6 +53,21 @@ export function HouseholdMembersTable({
               Quan hệ
             </th>
             <th className="px-4 py-3 text-left font-medium text-gray-600">
+              Năm sinh
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-gray-600">
+              Giới tính
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-gray-600">
+              Địa chỉ cũ
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-gray-600">
+              Ban ngành tuổi
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-gray-600">
+              Ban ngành thực tế
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-gray-600">
               Tình trạng
             </th>
             <th className="px-4 py-3 text-left font-medium text-gray-600">
@@ -72,13 +91,33 @@ export function HouseholdMembersTable({
                 </Link>
               </td>
               <td className="px-4 py-3 text-gray-900">
-                {member.fullName}
+                <Link
+                  href={`/members/${member.id}`}
+                  className="hover:text-[#1e3a5f] hover:underline"
+                >
+                  {member.fullName}
+                </Link>
                 {member.isHead && (
                   <span className="ml-2 text-xs text-[#1e3a5f]">(Chủ hộ)</span>
                 )}
               </td>
               <td className="px-4 py-3 text-gray-600">
                 {member.relationship ?? "—"}
+              </td>
+              <td className="px-4 py-3 text-gray-600">
+                {member.birthYear ?? "—"}
+              </td>
+              <td className="px-4 py-3 text-gray-600">
+                {member.gender ? GENDER_LABELS[member.gender] : "—"}
+              </td>
+              <td className="px-4 py-3 text-gray-600">
+                {member.oldFullAddress ?? "—"}
+              </td>
+              <td className="px-4 py-3 text-gray-600">
+                {member.ageDepartmentName ?? "—"}
+              </td>
+              <td className="px-4 py-3 text-gray-600">
+                {formatActualDepartmentName(member.actualDepartmentName)}
               </td>
               <td className="px-4 py-3">
                 <span

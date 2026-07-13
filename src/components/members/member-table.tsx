@@ -7,7 +7,10 @@ import { EditIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 import { cn } from "@/lib/utils";
 import {
+  GENDER_LABELS,
   STATUS_LABELS,
+  formatActualDepartmentName,
+  formatWardDistrict,
   statusBadgeClass,
   type MemberFiltersInput,
 } from "@/lib/member-list";
@@ -93,6 +96,10 @@ export function MemberTable({
     visitTeamId: filters.visitTeamId,
     ageDepartment: filters.ageDepartment,
     actualDepartment: filters.actualDepartment,
+    birthYearFrom:
+      filters.birthYearFrom != null ? String(filters.birthYearFrom) : undefined,
+    birthYearTo:
+      filters.birthYearTo != null ? String(filters.birthYearTo) : undefined,
     sortBy,
     sortOrder,
   };
@@ -140,6 +147,15 @@ export function MemberTable({
                 Mã hộ
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Năm sinh
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Giới tính
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Phường - Quận cũ
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
                 <SortHeader
                   label="Tình trạng"
                   column="status"
@@ -173,7 +189,25 @@ export function MemberTable({
                 </td>
                 <td className="px-4 py-3 text-gray-900">{member.fullName}</td>
                 <td className="px-4 py-3 text-gray-600">
-                  {member.householdCode ?? "—"}
+                  {member.householdId && member.householdCode ? (
+                    <Link
+                      href={`/households/${member.householdId}`}
+                      className="hover:text-[#1e3a5f] hover:underline"
+                    >
+                      {member.householdCode}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {member.birthYear ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {member.gender ? GENDER_LABELS[member.gender] : "—"}
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {formatWardDistrict(member.oldWard, member.oldDistrict)}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -189,7 +223,7 @@ export function MemberTable({
                   {member.mobile1 ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-gray-600">
-                  {member.actualDepartmentName ?? "—"}
+                  {formatActualDepartmentName(member.actualDepartmentName)}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
@@ -241,7 +275,25 @@ export function MemberTable({
             </p>
             <div className="mt-2">
               <MobileDataRow label="Mã hộ">
-                {member.householdCode ?? "—"}
+                {member.householdId && member.householdCode ? (
+                  <Link
+                    href={`/households/${member.householdId}`}
+                    className="text-[#1e3a5f] hover:underline"
+                  >
+                    {member.householdCode}
+                  </Link>
+                ) : (
+                  "—"
+                )}
+              </MobileDataRow>
+              <MobileDataRow label="Năm sinh">
+                {member.birthYear ?? "—"}
+              </MobileDataRow>
+              <MobileDataRow label="Giới tính">
+                {member.gender ? GENDER_LABELS[member.gender] : "—"}
+              </MobileDataRow>
+              <MobileDataRow label="Phường - Quận cũ">
+                {formatWardDistrict(member.oldWard, member.oldDistrict)}
               </MobileDataRow>
               <MobileDataRow label="Tình trạng">
                 <span
@@ -257,7 +309,7 @@ export function MemberTable({
                 {member.mobile1 ?? "—"}
               </MobileDataRow>
               <MobileDataRow label="Ban ngành">
-                {member.actualDepartmentName ?? "—"}
+                {formatActualDepartmentName(member.actualDepartmentName)}
               </MobileDataRow>
             </div>
           </MobileDataCard>

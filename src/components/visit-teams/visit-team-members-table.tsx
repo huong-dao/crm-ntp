@@ -28,8 +28,10 @@ function statusBadgeClass(status: MemberStatus) {
 
 export function VisitTeamMembersTable({
   members,
+  canEdit = true,
 }: {
   members: VisitTeamMemberItem[];
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -116,7 +118,16 @@ export function VisitTeamMembersTable({
                   )}
                 </td>
                 <td className="px-4 py-3 text-gray-600">
-                  {member.householdCode ?? "—"}
+                  {member.householdCode && member.householdId ? (
+                    <Link
+                      href={`/households/${member.householdId}`}
+                      className="hover:text-[#1e3a5f] hover:underline"
+                    >
+                      {member.householdCode}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -136,15 +147,17 @@ export function VisitTeamMembersTable({
                     <Button variant="outline" size="sm" asChild icon={EditIcon}>
                       <Link href={`/members/${member.id}/edit`}>Sửa</Link>
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      icon={removingId === member.id ? undefined : DeleteIcon}
-                      disabled={removingId === member.id}
-                      onClick={() => handleRemove(member.id, member.fullName)}
-                    >
-                      {removingId === member.id ? "Đang bỏ..." : "Bỏ gán"}
-                    </Button>
+                    {canEdit && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={removingId === member.id ? undefined : DeleteIcon}
+                        disabled={removingId === member.id}
+                        onClick={() => handleRemove(member.id, member.fullName)}
+                      >
+                        {removingId === member.id ? "Đang bỏ..." : "Bỏ gán"}
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>

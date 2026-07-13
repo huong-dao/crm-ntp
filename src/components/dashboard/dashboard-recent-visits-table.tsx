@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { RecentVisitRequest } from "@/actions/dashboard-actions";
 import { Button } from "@/components/ui/button";
-import { AddIcon, EditIcon, ViewIcon } from "@/lib/button-icons";
+import { AddIcon, EditIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
 import { cn } from "@/lib/utils";
 import {
   formatVisitRequestDate,
   VISIT_REQUEST_STATUS_LABELS,
+  VISIT_REQUEST_TYPE_LABELS,
   visitRequestStatusBadgeClass,
 } from "@/lib/visit-request-list";
 
@@ -42,7 +43,13 @@ export function DashboardRecentVisitsTable({
               Tình trạng
             </th>
             <th className="px-4 py-3 text-left font-medium text-gray-600">
+              Hình thức
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-gray-600">
               Mã hộ
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-gray-600">
+              Chủ hộ
             </th>
             <th className="px-4 py-3 text-left font-medium text-gray-600">
               Tổ
@@ -79,6 +86,9 @@ export function DashboardRecentVisitsTable({
                   {VISIT_REQUEST_STATUS_LABELS[visit.status]}
                 </span>
               </td>
+              <td className="px-4 py-3 text-gray-600">
+                {VISIT_REQUEST_TYPE_LABELS[visit.visitType]}
+              </td>
               <td className="px-4 py-3 text-gray-900">
                 <Link
                   href={`/households/${visit.householdId}`}
@@ -88,6 +98,9 @@ export function DashboardRecentVisitsTable({
                 </Link>
               </td>
               <td className="px-4 py-3 text-gray-600">
+                {visit.householdHeadName ?? "—"}
+              </td>
+              <td className="px-4 py-3 text-gray-600">
                 <Link
                   href={`/visit-teams/${visit.visitTeamId}`}
                   className="hover:text-[#1e3a5f] hover:underline"
@@ -95,8 +108,10 @@ export function DashboardRecentVisitsTable({
                   {visit.visitTeamCode}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-gray-600 max-w-[140px] truncate">
-                {visit.staffCodes ?? "—"}
+              <td className="px-4 py-3 text-gray-600 max-w-[180px] truncate">
+                {visit.staffNames.length > 0
+                  ? visit.staffNames.join(", ")
+                  : "—"}
               </td>
               <td className="px-4 py-3 text-right">
                 <Button variant="outline" size="sm" asChild icon={EditIcon}>
@@ -139,10 +154,18 @@ export function DashboardRecentVisitsTable({
                 {VISIT_REQUEST_STATUS_LABELS[visit.status]}
               </span>
             </MobileDataRow>
+            <MobileDataRow label="Hình thức">
+              {VISIT_REQUEST_TYPE_LABELS[visit.visitType]}
+            </MobileDataRow>
             <MobileDataRow label="Mã hộ">{visit.householdCode}</MobileDataRow>
+            <MobileDataRow label="Chủ hộ">
+              {visit.householdHeadName ?? "—"}
+            </MobileDataRow>
             <MobileDataRow label="Tổ">{visit.visitTeamCode}</MobileDataRow>
             <MobileDataRow label="Nhân sự">
-              {visit.staffCodes ?? "—"}
+              {visit.staffNames.length > 0
+                ? visit.staffNames.join(", ")
+                : "—"}
             </MobileDataRow>
           </div>
         </MobileDataCard>

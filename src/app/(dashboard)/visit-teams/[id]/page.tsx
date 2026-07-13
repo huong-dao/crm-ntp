@@ -16,17 +16,20 @@ export default async function VisitTeamDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [team, assignableMembers] = await Promise.all([
-    getVisitTeamById(id),
-    getAssignableMemberOptions(id),
-  ]);
+  const team = await getVisitTeamById(id);
 
   if (!team) {
     notFound();
   }
 
+  const assignableMembers = team.canEdit
+    ? await getAssignableMemberOptions(id)
+    : [];
+
   const canDelete =
-    team.memberCount === 0 && team.visitRequestCount === 0;
+    team.canEdit &&
+    team.memberCount === 0 &&
+    team.visitRequestCount === 0;
 
   return (
     <div>
@@ -43,9 +46,11 @@ export default async function VisitTeamDetailPage({
           <Button variant="outline" asChild icon={BackIcon}>
             <Link href="/visit-teams">Danh sách tổ</Link>
           </Button>
-          <Button variant="outline" asChild icon={EditIcon}>
-            <Link href={`/visit-teams/${team.id}/edit`}>Sửa tổ</Link>
-          </Button>
+          {team.canEdit && (
+            <Button variant="outline" asChild icon={EditIcon}>
+              <Link href={`/visit-teams/${team.id}/edit`}>Sửa tổ</Link>
+            </Button>
+          )}
           {canDelete && (
             <DeleteVisitTeamButton teamId={team.id} teamCode={team.code} />
           )}
@@ -79,26 +84,30 @@ export default async function VisitTeamDetailPage({
         </div>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div
+        className={`mt-8 grid gap-6 ${team.canEdit ? "lg:grid-cols-3" : ""}`}
+      >
+        <div className={team.canEdit ? "lg:col-span-2" : undefined}>
           <h2 className="text-base font-semibold text-gray-900">
             Nhân sự thăm viếng
           </h2>
           <div className="mt-4">
-            <VisitTeamMembersTable members={team.members} />
+            <VisitTeamMembersTable members={team.members} canEdit={team.canEdit} />
           </div>
         </div>
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">
-            Gán nhân sự
-          </h2>
-          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-            <AssignMembersForm
-              teamId={team.id}
-              memberOptions={assignableMembers}
-            />
+        {team.canEdit && (
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">
+              Gán nhân sự
+            </h2>
+            <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+              <AssignMembersForm
+                teamId={team.id}
+                memberOptions={assignableMembers}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

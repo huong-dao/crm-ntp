@@ -28,9 +28,9 @@ export default async function EditHouseholdPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Sửa hộ: {household.code}
+            Đổi chủ hộ: {household.code}
           </h1>
-          <p className="mt-1 text-sm text-gray-600">Cập nhật chủ hộ</p>
+          <p className="mt-1 text-sm text-gray-600">Chọn chủ hộ mới cho hộ gia đình</p>
         </div>
         <Button variant="outline" asChild icon={BackIcon}>
           <Link href={`/households/${household.id}`}>Chi tiết</Link>
