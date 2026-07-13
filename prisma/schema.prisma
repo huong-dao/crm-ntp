@@ -200,6 +200,48 @@ model MemberImportLog {
   @@map("member_import_logs")
 }
 
+model Province {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  districts District[]
+
+  @@index([name])
+  @@map("provinces")
+}
+
+model District {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  provinceId String   @map("province_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  province Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  wards    Ward[]
+
+  @@index([provinceId])
+  @@index([name])
+  @@map("districts")
+}
+
+model Ward {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  level      String
+  districtId String   @map("district_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  district District @relation(fields: [districtId], references: [id], onDelete: Cascade)
+
+  @@index([districtId])
+  @@index([name])
+  @@map("wards")
+}
+
 model MemberImportLogRow {
   id         String                @id @default(cuid())
   logId      String                @map("log_id")

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getAdministrativeUnitStats } from "@/actions/administrative-unit-actions";
 import { getMemberFormOptions } from "@/actions/member-actions";
 import { MemberForm } from "@/components/members/member-form";
 import { Button } from "@/components/ui/button";
@@ -22,8 +23,14 @@ export default async function NewMemberPage({
   const householdId = pickParam(params, "householdId");
 
   let options;
+  let hasAdministrativeData = false;
   try {
-    options = await getMemberFormOptions();
+    const [formOptions, stats] = await Promise.all([
+      getMemberFormOptions(),
+      getAdministrativeUnitStats(),
+    ]);
+    options = formOptions;
+    hasAdministrativeData = stats.provinceCount > 0;
   } catch {
     return (
       <div>
@@ -69,6 +76,7 @@ export default async function NewMemberPage({
         options={options}
         defaultHouseholdId={householdValid ? householdId : undefined}
         forceCreateHousehold={options.households.length === 0}
+        hasAdministrativeData={hasAdministrativeData}
       />
     </div>
   );

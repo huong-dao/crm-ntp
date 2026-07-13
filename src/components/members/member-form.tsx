@@ -24,6 +24,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/member-list";
 import { parseMemberFormData, CREATE_NEW_HOUSEHOLD, type MemberFormInput } from "@/lib/validations/member";
+import { AddressFields } from "@/components/administrative-units/address-fields";
 import { CancelIcon, SaveIcon } from "@/lib/button-icons";
 
 const selectClass =
@@ -113,6 +114,7 @@ export function MemberForm({
   member,
   defaultHouseholdId,
   forceCreateHousehold = false,
+  hasAdministrativeData = false,
 }: {
   mode: "create" | "edit";
   options: MemberFormOptions;
@@ -120,6 +122,7 @@ export function MemberForm({
   defaultHouseholdId?: string;
   /** Khi chưa có hộ nào — tự tạo hộ mới khi lưu */
   forceCreateHousehold?: boolean;
+  hasAdministrativeData?: boolean;
 }) {
   const router = useRouter();
   const isEdit = mode === "edit" && member;
@@ -319,7 +322,7 @@ export function MemberForm({
         </Field>
       </Section>
 
-      <Section title="Địa chỉ cũ">
+      <Section title="Địa chỉ">
         <Field label="Số nhà">
           <Input
             name="houseNumber"
@@ -336,53 +339,17 @@ export function MemberForm({
             onChange={(e) => updateAddress("street", e.target.value)}
           />
         </Field>
-        <Field label="Phường cũ">
-          <Input
-            name="oldWard"
-            maxLength={100}
-            value={address.oldWard}
-            onChange={(e) => updateAddress("oldWard", e.target.value)}
-          />
-        </Field>
-        <Field label="Quận cũ">
-          <Input
-            name="oldDistrict"
-            maxLength={100}
-            value={address.oldDistrict}
-            onChange={(e) => updateAddress("oldDistrict", e.target.value)}
-          />
-        </Field>
-        <Field label="Tỉnh cũ">
-          <Input
-            name="oldProvince"
-            maxLength={100}
-            value={address.oldProvince}
-            onChange={(e) => updateAddress("oldProvince", e.target.value)}
-          />
-        </Field>
-        <Field label="Địa chỉ cũ đầy đủ">
+
+        <AddressFields
+          values={address}
+          onChange={updateAddress}
+          hasAdministrativeData={hasAdministrativeData}
+        />
+
+        <Field label="Địa chỉ cũ đầy đủ" className="sm:col-span-3">
           <Input readOnly value={oldFullAddressPreview} className="bg-gray-50" />
         </Field>
-      </Section>
-
-      <Section title="Địa chỉ mới">
-        <Field label="Phường mới">
-          <Input
-            name="newWard"
-            maxLength={100}
-            value={address.newWard}
-            onChange={(e) => updateAddress("newWard", e.target.value)}
-          />
-        </Field>
-        <Field label="Tỉnh mới">
-          <Input
-            name="newProvince"
-            maxLength={100}
-            value={address.newProvince}
-            onChange={(e) => updateAddress("newProvince", e.target.value)}
-          />
-        </Field>
-        <Field label="Địa chỉ mới đầy đủ">
+        <Field label="Địa chỉ mới đầy đủ" className="sm:col-span-3">
           <Input readOnly value={newFullAddressPreview} className="bg-gray-50" />
         </Field>
       </Section>

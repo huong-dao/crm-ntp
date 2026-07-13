@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getAdministrativeUnitStats } from "@/actions/administrative-unit-actions";
 import {
   getMemberById,
   getMemberFormOptions,
@@ -14,9 +15,10 @@ export default async function EditMemberPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [member, options] = await Promise.all([
+  const [member, options, stats] = await Promise.all([
     getMemberById(id),
     getMemberFormOptions(),
+    getAdministrativeUnitStats(),
   ]);
 
   if (!member) {
@@ -37,7 +39,12 @@ export default async function EditMemberPage({
         </Button>
       </div>
 
-      <MemberForm mode="edit" member={member} options={options} />
+      <MemberForm
+        mode="edit"
+        member={member}
+        options={options}
+        hasAdministrativeData={stats.provinceCount > 0}
+      />
     </div>
   );
 }
