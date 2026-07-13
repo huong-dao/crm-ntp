@@ -1,13 +1,28 @@
 import Link from "next/link";
 import {
+  getActivityLogs,
+} from "@/actions/activity-log-actions";
+import {
+  getCalendarVisitRequests,
   getDashboardStats,
   getRecentVisitRequests,
   getVisitTeamSuccessStats,
 } from "@/actions/dashboard-actions";
+import { ActivityLogTable } from "@/components/activity-logs/activity-log-table";
 import { DashboardRecentVisitsTable } from "@/components/dashboard/dashboard-recent-visits-table";
 import { DashboardTeamVisitStatsTable } from "@/components/dashboard/dashboard-team-visit-stats-table";
+import { VisitCalendar } from "@/components/dashboard/visit-calendar";
 import { Button } from "@/components/ui/button";
 import { ViewIcon } from "@/lib/button-icons";
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function pickParam(params: SearchParams, key: string): string | undefined {
+  const value = params[key];
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0];
+  return undefined;
+}
 
 const statCards = [
   {
@@ -32,12 +47,31 @@ const statCards = [
   },
 ] as const;
 
-export default async function DashboardPage() {
-  const [stats, recentVisits, teamVisitStats] = await Promise.all([
-    getDashboardStats(),
-    getRecentVisitRequests(5),
-    getVisitTeamSuccessStats(),
-  ]);
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const now = new Date();
+  const yearRaw = pickParam(params, "year");
+  const monthRaw = pickParam(params, "month");
+  const year = yearRaw ? parseInt(yearRaw, 10) : now.getFullYear();
+  const month = monthRaw ? parseInt(monthRaw, 10) : now.getMonth() + 1;
+  const safeYear = Number.isFinite(year) ? year : now.getFullYear();
+  const safeMonth =
+    Number.isFinite(month) && month >= 1 && month <= 12
+      ? month
+      : now.getMonth() + 1;
+
+  const [stats, recentVisits, teamVisitStats, calendarEvents, activityLogs] =
+    await Promise.all([
+      getDashboardStats(),
+      getRecentVisitRequests(5),
+      getVisitTeamSuccessStats(),
+      getCalendarVisitRequests(safeYear, safeMonth),
+      getActivityLogs(10),
+    ]);
 
   return (
     <div>
@@ -66,11 +100,28 @@ export default async function DashboardPage() {
       <div className="mt-8">
         <div>
           <h2 className="text-base font-semibold text-gray-900">
+            Lịch thăm viếng
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Xem đơn thăm viếng theo ngày trong tháng
+          </p>
+        </div>
+        <div className="mt-4">
+          <VisitCalendar
+            year={safeYear}
+            month={safeMonth}
+            events={calendarEvents}
+          />
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">
             Tỷ lệ thăm viếng theo tổ
           </h2>
           <p className="mt-1 text-sm text-gray-600">
-            Số đơn hoàn thành và số hộ đã thăm so với tổng hộ phụ trách của
-            từng tổ
+            Số đơn hoàn thành so với tổng đơn của từng tổ
           </p>
         </div>
         <div className="mt-4">
@@ -94,6 +145,25 @@ export default async function DashboardPage() {
         </div>
         <div className="mt-4">
           <DashboardRecentVisitsTable visits={recentVisits} />
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">
+              Nhật ký hoạt động gần đây
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Các thao tác mới nhất trên hệ thống
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild icon={ViewIcon}>
+            <Link href="/activity-logs">Xem tất cả</Link>
+          </Button>
+        </div>
+        <div className="mt-4">
+          <ActivityLogTable logs={activityLogs} />
         </div>
       </div>
     </div>

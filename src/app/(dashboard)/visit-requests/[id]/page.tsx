@@ -56,7 +56,12 @@ export default async function VisitRequestDetailPage({
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild icon={PrintIcon}>
             <Link href={`/visit-requests/${id}/print`} target="_blank">
-              Xuất PDF
+              Xuất PDF đơn
+            </Link>
+          </Button>
+          <Button variant="outline" asChild icon={PrintIcon}>
+            <Link href={`/visit-requests/${id}/print-members`} target="_blank">
+              PDF thành viên hộ
             </Link>
           </Button>
           <Button asChild icon={EditIcon}>
@@ -109,7 +114,10 @@ export default async function VisitRequestDetailPage({
       </div>
 
       <div className="mt-6">
-        <VisitRequestHouseholdMembers householdId={request.householdId} />
+        <VisitRequestHouseholdMembers
+          householdId={request.householdId}
+          requestId={request.id}
+        />
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">

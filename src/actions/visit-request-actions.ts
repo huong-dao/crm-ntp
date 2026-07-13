@@ -21,6 +21,7 @@ import {
   getVisitRequestHistories,
   logVisitRequestHistory,
 } from "@/lib/visit-request-history";
+import { logActivity } from "@/lib/activity-log";
 import type { VisitRequestFiltersInput } from "@/lib/visit-request-list";
 import {
   VISIT_REQUEST_EXPORT_HEADERS,
@@ -592,6 +593,17 @@ export async function createVisitRequest(
         note: trimmedContent || null,
       });
 
+      await logActivity(
+        {
+          userId: user.id,
+          entityType: "visit_request",
+          entityId: created.id,
+          action: "created",
+          note: `Tạo đơn ${created.code}`,
+        },
+        tx
+      );
+
       return created;
     });
 
@@ -720,6 +732,65 @@ export async function getVisitRequestHouseholdMembers(
   });
 
   return members;
+}
+
+export type VisitRequestMembersPrintData = {
+  requestCode: string;
+  householdCode: string;
+  householdHeadName: string | null;
+  scheduledDate: Date;
+  members: {
+    code: string;
+    fullName: string;
+    relationship: string | null;
+    birthYear: number | null;
+    gender: string | null;
+    status: string;
+    notes: string | null;
+    ageDepartmentName: string | null;
+    actualDepartmentName: string | null;
+  }[];
+};
+
+export async function getVisitRequestMembersForPrint(
+  id: string
+): Promise<VisitRequestMembersPrintData | null> {
+  const request = await getVisitRequestById(id);
+  if (!request) return null;
+
+  const members = await prisma.member.findMany({
+    where: { householdId: request.householdId },
+    orderBy: [{ isHead: "desc" }, { fullName: "asc" }],
+    select: {
+      code: true,
+      fullName: true,
+      relationship: true,
+      birthYear: true,
+      gender: true,
+      status: true,
+      notes: true,
+      ageDepartment: { select: { name: true } },
+      actualDepartment: { select: { name: true } },
+    },
+  });
+
+  return {
+    requestCode: request.code,
+    householdCode: request.householdCode,
+    householdHeadName: request.householdHeadName,
+    scheduledDate: request.scheduledDate,
+    members: members.map((member) => ({
+      code: member.code,
+      fullName: member.fullName,
+      relationship: member.relationship,
+      birthYear: member.birthYear,
+      gender: member.gender,
+      status: member.status,
+      notes: member.notes,
+      ageDepartmentName: member.ageDepartment?.name ?? null,
+      actualDepartmentName: member.actualDepartment?.name ?? null,
+    })),
+  };
 }
 
 export async function getVisitRequestHistoryItems(
@@ -867,6 +938,17 @@ export async function updateVisitRequest(
         note: trimmedContent || null,
       });
 
+      await logActivity(
+        {
+          userId: user.id,
+          entityType: "visit_request",
+          entityId: id,
+          action: "updated",
+          note: `Cập nhật đơn ${updated.code}`,
+        },
+        tx
+      );
+
       return updated;
     });
 
@@ -939,6 +1021,22 @@ export async function updateVisitStatus(
               : "status_changed",
         note: trimmedNote,
       });
+
+      await logActivity(
+        {
+          userId: user.id,
+          entityType: "visit_request",
+          entityId: id,
+          action:
+            status === "completed"
+              ? "completed"
+              : status === "cancelled"
+                ? "cancelled"
+                : "status_changed",
+          note: trimmedNote,
+        },
+        tx
+      );
 
       return updated;
     });

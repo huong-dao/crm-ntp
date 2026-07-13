@@ -22,9 +22,12 @@ import {
 } from "@/lib/department-age";
 import { buildOldFullAddress, buildNewFullAddress } from "@/lib/member-format";
 import { applyHeadOfHousehold, buildMemberWriteData } from "@/lib/member-write";
+import { logActivity } from "@/lib/activity-log";
+import { syncHouseholdVisitTeamFromHead } from "@/lib/household-visit-team";
 import { prisma } from "@/lib/prisma";
 import {
   buildVisitTeamScopeWhere,
+  getAuthUserRecord,
   isAdmin,
   requireAuthUser,
 } from "@/lib/user-scope";
@@ -224,6 +227,42 @@ async function resolveAgeDepartmentId(
 ): Promise<string | null> {
   if (birthYear == null) return null;
   return resolveDepartmentIdByAge(birthYear, departments);
+}
+
+async function resolveVisitTeamFromHousehold(
+  householdId: string | null | undefined,
+  explicitVisitTeamId: string | null | undefined
+): Promise<string | null> {
+  if (explicitVisitTeamId) return explicitVisitTeamId;
+  if (!householdId) return null;
+
+  const household = await prisma.household.findUnique({
+    where: { id: householdId },
+    select: {
+      headMemberId: true,
+      members: {
+        where: { isHead: true },
+        select: { visitTeamId: true },
+        take: 1,
+      },
+    },
+  });
+
+  if (!household) return null;
+
+  if (household.members[0]?.visitTeamId) {
+    return household.members[0].visitTeamId;
+  }
+
+  if (household.headMemberId) {
+    const head = await prisma.member.findUnique({
+      where: { id: household.headMemberId },
+      select: { visitTeamId: true },
+    });
+    return head?.visitTeamId ?? null;
+  }
+
+  return null;
 }
 
 export async function getMembers(
@@ -522,10 +561,16 @@ export async function createMember(
       data.birthYear,
       departments
     );
+    const targetHouseholdId = data.createNewHousehold ? null : data.householdId;
+    const resolvedVisitTeamId = await resolveVisitTeamFromHousehold(
+      targetHouseholdId,
+      data.visitTeamId
+    );
     const built = buildMemberWriteData(
       {
         ...data,
-        householdId: data.createNewHousehold ? null : data.householdId,
+        householdId: targetHouseholdId,
+        visitTeamId: resolvedVisitTeamId,
         ageDepartmentId: autoAgeDepartmentId ?? data.ageDepartmentId ?? null,
       },
       code
@@ -550,8 +595,18 @@ export async function createMember(
       });
 
       await applyHeadOfHousehold(tx, householdId, created.id, data.isHead);
+      await syncHouseholdVisitTeamFromHead(tx, householdId);
 
       return created;
+    });
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "member",
+      entityId: member.id,
+      action: "created",
+      note: `Tạo thành viên ${member.code}`,
     });
 
     revalidatePath("/members");
@@ -630,8 +685,13 @@ export async function updateMember(
       data.birthYear,
       departments
     );
+    const resolvedVisitTeamId = await resolveVisitTeamFromHousehold(
+      householdId,
+      data.visitTeamId
+    );
     const built = buildMemberWriteData({
       ...data,
+      visitTeamId: resolvedVisitTeamId,
       ageDepartmentId: autoAgeDepartmentId ?? data.ageDepartmentId ?? null,
     });
     if (!built.ok) {
@@ -647,6 +707,7 @@ export async function updateMember(
       });
 
       await applyHeadOfHousehold(tx, householdId, id, data.isHead);
+      await syncHouseholdVisitTeamFromHead(tx, householdId);
 
       if (oldHouseholdId && oldHouseholdId !== householdId) {
         const oldHousehold = await tx.household.findUnique({
@@ -662,6 +723,15 @@ export async function updateMember(
       }
 
       return updated;
+    });
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "member",
+      entityId: id,
+      action: "updated",
+      note: `Cập nhật thành viên ${member.code}`,
     });
 
     revalidatePath("/members");
@@ -710,6 +780,15 @@ export async function deleteMember(
       });
 
       await tx.member.delete({ where: { id } });
+    });
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "member",
+      entityId: id,
+      action: "deleted",
+      note: `Xóa thành viên ${existing.code}`,
     });
 
     revalidatePath("/members");

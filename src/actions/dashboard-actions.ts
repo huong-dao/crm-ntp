@@ -39,6 +39,19 @@ export type VisitTeamSuccessStat = {
   visitedHouseholdCount: number;
 };
 
+export type CalendarVisitEvent = {
+  id: string;
+  code: string;
+  scheduledDate: Date;
+  status: VisitRequestStatus;
+  visitType: VisitRequestType;
+  householdCode: string;
+  householdId: string;
+  householdHeadName: string | null;
+  visitTeamCode: string;
+  staffNames: string[];
+};
+
 async function requireAuth() {
   const session = await auth();
   if (!session?.user) {
@@ -240,4 +253,66 @@ export async function getVisitTeamSuccessStats(): Promise<
     totalHouseholds: householdCountMap.get(team.id)?.size ?? 0,
     visitedHouseholdCount: visitedHouseholdMap.get(team.id)?.size ?? 0,
   }));
+}
+
+export async function getCalendarVisitRequests(
+  year: number,
+  month: number
+): Promise<CalendarVisitEvent[]> {
+  await requireAuth();
+
+  const user = await getAuthUserRecord();
+  const teamScope = user ? buildVisitRequestTeamScopeWhere(user) : undefined;
+
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0, 23, 59, 59, 999);
+
+  const where = {
+    scheduledDate: { gte: start, lte: end },
+    ...(teamScope ? { visitTeamId: teamScope.visitTeamId } : {}),
+  };
+
+  const rows = await prisma.visitRequest.findMany({
+    where,
+    orderBy: { scheduledDate: "asc" },
+    select: {
+      id: true,
+      code: true,
+      scheduledDate: true,
+      status: true,
+      visitType: true,
+      staffCodes: true,
+      householdId: true,
+      household: {
+        select: {
+          code: true,
+          members: {
+            where: { isHead: true },
+            select: { fullName: true },
+            take: 1,
+          },
+        },
+      },
+      visitTeam: { select: { code: true } },
+      representativeMember: { select: { fullName: true } },
+    },
+  });
+
+  return Promise.all(
+    rows.map(async (row) => ({
+      id: row.id,
+      code: row.code,
+      scheduledDate: row.scheduledDate,
+      status: row.status,
+      visitType: row.visitType,
+      householdCode: row.household.code,
+      householdId: row.householdId,
+      householdHeadName: row.household.members[0]?.fullName ?? null,
+      visitTeamCode: row.visitTeam.code,
+      staffNames: await resolveStaffNames(
+        row.representativeMember?.fullName ?? null,
+        row.staffCodes
+      ),
+    }))
+  );
 }

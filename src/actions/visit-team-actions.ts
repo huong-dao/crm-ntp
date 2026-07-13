@@ -22,6 +22,7 @@ import {
   type VisitTeamCreateInput,
   type VisitTeamUpdateInput,
 } from "@/lib/validations/visit-team";
+import { logActivity } from "@/lib/activity-log";
 
 export type VisitTeamListItem = {
   id: string;
@@ -365,6 +366,15 @@ export async function assignMembersToVisitTeam(
       data: { visitStaffTeamId: teamId },
     });
 
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "visit_team",
+      entityId: teamId,
+      action: "assigned",
+      note: `Gán ${uniqueIds.length} nhân sự vào tổ`,
+    });
+
     revalidatePath("/visit-teams");
     revalidatePath(`/visit-teams/${teamId}`);
     revalidatePath("/members");
@@ -409,6 +419,15 @@ export async function removeMemberFromVisitTeam(
         where: { id: teamId, leaderMemberId: memberId },
         data: { leaderMemberId: null },
       });
+    });
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "visit_team",
+      entityId: teamId,
+      action: "removed",
+      note: "Gỡ nhân sự khỏi tổ",
     });
 
     revalidatePath("/visit-teams");
@@ -470,6 +489,15 @@ export async function createVisitTeam(
       await syncLeaderToTeam(team.id, leaderMemberId);
     }
 
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "visit_team",
+      entityId: team.id,
+      action: "created",
+      note: `Tạo tổ ${team.code}`,
+    });
+
     revalidatePath("/visit-teams");
     return { success: true, data: team };
   } catch {
@@ -522,6 +550,15 @@ export async function updateVisitTeam(
     if (leaderMemberId) {
       await syncLeaderToTeam(id, leaderMemberId);
     }
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "visit_team",
+      entityId: team.id,
+      action: "updated",
+      note: `Cập nhật tổ ${team.code}`,
+    });
 
     revalidatePath("/visit-teams");
     revalidatePath(`/visit-teams/${id}`);
@@ -578,6 +615,16 @@ export async function deleteVisitTeam(id: string): Promise<ActionResult> {
     }
 
     await prisma.visitTeam.delete({ where: { id } });
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "visit_team",
+      entityId: id,
+      action: "deleted",
+      note: `Xóa tổ ${team.code}`,
+    });
+
     revalidatePath("/visit-teams");
 
     return { success: true, data: undefined };

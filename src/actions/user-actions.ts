@@ -11,6 +11,7 @@ import {
   updateUserSchema,
   type UpdateUserInput,
 } from "@/lib/validations/user";
+import { logActivity } from "@/lib/activity-log";
 
 export type UserListItem = {
   id: string;
@@ -151,6 +152,14 @@ export async function createUser(
       },
     });
 
+    await logActivity({
+      userId: admin.id,
+      entityType: "user",
+      entityId: user.id,
+      action: "created",
+      note: `Tạo tài khoản ${user.username}`,
+    });
+
     revalidatePath("/users");
     return {
       success: true,
@@ -249,6 +258,14 @@ export async function updateUser(
         createdAt: true,
         member: { select: { code: true, fullName: true } },
       },
+    });
+
+    await logActivity({
+      userId: admin.id,
+      entityType: "user",
+      entityId: user.id,
+      action: "updated",
+      note: `Cập nhật tài khoản ${user.username}`,
     });
 
     revalidatePath("/users");

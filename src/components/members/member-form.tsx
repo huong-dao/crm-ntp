@@ -9,6 +9,7 @@ import {
   type MemberFormDefaults,
   type MemberFormOptions,
 } from "@/actions/member-actions";
+import { getDefaultVisitTeamForHousehold } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -176,6 +177,7 @@ export function MemberForm({
   const [customRelationship, setCustomRelationship] = useState(
     initialRelationship.custom
   );
+  const [visitTeamId, setVisitTeamId] = useState(member?.visitTeamId ?? "");
 
   const relationshipValue =
     relationshipSelect === "Khác" ? customRelationship : relationshipSelect;
@@ -252,6 +254,12 @@ export function MemberForm({
     setHouseholdId(value);
     if (value === CREATE_NEW_HOUSEHOLD) {
       setIsHead(true);
+      return;
+    }
+    if (!isHead) {
+      void getDefaultVisitTeamForHousehold(value).then((teamId) => {
+        if (teamId) setVisitTeamId(teamId);
+      });
     }
   }
 
@@ -260,6 +268,15 @@ export function MemberForm({
       return;
     }
     setIsHead(checked);
+    if (
+      !checked &&
+      householdId &&
+      householdId !== CREATE_NEW_HOUSEHOLD
+    ) {
+      void getDefaultVisitTeamForHousehold(householdId).then((teamId) => {
+        if (teamId) setVisitTeamId(teamId);
+      });
+    }
   }
 
   function handleBirthYearChange(value: string) {
@@ -563,7 +580,8 @@ export function MemberForm({
           <select
             name="visitTeamId"
             className={selectClass}
-            defaultValue={member?.visitTeamId ?? ""}
+            value={visitTeamId}
+            onChange={(e) => setVisitTeamId(e.target.value)}
           >
             <option value="">— Không chọn —</option>
             {options.visitTeams.map((team) => (

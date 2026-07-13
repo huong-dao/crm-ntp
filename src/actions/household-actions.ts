@@ -21,6 +21,9 @@ import {
   householdFormSchema,
   type HouseholdFormInput,
 } from "@/lib/validations/household";
+import { logActivity } from "@/lib/activity-log";
+import { syncHouseholdVisitTeamFromHead } from "@/lib/household-visit-team";
+import { getAuthUserRecord } from "@/lib/user-scope";
 
 export type HouseholdMemberItem = {
   id: string;
@@ -129,6 +132,8 @@ export async function applyHouseholdHead(
     where: { id: householdId },
     data: { headMemberId },
   });
+
+  await syncHouseholdVisitTeamFromHead(tx, householdId);
 }
 
 export async function getHeadMemberOptions(
@@ -403,6 +408,15 @@ export async function createHousehold(
       return created;
     });
 
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "household",
+      entityId: household.id,
+      action: "created",
+      note: `Tạo hộ ${household.code}`,
+    });
+
     revalidatePath("/households");
     return { success: true, data: { id: household.id, code: household.code } };
   } catch (error) {
@@ -458,6 +472,15 @@ export async function updateHousehold(
         where: { id },
         select: { id: true, code: true },
       });
+    });
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "household",
+      entityId: id,
+      action: "updated",
+      note: `Đổi chủ hộ hộ ${household.code}`,
     });
 
     revalidatePath("/households");
@@ -547,6 +570,15 @@ export async function splitHousehold(
       return created;
     });
 
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "household",
+      entityId: household.id,
+      action: "split",
+      note: `Tách hộ mới ${household.code} từ hộ ${sourceHouseholdId}`,
+    });
+
     revalidatePath("/households");
     revalidatePath(`/households/${sourceHouseholdId}`);
     revalidatePath(`/households/${household.id}`);
@@ -581,6 +613,16 @@ export async function deleteHousehold(id: string): Promise<ActionResult> {
     }
 
     await prisma.household.delete({ where: { id } });
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "household",
+      entityId: id,
+      action: "deleted",
+      note: `Xóa hộ ${household.code}`,
+    });
+
     revalidatePath("/households");
 
     return { success: true, data: undefined };

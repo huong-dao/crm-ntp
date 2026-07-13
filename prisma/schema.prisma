@@ -57,6 +57,7 @@ model User {
   member Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
   createdVisitRequests VisitRequest[] @relation("VisitRequestCreatedBy")
   visitRequestHistories VisitRequestHistory[]
+  activityLogs          ActivityLog[]
 
   @@map("users")
 }
@@ -211,6 +212,25 @@ model VisitRequestHistory {
   @@index([visitRequestId])
   @@index([createdAt])
   @@map("visit_request_histories")
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id")
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  action     String
+  note       String?  @db.Text
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType])
+  @@index([entityId])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("activity_logs")
 }
 
 model MemberImportLog {

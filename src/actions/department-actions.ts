@@ -10,6 +10,8 @@ import {
   departmentFormSchema,
   type DepartmentFormInput,
 } from "@/lib/validations/department";
+import { logActivity } from "@/lib/activity-log";
+import { getAuthUserRecord } from "@/lib/user-scope";
 
 export type DepartmentListItem = {
   id: string;
@@ -209,6 +211,15 @@ export async function createDepartment(
       select: { id: true, name: true },
     });
 
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "department",
+      entityId: department.id,
+      action: "created",
+      note: `Tạo ban ngành ${department.name}`,
+    });
+
     revalidatePath("/departments");
     revalidatePath("/members");
 
@@ -260,6 +271,15 @@ export async function updateDepartment(
       select: { id: true, name: true },
     });
 
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "department",
+      entityId: department.id,
+      action: "updated",
+      note: `Cập nhật ban ngành ${department.name}`,
+    });
+
     revalidatePath("/departments");
     revalidatePath(`/departments/${id}`);
     revalidatePath("/members");
@@ -300,6 +320,16 @@ export async function deleteDepartment(id: string): Promise<ActionResult> {
     }
 
     await prisma.department.delete({ where: { id } });
+
+    const user = await getAuthUserRecord();
+    await logActivity({
+      userId: user?.id,
+      entityType: "department",
+      entityId: id,
+      action: "deleted",
+      note: `Xóa ban ngành ${department.name}`,
+    });
+
     revalidatePath("/departments");
 
     return { success: true, data: undefined };

@@ -13,8 +13,10 @@ import type { MemberStatus } from "@prisma/client";
 
 export function VisitRequestHouseholdMembers({
   householdId,
+  requestId,
 }: {
   householdId: string;
+  requestId?: string;
 }) {
   const [members, setMembers] = useState<VisitRequestHouseholdMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,6 +52,16 @@ export function VisitRequestHouseholdMembers({
           Thành viên trong hộ
         </h3>
         <div className="flex flex-wrap gap-2">
+          {requestId && (
+            <Button variant="outline" size="sm" asChild>
+              <Link
+                href={`/visit-requests/${requestId}/print-members`}
+                target="_blank"
+              >
+                PDF thành viên
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" size="sm" asChild icon={AddIcon}>
             <Link href={`/members/new?householdId=${householdId}`}>
               Thêm thành viên
