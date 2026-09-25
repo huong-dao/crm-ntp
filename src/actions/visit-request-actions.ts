@@ -986,7 +986,7 @@ export async function updateVisitStatus(
 
     const user = await assertTeamAccess(existing.visitTeamId);
 
-    const { status, statusNote } = parsed.data;
+    const { status, visitType, statusNote } = parsed.data;
     let actualDate: Date | null = existing.actualDate;
 
     if (status === "completed") {
@@ -1004,6 +1004,7 @@ export async function updateVisitStatus(
         where: { id },
         data: {
           status,
+          visitType,
           actualDate,
           statusNote: trimmedNote,
         },

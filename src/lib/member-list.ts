@@ -8,10 +8,17 @@ export type MemberFiltersInput = {
   actualDepartment?: string;
   birthYearFrom?: number;
   birthYearTo?: number;
+  isTrusted?: boolean;
+  isNtpPer?: boolean;
   page?: number;
   pageSize?: number;
   sortBy?: "fullName" | "code" | "status";
   sortOrder?: "asc" | "desc";
+};
+
+export const BOOLEAN_FILTER_LABELS: Record<"true" | "false", string> = {
+  true: "Có",
+  false: "Không",
 };
 
 export function formatActualDepartmentName(name: string | null | undefined): string {

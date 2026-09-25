@@ -29,6 +29,20 @@ export default async function EditUserPage({
     notFound();
   }
 
+  // Đảm bảo thành viên đang liên kết luôn hiển thị trong danh sách, kể cả khi
+  // thành viên đó không thuộc tổ thăm viếng nào (không khớp bộ lọc mới).
+  const memberOptionsWithCurrent =
+    user.memberId && !memberOptions.some((member) => member.id === user.memberId)
+      ? [
+          {
+            id: user.memberId,
+            code: user.memberCode ?? "",
+            fullName: user.memberName ?? "",
+          },
+          ...memberOptions,
+        ]
+      : memberOptions;
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -47,7 +61,7 @@ export default async function EditUserPage({
 
       <EditUserForm
         user={user}
-        memberOptions={memberOptions}
+        memberOptions={memberOptionsWithCurrent}
         isSelf={user.id === session.user.id}
       />
     </div>

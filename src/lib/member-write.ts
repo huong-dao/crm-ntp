@@ -56,6 +56,8 @@ export function buildMemberWriteData(
     relationship: data.relationship ?? null,
     isBaptized: data.isBaptized,
     baptismYear: data.isBaptized ? data.baptismYear ?? null : null,
+    isTrusted: data.isTrusted,
+    isNtpPer: data.isNtpPer,
     ageDepartmentId: data.ageDepartmentId ?? null,
     actualDepartmentId: data.actualDepartmentId ?? null,
     boardServiceDate: boardParsed.date,

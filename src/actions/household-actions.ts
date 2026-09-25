@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { MemberStatus, Prisma } from "@prisma/client";
+import type { HouseholdStatus, MemberStatus, Prisma } from "@prisma/client";
 import type { ActionResult } from "@/actions/user-actions";
 import { auth } from "@/lib/auth";
 import { generateHouseholdCode } from "@/lib/generate-code";
@@ -23,6 +23,7 @@ import {
 } from "@/lib/validations/household";
 import { logActivity } from "@/lib/activity-log";
 import { syncHouseholdVisitTeamFromHead } from "@/lib/household-visit-team";
+import { syncHouseholdStatus } from "@/lib/household-status";
 import { getAuthUserRecord } from "@/lib/user-scope";
 
 export type HouseholdMemberItem = {
@@ -43,6 +44,7 @@ export type HouseholdMemberItem = {
 export type HouseholdDetail = {
   id: string;
   code: string;
+  status: HouseholdStatus;
   headName: string | null;
   headMemberId: string | null;
   activeMemberCount: number;
@@ -52,6 +54,7 @@ export type HouseholdDetail = {
 export type HouseholdListItem = {
   id: string;
   code: string;
+  status: HouseholdStatus;
   headName: string | null;
   headPhone: string | null;
   headOldAddress: string | null;
@@ -147,7 +150,7 @@ export async function getHeadMemberOptions(
     AND: [
       householdId
         ? { OR: [{ householdId: null }, { householdId }] }
-        : { householdId: null },
+        : { householdId: null, status: { in: ["active", "transferred"] } },
       ...(searchTrim
         ? [
             {
@@ -169,6 +172,24 @@ export async function getHeadMemberOptions(
   });
 
   return members;
+}
+
+/** Thành viên "Hoạt động" khác trong hộ — dùng khi chuyển chủ hộ vì chủ hộ hiện tại đổi tình trạng. */
+export async function getHouseholdActiveMemberOptions(
+  householdId: string,
+  excludeMemberId: string
+): Promise<HeadMemberOption[]> {
+  await requireAuth();
+
+  return prisma.member.findMany({
+    where: {
+      householdId,
+      status: "active",
+      id: { not: excludeMemberId },
+    },
+    select: { id: true, code: true, fullName: true },
+    orderBy: { fullName: "asc" },
+  });
 }
 
 function resolveHeadMember<
@@ -234,6 +255,7 @@ export async function getHouseholds(
       select: {
         id: true,
         code: true,
+        status: true,
         headMemberId: true,
         members: {
           select: {
@@ -266,6 +288,7 @@ export async function getHouseholds(
     return {
       id: row.id,
       code: row.code,
+      status: row.status,
       headName: head?.fullName ?? null,
       headPhone: head?.mobile1 ?? null,
       headOldAddress:
@@ -298,6 +321,7 @@ export async function getHouseholdById(
     select: {
       id: true,
       code: true,
+      status: true,
       headMemberId: true,
       members: {
         orderBy: [{ isHead: "desc" }, { fullName: "asc" }],
@@ -352,6 +376,7 @@ export async function getHouseholdById(
   return {
     id: household.id,
     code: household.code,
+    status: household.status,
     headName: headMember?.fullName ?? null,
     headMemberId: household.headMemberId,
     activeMemberCount,
@@ -566,6 +591,9 @@ export async function splitHousehold(
           data: { headMemberId: null },
         });
       }
+
+      await syncHouseholdStatus(tx, sourceHouseholdId);
+      await syncHouseholdStatus(tx, created.id);
 
       return created;
     });

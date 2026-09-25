@@ -1,15 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { MemberStatus } from "@prisma/client";
 import {
   createMember,
   updateMember,
   type MemberFormDefaults,
   type MemberFormOptions,
 } from "@/actions/member-actions";
-import { getDefaultVisitTeamForHousehold } from "@/actions/visit-request-actions";
+import {
+  getDefaultVisitTeamForHousehold,
+} from "@/actions/visit-request-actions";
+import {
+  getHouseholdActiveMemberOptions,
+  type HeadMemberOption,
+} from "@/actions/household-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,10 +156,13 @@ export function MemberForm({
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<MemberStatus>(member?.status ?? "active");
   const [isHead, setIsHead] = useState(
     member?.isHead ?? createNewHousehold
   );
   const [isBaptized, setIsBaptized] = useState(member?.isBaptized ?? false);
+  const [isTrusted, setIsTrusted] = useState(member?.isTrusted ?? false);
+  const [isNtpPer, setIsNtpPer] = useState(member?.isNtpPer ?? false);
   const [firstName, setFirstName] = useState(member?.firstName ?? "");
   const [lastName, setLastName] = useState(member?.lastName ?? "");
   const [address, setAddress] = useState<AddressState>(addressFromMember(member));
@@ -184,6 +194,55 @@ export function MemberForm({
 
   const isCreatingHousehold =
     !isEdit && (createNewHousehold || householdId === CREATE_NEW_HOUSEHOLD);
+
+  const originalIsHead = member?.isHead ?? false;
+  const showHeadTransferBox = Boolean(
+    isEdit &&
+      originalIsHead &&
+      status !== "active" &&
+      member?.householdId &&
+      householdId === member.householdId
+  );
+
+  const [newHeadMemberId, setNewHeadMemberId] = useState("");
+  const [householdActiveMembers, setHouseholdActiveMembers] = useState<
+    HeadMemberOption[]
+  >([]);
+
+  useEffect(() => {
+    if (!showHeadTransferBox || !isEdit) {
+      setHouseholdActiveMembers([]);
+      setNewHeadMemberId("");
+      return;
+    }
+    let cancelled = false;
+    void getHouseholdActiveMemberOptions(member.householdId, member.id).then(
+      (options) => {
+        if (!cancelled) setHouseholdActiveMembers(options);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHeadTransferBox]);
+
+  useEffect(() => {
+    if (showHeadTransferBox && isHead) {
+      setIsHead(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHeadTransferBox]);
+
+  const headTransferOptions = useMemo(
+    () =>
+      householdActiveMembers.map((option) => ({
+        value: option.id,
+        label: `${option.code} — ${option.fullName}`,
+        searchText: `${option.code} ${option.fullName}`,
+      })),
+    [householdActiveMembers]
+  );
 
   const fullNamePreview = useMemo(
     () => (firstName || lastName ? buildFullName(firstName, lastName) : ""),
@@ -293,13 +352,27 @@ export function MemberForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+
+    if (
+      showHeadTransferBox &&
+      headTransferOptions.length > 0 &&
+      !newHeadMemberId
+    ) {
+      setError("Vui lòng chọn chủ hộ mới trước khi lưu");
+      return;
+    }
+
     setLoading(true);
 
     const form = new FormData(e.currentTarget);
     const raw = parseMemberFormData(form) as MemberFormInput;
 
     const result = isEdit
-      ? await updateMember(member.id, raw)
+      ? await updateMember(
+          member.id,
+          raw,
+          showHeadTransferBox ? newHeadMemberId || null : null
+        )
       : await createMember(raw);
 
     setLoading(false);
@@ -309,11 +382,7 @@ export function MemberForm({
       return;
     }
 
-    if (raw.status === "transferred") {
-      router.push(`/households/new?memberId=${result.data.id}`);
-    } else {
-      router.push(`/members/${result.data.id}`);
-    }
+    router.push(`/members/${result.data.id}`);
     router.refresh();
   }
 
@@ -331,11 +400,12 @@ export function MemberForm({
           <select
             name="status"
             className={selectClass}
-            defaultValue={member?.status ?? "active"}
+            value={status}
+            onChange={(e) => setStatus(e.target.value as MemberStatus)}
           >
-            {MEMBER_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {STATUS_LABELS[status]}
+            {MEMBER_STATUSES.map((statusOption) => (
+              <option key={statusOption} value={statusOption}>
+                {STATUS_LABELS[statusOption]}
               </option>
             ))}
           </select>
@@ -448,12 +518,37 @@ export function MemberForm({
               name="isHead"
               checked={isHead}
               onChange={(e) => handleIsHeadChange(e.target.checked)}
-              disabled={isCreatingHousehold}
+              disabled={isCreatingHousehold || showHeadTransferBox}
               className="h-4 w-4 rounded border-gray-300 disabled:opacity-60"
             />
             Là chủ hộ
           </label>
+          {showHeadTransferBox && (
+            <p className="text-xs text-amber-700">
+              Tình trạng khác &quot;Hoạt động&quot; — không thể tiếp tục là chủ hộ.
+            </p>
+          )}
         </Field>
+        {showHeadTransferBox && (
+          <Field label="Chọn chủ hộ mới *" className="sm:col-span-3">
+            <SearchableSelect
+              id="newHeadMemberId"
+              name="newHeadMemberId"
+              options={headTransferOptions}
+              value={newHeadMemberId}
+              onChange={setNewHeadMemberId}
+              placeholder="— Chọn chủ hộ mới —"
+              searchPlaceholder="Tìm theo mã hoặc tên..."
+              emptyMessage="Không còn thành viên đang hoạt động khác trong hộ"
+              required={headTransferOptions.length > 0}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Chỉ hiển thị thành viên đang &quot;Hoạt động&quot; trong cùng hộ.
+              {headTransferOptions.length === 0 &&
+                " Không còn ai phù hợp — hộ sẽ không có chủ hộ sau khi lưu."}
+            </p>
+          </Field>
+        )}
         {isCreatingHousehold ? (
           <>
             <input type="hidden" name="householdId" value={CREATE_NEW_HOUSEHOLD} />
@@ -529,6 +624,30 @@ export function MemberForm({
             />
           </Field>
         )}
+        <Field label="Tin Chúa" className="space-y-2">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              name="isTrusted"
+              checked={isTrusted}
+              onChange={(e) => setIsTrusted(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            Tin Chúa
+          </label>
+        </Field>
+        <Field label="Là thành viên NTP" className="space-y-2">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              name="isNtpPer"
+              checked={isNtpPer}
+              onChange={(e) => setIsNtpPer(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            Là thành viên NTP
+          </label>
+        </Field>
         <Field label="Ban ngành theo tuổi">
           <SearchableSelect
             id="ageDepartmentId"

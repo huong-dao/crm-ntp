@@ -44,6 +44,11 @@ enum MemberImportRowStatus {
   failed
 }
 
+enum HouseholdStatus {
+  active
+  inactive
+}
+
 model User {
   id        String   @id @default(cuid())
   username  String   @unique
@@ -91,15 +96,17 @@ model VisitTeam {
 }
 
 model Household {
-  id           String   @id @default(cuid())
-  code         String   @unique
-  headMemberId String?  @map("head_member_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id           String          @id @default(cuid())
+  code         String          @unique
+  headMemberId String?         @map("head_member_id")
+  status       HouseholdStatus @default(active)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
 
   members       Member[]
   visitRequests VisitRequest[]
 
+  @@index([status])
   @@map("households")
 }
 
@@ -136,6 +143,8 @@ model Member {
 
   isBaptized       Boolean   @default(false) @map("is_baptized")
   baptismYear      Int?      @map("baptism_year")
+  isTrusted        Boolean   @default(false) @map("is_trusted")
+  isNtpPer         Boolean   @default(false) @map("is_ntp_per")
   ageDepartmentId    String? @map("age_department_id")
   actualDepartmentId String? @map("actual_department_id")
   boardServiceDate   DateTime? @map("board_service_date")

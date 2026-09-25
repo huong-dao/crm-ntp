@@ -27,6 +27,7 @@ import {
   buildMemberWriteData,
   applyHeadOfHousehold,
 } from "@/lib/member-write";
+import { syncHouseholdStatus } from "@/lib/household-status";
 import { prisma } from "@/lib/prisma";
 import {
   memberFormSchema,
@@ -188,6 +189,8 @@ async function buildImportFormInput(
     relationship: row.relationship,
     isBaptized: row.isBaptized,
     baptismYear: row.baptismYear ?? undefined,
+    isTrusted: false,
+    isNtpPer: false,
     ageDepartmentId,
     actualDepartmentId,
     boardServiceYear: row.boardServiceYear ?? undefined,
@@ -268,7 +271,10 @@ async function upsertMemberFromImport(
               data: { headMemberId: null },
             });
           }
+          await syncHouseholdStatus(tx, oldHouseholdId);
         }
+
+        await syncHouseholdStatus(tx, householdId);
 
         return updated;
       });
@@ -296,6 +302,7 @@ async function upsertMemberFromImport(
         created.id,
         data.isHead
       );
+      await syncHouseholdStatus(tx, householdId);
       return created;
     });
 

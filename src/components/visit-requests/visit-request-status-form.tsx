@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { VisitRequestStatus } from "@prisma/client";
+import type { VisitRequestStatus, VisitRequestType } from "@prisma/client";
 import { updateVisitStatus } from "@/actions/visit-request-actions";
 import { Button } from "@/components/ui/button";
 import { SaveIcon } from "@/lib/button-icons";
@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   VISIT_REQUEST_STATUS_LABELS,
+  VISIT_REQUEST_TYPES,
+  VISIT_REQUEST_TYPE_LABELS,
   visitRequestStatusBadgeClass,
 } from "@/lib/visit-request-list";
 import { formatDateForInput } from "@/lib/validations/visit-request";
@@ -27,16 +29,19 @@ const STATUS_OPTIONS: VisitRequestStatus[] = [
 export function VisitRequestStatusForm({
   requestId,
   currentStatus,
+  currentVisitType,
   currentActualDate,
   currentStatusNote,
 }: {
   requestId: string;
   currentStatus: VisitRequestStatus;
+  currentVisitType: VisitRequestType;
   currentActualDate: Date | null;
   currentStatusNote: string | null;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<VisitRequestStatus>(currentStatus);
+  const [visitType, setVisitType] = useState<VisitRequestType>(currentVisitType);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -54,6 +59,7 @@ export function VisitRequestStatusForm({
 
     const result = await updateVisitStatus(requestId, {
       status,
+      visitType,
       actualDate: actualDateValue,
       statusNote,
     });
@@ -93,6 +99,23 @@ export function VisitRequestStatusForm({
         >
           Hiện tại: {VISIT_REQUEST_STATUS_LABELS[currentStatus]}
         </span>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="visitType">Loại hình thăm viếng</Label>
+        <select
+          id="visitType"
+          name="visitType"
+          className={selectClass}
+          value={visitType}
+          onChange={(e) => setVisitType(e.target.value as VisitRequestType)}
+        >
+          {VISIT_REQUEST_TYPES.map((option) => (
+            <option key={option} value={option}>
+              {VISIT_REQUEST_TYPE_LABELS[option]}
+            </option>
+          ))}
+        </select>
       </div>
 
       {needsActualDate && (

@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { ViewIcon } from "@/lib/button-icons";
 import { MobileDataCard, MobileDataRow } from "@/components/ui/mobile-data-card";
+import { cn } from "@/lib/utils";
+import {
+  HOUSEHOLD_STATUS_LABELS,
+  householdStatusBadgeClass,
+} from "@/lib/household-status";
 
 function buildPageUrl(
   search: string | undefined,
@@ -53,6 +58,9 @@ export function HouseholdTable({
                 Mã hộ
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
+                Tình trạng hộ
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">
                 Chủ hộ
               </th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">
@@ -86,6 +94,16 @@ export function HouseholdTable({
                   >
                     {household.code}
                   </Link>
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+                      householdStatusBadgeClass(household.status)
+                    )}
+                  >
+                    {HOUSEHOLD_STATUS_LABELS[household.status]}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-gray-900">
                   {household.headName ?? "—"}
@@ -142,6 +160,16 @@ export function HouseholdTable({
               {household.code}
             </Link>
             <div className="mt-2">
+              <MobileDataRow label="Tình trạng hộ">
+                <span
+                  className={cn(
+                    "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                    householdStatusBadgeClass(household.status)
+                  )}
+                >
+                  {HOUSEHOLD_STATUS_LABELS[household.status]}
+                </span>
+              </MobileDataRow>
               <MobileDataRow label="Chủ hộ">
                 {household.headName ?? "—"}
               </MobileDataRow>

@@ -24,6 +24,8 @@ import { buildOldFullAddress, buildNewFullAddress } from "@/lib/member-format";
 import { applyHeadOfHousehold, buildMemberWriteData } from "@/lib/member-write";
 import { logActivity } from "@/lib/activity-log";
 import { syncHouseholdVisitTeamFromHead } from "@/lib/household-visit-team";
+import { syncHouseholdStatus } from "@/lib/household-status";
+import { applyHouseholdHead } from "@/actions/household-actions";
 import { prisma } from "@/lib/prisma";
 import {
   buildVisitTeamScopeWhere,
@@ -95,6 +97,8 @@ export type MemberFormDefaults = {
   relationship: string | null;
   isBaptized: boolean;
   baptismYear: number | null;
+  isTrusted: boolean;
+  isNtpPer: boolean;
   ageDepartmentId: string | null;
   actualDepartmentId: string | null;
   boardServiceYear: number | null;
@@ -209,6 +213,14 @@ function buildWhere(
       ...(filters.birthYearFrom != null ? { gte: filters.birthYearFrom } : {}),
       ...(filters.birthYearTo != null ? { lte: filters.birthYearTo } : {}),
     };
+  }
+
+  if (filters.isTrusted != null) {
+    where.isTrusted = filters.isTrusted;
+  }
+
+  if (filters.isNtpPer != null) {
+    where.isNtpPer = filters.isNtpPer;
   }
 
   return where;
@@ -428,6 +440,8 @@ export async function getMemberById(
     relationship: member.relationship,
     isBaptized: member.isBaptized,
     baptismYear: member.baptismYear,
+    isTrusted: member.isTrusted,
+    isNtpPer: member.isNtpPer,
     ageDepartmentId: member.ageDepartmentId,
     actualDepartmentId: member.actualDepartmentId,
     boardServiceYear: yearFromDate(member.boardServiceDate),
@@ -596,6 +610,7 @@ export async function createMember(
 
       await applyHeadOfHousehold(tx, householdId, created.id, data.isHead);
       await syncHouseholdVisitTeamFromHead(tx, householdId);
+      await syncHouseholdStatus(tx, householdId);
 
       return created;
     });
@@ -621,7 +636,8 @@ export async function createMember(
 
 export async function updateMember(
   id: string,
-  input: MemberFormInput
+  input: MemberFormInput,
+  newHeadMemberId?: string | null
 ): Promise<ActionResult<{ id: string; code: string }>> {
   try {
     await requireAuth();
@@ -640,6 +656,30 @@ export async function updateMember(
       return { success: false, error: "Thành viên không tồn tại" };
     }
 
+    const trimmedNewHeadMemberId = newHeadMemberId?.trim() || null;
+    const isLeavingHeadship =
+      existing.isHead && existing.status === "active" && data.status !== "active";
+
+    if (trimmedNewHeadMemberId) {
+      if (trimmedNewHeadMemberId === id) {
+        return { success: false, error: "Chủ hộ mới không được trùng thành viên đang sửa" };
+      }
+      const candidate = await prisma.member.findUnique({
+        where: { id: trimmedNewHeadMemberId },
+        select: { householdId: true, status: true },
+      });
+      if (
+        !candidate ||
+        candidate.householdId !== existing.householdId ||
+        candidate.status !== "active"
+      ) {
+        return {
+          success: false,
+          error: "Chủ hộ mới không hợp lệ — phải là thành viên đang hoạt động trong cùng hộ",
+        };
+      }
+    }
+
     if (data.createNewHousehold || !data.householdId) {
       return { success: false, error: "Mã hộ không được trống" };
     }
@@ -651,6 +691,22 @@ export async function updateMember(
     });
     if (!household) {
       return { success: false, error: "Mã hộ không tồn tại" };
+    }
+
+    if (
+      isLeavingHeadship &&
+      !trimmedNewHeadMemberId &&
+      householdId === existing.householdId
+    ) {
+      const otherActiveCount = await prisma.member.count({
+        where: { householdId, status: "active", id: { not: id } },
+      });
+      if (otherActiveCount > 0) {
+        return {
+          success: false,
+          error: "Hộ còn thành viên đang hoạt động — vui lòng chọn chủ hộ mới trước khi lưu",
+        };
+      }
     }
 
     if (data.visitTeamId) {
@@ -707,6 +763,11 @@ export async function updateMember(
       });
 
       await applyHeadOfHousehold(tx, householdId, id, data.isHead);
+
+      if (trimmedNewHeadMemberId) {
+        await applyHouseholdHead(tx, householdId, trimmedNewHeadMemberId);
+      }
+
       await syncHouseholdVisitTeamFromHead(tx, householdId);
 
       if (oldHouseholdId && oldHouseholdId !== householdId) {
@@ -720,7 +781,10 @@ export async function updateMember(
             data: { headMemberId: null },
           });
         }
+        await syncHouseholdStatus(tx, oldHouseholdId);
       }
+
+      await syncHouseholdStatus(tx, householdId);
 
       return updated;
     });
@@ -780,6 +844,10 @@ export async function deleteMember(
       });
 
       await tx.member.delete({ where: { id } });
+
+      if (householdId) {
+        await syncHouseholdStatus(tx, householdId);
+      }
     });
 
     const user = await getAuthUserRecord();

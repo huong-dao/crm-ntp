@@ -188,6 +188,7 @@ export default async function VisitRequestDetailPage({
           <VisitRequestStatusForm
             requestId={request.id}
             currentStatus={request.status}
+            currentVisitType={request.visitType}
             currentActualDate={request.actualDate}
             currentStatusNote={request.statusNote}
           />

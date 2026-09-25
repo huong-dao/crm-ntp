@@ -80,6 +80,7 @@ export function formatDateForInput(date: Date | null): string {
 export const visitRequestStatusSchema = z
   .object({
     status: z.enum(["scheduled", "completed", "cancelled"]),
+    visitType: z.enum(["at_home", "at_church", "phone", "other"]),
     actualDate: z.string().optional().nullable(),
     statusNote: z
       .string()

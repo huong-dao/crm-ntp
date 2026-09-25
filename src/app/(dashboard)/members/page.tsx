@@ -13,7 +13,6 @@ import { ImportMembersDialog } from "@/components/members/import-members-dialog"
 import { DownloadImportTemplateButton } from "@/components/shared/download-import-template-button";
 import { getMemberImportTemplate } from "@/actions/member-import-actions";
 import { MemberTable } from "@/components/members/member-table";
-import { auth } from "@/lib/auth";
 import {
   DEFAULT_PAGE_SIZE,
   MEMBER_STATUSES,
@@ -29,6 +28,12 @@ function pickParam(params: SearchParams, key: string): string | undefined {
   const value = params[key];
   if (typeof value === "string") return value;
   if (Array.isArray(value)) return value[0];
+  return undefined;
+}
+
+function parseBooleanParam(value: string | undefined): boolean | undefined {
+  if (value === "true") return true;
+  if (value === "false") return false;
   return undefined;
 }
 
@@ -65,6 +70,8 @@ function parseFilters(params: SearchParams): MemberFiltersInput {
     birthYearTo: Number.isFinite(parsedBirthYearTo)
       ? parsedBirthYearTo
       : undefined,
+    isTrusted: parseBooleanParam(pickParam(params, "isTrusted")),
+    isNtpPer: parseBooleanParam(pickParam(params, "isNtpPer")),
     page: Number.isFinite(parsedPage) ? parsedPage : 1,
     pageSize: DEFAULT_PAGE_SIZE,
     sortBy:
@@ -88,8 +95,6 @@ export default async function MembersPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const session = await auth();
-  const isAdmin = session?.user?.role === "admin";
   const params = await searchParams;
   const filters = parseFilters(params);
 
@@ -106,6 +111,8 @@ export default async function MembersPage({
     actualDepartment: filters.actualDepartment,
     birthYearFrom: filters.birthYearFrom,
     birthYearTo: filters.birthYearTo,
+    isTrusted: filters.isTrusted,
+    isNtpPer: filters.isNtpPer,
   };
 
   return (
@@ -144,7 +151,6 @@ export default async function MembersPage({
         page={result.page}
         pageSize={result.pageSize}
         totalPages={result.totalPages}
-        isAdmin={isAdmin}
         filters={filters}
       />
     </div>

@@ -1,19 +1,11 @@
 import Link from "next/link";
 import {
-  getActivityLogs,
-} from "@/actions/activity-log-actions";
-import {
   getCalendarVisitRequests,
   getDashboardStats,
-  getRecentVisitRequests,
   getVisitTeamSuccessStats,
 } from "@/actions/dashboard-actions";
-import { ActivityLogTable } from "@/components/activity-logs/activity-log-table";
-import { DashboardRecentVisitsTable } from "@/components/dashboard/dashboard-recent-visits-table";
 import { DashboardTeamVisitStatsTable } from "@/components/dashboard/dashboard-team-visit-stats-table";
 import { VisitCalendar } from "@/components/dashboard/visit-calendar";
-import { Button } from "@/components/ui/button";
-import { ViewIcon } from "@/lib/button-icons";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -64,14 +56,11 @@ export default async function DashboardPage({
       ? month
       : now.getMonth() + 1;
 
-  const [stats, recentVisits, teamVisitStats, calendarEvents, activityLogs] =
-    await Promise.all([
-      getDashboardStats(),
-      getRecentVisitRequests(5),
-      getVisitTeamSuccessStats(),
-      getCalendarVisitRequests(safeYear, safeMonth),
-      getActivityLogs(10),
-    ]);
+  const [stats, teamVisitStats, calendarEvents] = await Promise.all([
+    getDashboardStats(),
+    getVisitTeamSuccessStats(),
+    getCalendarVisitRequests(safeYear, safeMonth),
+  ]);
 
   return (
     <div>
@@ -126,44 +115,6 @@ export default async function DashboardPage({
         </div>
         <div className="mt-4">
           <DashboardTeamVisitStatsTable stats={teamVisitStats} />
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">
-              Đơn thăm viếng lên lịch
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              5 đơn lên lịch sắp tới theo ngày thăm viếng
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild icon={ViewIcon}>
-            <Link href="/visit-requests?status=scheduled">Xem tất cả</Link>
-          </Button>
-        </div>
-        <div className="mt-4">
-          <DashboardRecentVisitsTable visits={recentVisits} />
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">
-              Nhật ký hoạt động gần đây
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Các thao tác mới nhất trên hệ thống
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild icon={ViewIcon}>
-            <Link href="/activity-logs">Xem tất cả</Link>
-          </Button>
-        </div>
-        <div className="mt-4">
-          <ActivityLogTable logs={activityLogs} />
         </div>
       </div>
     </div>

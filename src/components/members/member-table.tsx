@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { MemberListItem } from "@/actions/member-actions";
-import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { EditIcon } from "@/lib/button-icons";
@@ -76,7 +75,6 @@ export function MemberTable({
   page,
   pageSize,
   totalPages,
-  isAdmin,
   filters,
 }: {
   members: MemberListItem[];
@@ -84,7 +82,6 @@ export function MemberTable({
   page: number;
   pageSize: number;
   totalPages: number;
-  isAdmin: boolean;
   filters: MemberFiltersInput;
 }) {
   const sortBy = filters.sortBy ?? "fullName";
@@ -230,13 +227,6 @@ export function MemberTable({
                     <Button variant="outline" size="sm" asChild icon={EditIcon}>
                       <Link href={`/members/${member.id}/edit`}>Sửa</Link>
                     </Button>
-                    {isAdmin && (
-                      <DeleteMemberButton
-                        memberId={member.id}
-                        memberCode={member.code}
-                        memberName={member.fullName}
-                      />
-                    )}
                   </div>
                 </td>
               </tr>
@@ -250,18 +240,9 @@ export function MemberTable({
           <MobileDataCard
             key={member.id}
             actions={
-              <>
-                <Button variant="outline" size="sm" asChild icon={EditIcon}>
-                  <Link href={`/members/${member.id}/edit`}>Sửa</Link>
-                </Button>
-                {isAdmin && (
-                  <DeleteMemberButton
-                    memberId={member.id}
-                    memberCode={member.code}
-                    memberName={member.fullName}
-                  />
-                )}
-              </>
+              <Button variant="outline" size="sm" asChild icon={EditIcon}>
+                <Link href={`/members/${member.id}/edit`}>Sửa</Link>
+              </Button>
             }
           >
             <Link

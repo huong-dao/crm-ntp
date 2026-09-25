@@ -133,11 +133,14 @@ export function VisitCalendar({
                   <Link
                     key={event.id}
                     href={`/visit-requests/${event.id}`}
-                    className="block rounded bg-[#1e3a5f]/10 px-1 py-0.5 text-[10px] leading-tight text-[#1e3a5f] hover:bg-[#1e3a5f]/20"
+                    className={cn(
+                      "block rounded px-1 py-0.5 text-[10px] leading-tight hover:opacity-80",
+                      visitRequestStatusBadgeClass(event.status)
+                    )}
                     title={`${event.code} — ${event.householdHeadName ?? event.householdCode}`}
                   >
                     <span className="font-medium">{event.code}</span>
-                    <span className="block truncate text-gray-600">
+                    <span className="block truncate opacity-80">
                       {event.householdHeadName ?? event.householdCode}
                     </span>
                   </Link>

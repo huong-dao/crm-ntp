@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { MemberFilterOptions } from "@/actions/member-actions";
 import {
+  BOOLEAN_FILTER_LABELS,
   MEMBER_STATUSES,
   STATUS_LABELS,
   type MemberFiltersInput,
@@ -25,6 +26,8 @@ type FilterValues = Pick<
   | "actualDepartment"
   | "birthYearFrom"
   | "birthYearTo"
+  | "isTrusted"
+  | "isNtpPer"
 >;
 
 export function MemberFilters({
@@ -65,6 +68,8 @@ export function MemberFilters({
       actualDepartment: (form.get("actualDepartment") as string) || undefined,
       birthYearFrom: (form.get("birthYearFrom") as string) || undefined,
       birthYearTo: (form.get("birthYearTo") as string) || undefined,
+      isTrusted: (form.get("isTrusted") as string) || undefined,
+      isNtpPer: (form.get("isNtpPer") as string) || undefined,
     });
   }
 
@@ -77,7 +82,7 @@ export function MemberFilters({
       onSubmit={handleSubmit}
       className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-9">
         <div className="space-y-2 sm:col-span-2 xl:col-span-1">
           <Label htmlFor="member-search">Tìm kiếm</Label>
           <Input
@@ -174,6 +179,32 @@ export function MemberFilters({
             placeholder="vd: 2000"
             defaultValue={values.birthYearTo ?? ""}
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="member-is-trusted">Tin Chúa</Label>
+          <select
+            id="member-is-trusted"
+            name="isTrusted"
+            className={selectClass}
+            defaultValue={values.isTrusted == null ? "" : String(values.isTrusted)}
+          >
+            <option value="">Tất cả</option>
+            <option value="true">{BOOLEAN_FILTER_LABELS.true}</option>
+            <option value="false">{BOOLEAN_FILTER_LABELS.false}</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="member-is-ntp-per">Là thành viên NTP</Label>
+          <select
+            id="member-is-ntp-per"
+            name="isNtpPer"
+            className={selectClass}
+            defaultValue={values.isNtpPer == null ? "" : String(values.isNtpPer)}
+          >
+            <option value="">Tất cả</option>
+            <option value="true">{BOOLEAN_FILTER_LABELS.true}</option>
+            <option value="false">{BOOLEAN_FILTER_LABELS.false}</option>
+          </select>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">

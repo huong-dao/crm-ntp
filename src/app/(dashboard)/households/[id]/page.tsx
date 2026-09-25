@@ -5,6 +5,11 @@ import { DeleteHouseholdButton } from "@/components/households/delete-household-
 import { HouseholdMembersTable } from "@/components/households/household-members-table";
 import { Button } from "@/components/ui/button";
 import { AddIcon, BackIcon, EditIcon } from "@/lib/button-icons";
+import { cn } from "@/lib/utils";
+import {
+  HOUSEHOLD_STATUS_LABELS,
+  householdStatusBadgeClass,
+} from "@/lib/household-status";
 
 export default async function HouseholdDetailPage({
   params,
@@ -57,11 +62,24 @@ export default async function HouseholdDetailPage({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Mã hộ</p>
           <p className="mt-1 text-lg font-semibold text-[#1e3a5f]">
             {household.code}
+          </p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Tình trạng hộ</p>
+          <p className="mt-2">
+            <span
+              className={cn(
+                "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+                householdStatusBadgeClass(household.status)
+              )}
+            >
+              {HOUSEHOLD_STATUS_LABELS[household.status]}
+            </span>
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
