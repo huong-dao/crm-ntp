@@ -906,6 +906,8 @@ export async function exportMembers(
         relationship: true,
         isBaptized: true,
         baptismYear: true,
+        isTrusted: true,
+        isNtpPer: true,
         boardServiceDate: true,
         visitDepartment: true,
         notes: true,

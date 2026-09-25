@@ -99,6 +99,8 @@ export type MemberImportExportRecord = {
   relationship: string | null;
   isBaptized: boolean;
   baptismYear: number | null;
+  isTrusted: boolean;
+  isNtpPer: boolean;
   boardServiceDate: Date | null;
   visitDepartment: string | null;
   notes: string | null;
@@ -114,6 +116,10 @@ function formatExportYear(value: number | null | undefined): string {
 
 function formatExportYesNo(value: boolean): string {
   return value ? "Y" : "";
+}
+
+function formatExportZeroOne(value: boolean): string {
+  return value ? "1" : "0";
 }
 
 function formatExportGender(gender: Gender | null): string {
@@ -164,6 +170,8 @@ export function memberToImportExportRow(
     member.relationship ?? "",
     formatExportYesNo(member.isBaptized),
     member.isBaptized ? formatExportYear(member.baptismYear) : "",
+    formatExportZeroOne(member.isTrusted),
+    formatExportZeroOne(member.isNtpPer),
     member.ageDepartment?.name ?? "",
     member.actualDepartment?.name ?? "",
     formatExportYear(yearFromDate(member.boardServiceDate)),

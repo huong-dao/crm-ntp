@@ -106,7 +106,7 @@ export async function getMemberLinkOptions(): Promise<MemberLinkOption[]> {
   await requireAdmin();
 
   return prisma.member.findMany({
-    where: { visitTeamId: { not: null } },
+    where: { visitStaffTeamId: { not: null } },
     select: { id: true, code: true, fullName: true },
     orderBy: { fullName: "asc" },
     take: 1000,

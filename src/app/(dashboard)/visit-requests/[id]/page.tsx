@@ -59,11 +59,6 @@ export default async function VisitRequestDetailPage({
               Xuất PDF đơn
             </Link>
           </Button>
-          <Button variant="outline" asChild icon={PrintIcon}>
-            <Link href={`/visit-requests/${id}/print-members`} target="_blank">
-              PDF thành viên hộ
-            </Link>
-          </Button>
           <Button asChild icon={EditIcon}>
             <Link href={`/visit-requests/${id}/edit`}>Sửa đơn</Link>
           </Button>

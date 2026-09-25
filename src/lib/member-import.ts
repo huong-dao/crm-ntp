@@ -83,6 +83,14 @@ const HEADER_ALIASES: Record<string, string> = {
   baptismyear: "baptismYear",
   "năm báp têm": "baptismYear",
   "nam bap tem": "baptismYear",
+  istrusted: "isTrusted",
+  "tin chúa": "isTrusted",
+  "tin chua": "isTrusted",
+  isntpper: "isNtpPer",
+  "tín hữu ntp": "isNtpPer",
+  "tin huu ntp": "isNtpPer",
+  "là thành viên ntp": "isNtpPer",
+  "la thanh vien ntp": "isNtpPer",
   agedepartment: "ageDepartment",
   "ban ngành theo tuổi": "ageDepartment",
   "ban nganh theo tuoi": "ageDepartment",
@@ -132,6 +140,8 @@ export type ParsedImportRow = {
   relationship?: string;
   isBaptized?: string;
   baptismYear?: string;
+  isTrusted?: string;
+  isNtpPer?: string;
   ageDepartment?: string;
   actualDepartment?: string;
   boardServiceDate?: string;
@@ -229,6 +239,12 @@ export function rowToImportData(
         break;
       case "baptismYear":
         data.baptismYear = value;
+        break;
+      case "isTrusted":
+        data.isTrusted = value;
+        break;
+      case "isNtpPer":
+        data.isNtpPer = value;
         break;
       case "ageDepartment":
         data.ageDepartment = value;
@@ -500,6 +516,8 @@ export function validateImportRow(
 
   const isHead = parseYesNo(row.isHead);
   const isBaptized = parseYesNo(row.isBaptized);
+  const isTrusted = parseYesNo(row.isTrusted);
+  const isNtpPer = parseYesNo(row.isNtpPer);
 
   let baptismYear: number | null = null;
   if (isBaptized && row.baptismYear?.trim()) {
@@ -592,6 +610,8 @@ export function validateImportRow(
       relationship: emptyToNull(row.relationship),
       isBaptized,
       baptismYear,
+      isTrusted,
+      isNtpPer,
       ageDepartment: emptyToNull(row.ageDepartment),
       actualDepartment: emptyToNull(row.actualDepartment),
       boardServiceYear: boardResult.value,
@@ -625,6 +645,8 @@ export type ImportRowValid = {
   relationship: string | null;
   isBaptized: boolean;
   baptismYear: number | null;
+  isTrusted: boolean;
+  isNtpPer: boolean;
   ageDepartment: string | null;
   actualDepartment: string | null;
   boardServiceYear: number | null;

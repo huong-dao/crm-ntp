@@ -51,26 +51,18 @@ export function VisitRequestHouseholdMembers({
         <h3 className="text-sm font-semibold text-gray-900">
           Thành viên trong hộ
         </h3>
-        <div className="flex flex-wrap gap-2">
-          {requestId && (
-            <Button variant="outline" size="sm" asChild>
-              <Link
-                href={`/visit-requests/${requestId}/print-members`}
-                target="_blank"
-              >
-                PDF thành viên
+        {requestId && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild icon={AddIcon}>
+              <Link href={`/members/new?householdId=${householdId}`}>
+                Thêm thành viên
               </Link>
             </Button>
-          )}
-          <Button variant="outline" size="sm" asChild icon={AddIcon}>
-            <Link href={`/members/new?householdId=${householdId}`}>
-              Thêm thành viên
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/households/${householdId}/split`}>Tách hộ</Link>
-          </Button>
-        </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/households/${householdId}/split`}>Tách hộ</Link>
+            </Button>
+          </div>
+        )}
       </div>
 
       {loading ? (

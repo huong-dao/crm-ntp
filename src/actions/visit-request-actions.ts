@@ -130,8 +130,21 @@ export type VisitRequestHistoryItem = {
   username: string | null;
 };
 
+export type VisitRequestPrintMember = {
+  code: string;
+  fullName: string;
+  relationship: string | null;
+  birthYear: number | null;
+  gender: string | null;
+  status: string;
+  notes: string | null;
+  ageDepartmentName: string | null;
+  actualDepartmentName: string | null;
+};
+
 export type VisitRequestPrintData = VisitRequestDetail & {
   staffNames: string[];
+  members: VisitRequestPrintMember[];
 };
 
 async function requireAuth() {
@@ -734,65 +747,6 @@ export async function getVisitRequestHouseholdMembers(
   return members;
 }
 
-export type VisitRequestMembersPrintData = {
-  requestCode: string;
-  householdCode: string;
-  householdHeadName: string | null;
-  scheduledDate: Date;
-  members: {
-    code: string;
-    fullName: string;
-    relationship: string | null;
-    birthYear: number | null;
-    gender: string | null;
-    status: string;
-    notes: string | null;
-    ageDepartmentName: string | null;
-    actualDepartmentName: string | null;
-  }[];
-};
-
-export async function getVisitRequestMembersForPrint(
-  id: string
-): Promise<VisitRequestMembersPrintData | null> {
-  const request = await getVisitRequestById(id);
-  if (!request) return null;
-
-  const members = await prisma.member.findMany({
-    where: { householdId: request.householdId },
-    orderBy: [{ isHead: "desc" }, { fullName: "asc" }],
-    select: {
-      code: true,
-      fullName: true,
-      relationship: true,
-      birthYear: true,
-      gender: true,
-      status: true,
-      notes: true,
-      ageDepartment: { select: { name: true } },
-      actualDepartment: { select: { name: true } },
-    },
-  });
-
-  return {
-    requestCode: request.code,
-    householdCode: request.householdCode,
-    householdHeadName: request.householdHeadName,
-    scheduledDate: request.scheduledDate,
-    members: members.map((member) => ({
-      code: member.code,
-      fullName: member.fullName,
-      relationship: member.relationship,
-      birthYear: member.birthYear,
-      gender: member.gender,
-      status: member.status,
-      notes: member.notes,
-      ageDepartmentName: member.ageDepartment?.name ?? null,
-      actualDepartmentName: member.actualDepartment?.name ?? null,
-    })),
-  };
-}
-
 export async function getVisitRequestHistoryItems(
   visitRequestId: string
 ): Promise<VisitRequestHistoryItem[]> {
@@ -845,9 +799,38 @@ export async function getVisitRequestForPrint(
     ...additionalStaffNames,
   ].filter((name): name is string => Boolean(name));
 
+  const householdMembers = await prisma.member.findMany({
+    where: { householdId: detail.householdId },
+    orderBy: [{ isHead: "desc" }, { fullName: "asc" }],
+    select: {
+      code: true,
+      fullName: true,
+      relationship: true,
+      birthYear: true,
+      gender: true,
+      status: true,
+      notes: true,
+      ageDepartment: { select: { name: true } },
+      actualDepartment: { select: { name: true } },
+    },
+  });
+
+  const members: VisitRequestPrintMember[] = householdMembers.map((member) => ({
+    code: member.code,
+    fullName: member.fullName,
+    relationship: member.relationship,
+    birthYear: member.birthYear,
+    gender: member.gender,
+    status: member.status,
+    notes: member.notes,
+    ageDepartmentName: member.ageDepartment?.name ?? null,
+    actualDepartmentName: member.actualDepartment?.name ?? null,
+  }));
+
   return {
     ...detail,
     staffNames,
+    members,
   };
 }
 

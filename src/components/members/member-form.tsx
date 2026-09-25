@@ -309,6 +309,15 @@ export function MemberForm({
     setAddress((prev) => ({ ...prev, [field]: value }));
   }
 
+  useEffect(() => {
+    if (isEdit || isHead || !defaultHouseholdId) return;
+    if (householdId !== defaultHouseholdId) return;
+    void getDefaultVisitTeamForHousehold(defaultHouseholdId).then((teamId) => {
+      if (teamId) setVisitTeamId(teamId);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleHouseholdChange(value: string) {
     setHouseholdId(value);
     if (value === CREATE_NEW_HOUSEHOLD) {
