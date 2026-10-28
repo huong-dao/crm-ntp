@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getVisitRequests, getVisitRequestFilterOptions } from "@/actions/visit-request-actions";
+import { getVisitRequestImportTemplate } from "@/actions/visit-request-import-actions";
 import { ExportVisitRequestsButton } from "@/components/visit-requests/export-visit-requests-button";
+import { ImportVisitRequestsDialog } from "@/components/visit-requests/import-visit-requests-dialog";
+import { DownloadImportTemplateButton } from "@/components/shared/download-import-template-button";
 import { VisitRequestFilters } from "@/components/visit-requests/visit-request-filters";
 import { VisitRequestTable } from "@/components/visit-requests/visit-request-table";
 import { Button } from "@/components/ui/button";
@@ -85,6 +88,10 @@ export default async function VisitRequestsPage({
           <Suspense fallback={null}>
             <ExportVisitRequestsButton />
           </Suspense>
+          <DownloadImportTemplateButton
+            fetchTemplate={getVisitRequestImportTemplate}
+          />
+          <ImportVisitRequestsDialog />
           <Button asChild icon={AddIcon}>
             <Link href="/visit-requests/new">Tạo đơn</Link>
           </Button>

@@ -74,6 +74,7 @@ export type HouseholdsResult = {
 
 export type HouseholdFilters = {
   search?: string;
+  status?: HouseholdStatus;
   page?: number;
   pageSize?: number;
 };
@@ -239,6 +240,9 @@ export async function getHouseholds(
         },
       },
     ];
+  }
+  if (filters.status) {
+    where.status = filters.status;
   }
 
   const teamScope = buildHouseholdTeamScopeWhere(user);

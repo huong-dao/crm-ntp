@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { HouseholdStatus } from "@prisma/client";
 import type { HouseholdListItem } from "@/actions/household-actions";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -12,10 +13,12 @@ import {
 
 function buildPageUrl(
   search: string | undefined,
+  status: HouseholdStatus | undefined,
   page: number
 ): string {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
+  if (status) params.set("status", status);
   if (page > 1) params.set("page", String(page));
   const query = params.toString();
   return query ? `/households?${query}` : "/households";
@@ -28,6 +31,7 @@ export function HouseholdTable({
   pageSize,
   totalPages,
   search,
+  status,
 }: {
   households: HouseholdListItem[];
   total: number;
@@ -35,6 +39,7 @@ export function HouseholdTable({
   pageSize: number;
   totalPages: number;
   search?: string;
+  status?: HouseholdStatus;
 }) {
   if (households.length === 0) {
     return (
@@ -196,7 +201,7 @@ export function HouseholdTable({
       <TablePagination
         page={page}
         totalPages={totalPages}
-        getPageHref={(p) => buildPageUrl(search, p)}
+        getPageHref={(p) => buildPageUrl(search, status, p)}
         summary={
           <>
             Hiển thị {start}–{end} / {total} hộ

@@ -315,7 +315,7 @@ export async function getAssignableMemberOptions(
     where,
     select: { id: true, code: true, fullName: true },
     orderBy: { fullName: "asc" },
-    take: 500,
+    take: 5000,
   });
 }
 

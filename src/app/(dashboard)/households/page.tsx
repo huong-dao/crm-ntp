@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { HouseholdStatus } from "@prisma/client";
 import { getHouseholds } from "@/actions/household-actions";
 import { ExportHouseholdsButton } from "@/components/households/export-households-button";
 import { HouseholdTable } from "@/components/households/household-table";
@@ -8,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { DEFAULT_PAGE_SIZE } from "@/lib/member-list";
+import { HOUSEHOLD_STATUS_LABELS } from "@/lib/household-status";
+
+const HOUSEHOLD_STATUS_VALUES: HouseholdStatus[] = ["active", "inactive"];
+
+function isHouseholdStatus(value: string): value is HouseholdStatus {
+  return (HOUSEHOLD_STATUS_VALUES as string[]).includes(value);
+}
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -25,12 +33,15 @@ export default async function HouseholdsPage({
 }) {
   const params = await searchParams;
   const search = pickParam(params, "search");
+  const statusRaw = pickParam(params, "status");
+  const status = statusRaw && isHouseholdStatus(statusRaw) ? statusRaw : undefined;
   const pageRaw = pickParam(params, "page");
   const parsedPage = pageRaw ? parseInt(pageRaw, 10) : 1;
   const page = Number.isFinite(parsedPage) ? parsedPage : 1;
 
   const result = await getHouseholds({
     search,
+    status,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
   });
@@ -65,10 +76,26 @@ export default async function HouseholdsPage({
               defaultValue={search ?? ""}
             />
           </div>
+          <div className="min-w-[160px] space-y-2">
+            <Label htmlFor="household-status">Trạng thái</Label>
+            <select
+              id="household-status"
+              name="status"
+              defaultValue={status ?? ""}
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]"
+            >
+              <option value="">Tất cả</option>
+              {HOUSEHOLD_STATUS_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {HOUSEHOLD_STATUS_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </div>
           <Button type="submit" icon={SearchIcon}>Tìm</Button>
-          {search && (
+          {(search || status) && (
             <Button type="button" variant="outline" asChild icon={CancelIcon}>
-              <a href="/households">Xóa bộ lọc</a>
+              <Link href="/households">Xóa bộ lọc</Link>
             </Button>
           )}
         </div>
@@ -81,6 +108,7 @@ export default async function HouseholdsPage({
         pageSize={result.pageSize}
         totalPages={result.totalPages}
         search={search}
+        status={status}
       />
     </div>
   );
