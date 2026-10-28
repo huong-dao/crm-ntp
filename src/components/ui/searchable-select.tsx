@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, normalizeSearchText } from "@/lib/utils";
 
 export type SearchableSelectOption = {
   value: string;
@@ -45,10 +45,10 @@ export function SearchableSelect({
   const selected = options.find((option) => option.value === value);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query.trim());
     if (!q) return options;
     return options.filter((option) => {
-      const haystack = (option.searchText ?? option.label).toLowerCase();
+      const haystack = normalizeSearchText(option.searchText ?? option.label);
       return haystack.includes(q);
     });
   }, [options, query]);

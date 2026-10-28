@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, normalizeSearchText } from "@/lib/utils";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 
 type MultiSearchableSelectProps = {
@@ -39,11 +39,11 @@ export function MultiSearchableSelect({
   const selectedOptions = options.filter((option) => values.includes(option.value));
 
   const available = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query.trim());
     return options.filter((option) => {
       if (values.includes(option.value)) return false;
       if (!q) return true;
-      const haystack = (option.searchText ?? option.label).toLowerCase();
+      const haystack = normalizeSearchText(option.searchText ?? option.label);
       return haystack.includes(q);
     });
   }, [options, query, values]);
