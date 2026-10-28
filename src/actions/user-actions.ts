@@ -108,7 +108,6 @@ export async function getMemberLinkOptions(): Promise<MemberLinkOption[]> {
   return prisma.member.findMany({
     select: { id: true, code: true, fullName: true },
     orderBy: { fullName: "asc" },
-    take: 1000,
   });
 }
 
